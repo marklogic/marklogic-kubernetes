@@ -1,0 +1,15 @@
+annotations:
+  category: Database
+apiVersion: v2
+name: marklogic
+description: MarkLogic Server is a multi-model database that has both NoSQL and trusted enterprise data management capabilities.
+appVersion: "10.0-7.3"
+type: application
+keywords:
+  - marklogic
+  - database
+  - nosql
+sources:
+  - https://github.com/marklogic/marklogic-kubernetes
+  - https://www.marklogic.com/
+version: 0.1.0
