@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marklogic-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marklogic.labels" . | nindent 4 }}
+data:
+  ML_BOOTSTRAP_HOST: "marklogic-0"
+  DOMAIN_SUFFIX: "ml-headless.marklogic.svc.cluster.local"
+  

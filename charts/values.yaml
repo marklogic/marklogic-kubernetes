@@ -1,0 +1,18 @@
+# Default values for marklogic server.
+
+replicaCount: 1
+
+image:
+  repository: store/marklogicdb/marklogic-server:10.0-8.1-centos-1.0.0-ea2
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+
+
+auth:
+  rootUsername: admin
+  rootPassword: admin
+
+persistence:
+  storageClass: gp2
+  size: 10Gi
