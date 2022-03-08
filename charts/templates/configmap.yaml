@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: marklogic-config
+  name: {{ include "marklogic.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}

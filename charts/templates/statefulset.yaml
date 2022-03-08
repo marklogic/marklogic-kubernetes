@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: marklogic
+  name: {{ include "marklogic.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}

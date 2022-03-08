@@ -3,7 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: marklogic-service-reader
+  name: {{ include "marklogic.fullname" . }}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
 rules:
