@@ -1,15 +1,25 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "marklogic.fullname" . }}
-  namespace: {{ .Values.namespace}}
+  name: {{ printf "%s-headless" (include "marklogic.fullname" .) }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
 spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
   selector:
     {{- include "marklogic.selectorLabels" . | nindent 4 }}
-  type: ClusterIP
   ports:
+    - protocol: TCP
+      name: health-check
+      port: 7997
+    - protocol: TCP
+      name: foreign-bind
+      port: 7998
+    - protocol: TCP
+      name: bind
+      port: 7999
     - protocol: TCP
       name: query-console
       port: 8000
