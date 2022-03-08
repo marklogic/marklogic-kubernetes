@@ -16,7 +16,7 @@ spec:
       labels:
       {{- include "marklogic.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccount: marklogic-sa
+      serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
       containers:
         - name: marklogic
           image: {{ .Values.image.repository}}
