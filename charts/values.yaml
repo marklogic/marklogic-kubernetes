@@ -1,22 +1,22 @@
 # Default values for marklogic server.
 
+# Number of Marklogic nodes
 replicaCount: 1
 
+# Marklogic image parameters
 image:
-  repository: store/marklogicdb/marklogic-server:10.0-8.1-centos-1.0.0-ea2
+  repository: store/marklogicdb/marklogic-server
+  tag: 10.0-8.1-centos-1.0.0-ea2
   pullPolicy: IfNotPresent
+  imagePullSecrets: 
+    - name: regcred
 
 nameOverride: ""
 
-
+# Configure Marklogic Admin Username and Password
 auth:
-  rootUsername: admin
-  rootPassword: admin
-
-persistence:
-  storageClass: gp2
-  size: 10Gi
-
+  adminUsername: admin
+  adminPassword: admin
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -26,3 +26,59 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
+
+# Configure options for liveness probe
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 60
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Configure options for readiness probe
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 60
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Configure options for startup probe
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 1
+  failureThreshold: 30
+  successThreshold: 1
+
+# Marklogic pods' resource requests and limits
+# ref: https://kubernetes.io/docs/user-guide/compute-resources/
+resources:
+  requests:
+    memory: "3000Mi"
+    cpu: "1000m"
+  limits:
+    memory: "3000Mi"
+    cpu: "1000m"
+
+# Configure persistence using persistent Volume Claim
+# ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+persistence:
+  enabled: true
+  storageClass: gp2
+  size: 10Gi
+  annotations: {}
+  accessModes:
+    - ReadWriteOnce
+  mountPath: /var/opt/MarkLogic
+
+dnsConfig:
+  enabled: true
+  searches:
+    - marklogic-headless.marklogic.svc.cluster.local
