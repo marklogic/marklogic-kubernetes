@@ -154,7 +154,7 @@ spec:
       {{- if .Values.dnsConfig.enabled }}
       dnsConfig:
         searches:
-          {{- range .Values.persistence.accessModes }}
+          {{- range .Values.dnsConfig.searches }}
           - {{ . | quote}}
           {{- end }}      {{- end}}
       imagePullSecrets:
