@@ -1,7 +1,8 @@
+{{- if .Values.ingress.external.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "marklogic.fullname" . }}-internal
+  name: {{ include "marklogic.fullname" . }}-external
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
@@ -10,28 +11,22 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-name: "route"
     nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
     nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   defaultBackend:
     service:
-      name: ml-service
+      name: {{ include "marklogic.fullname" . }}
       port:
         number: 8001
-  ingressClassName: internal-nginx
+  ingressClassName: {{ .Values.ingress.external.className }}
   rules:
-  - host: demo.marklogicsvc.com
-    http:
+  - http:
       paths:
-      - path: /qconsole
+      - path: /
         pathType: Prefix
         backend:
           service:
-            name: ml-service
+            name: {{ include "marklogic.fullname" . }}
             port:
-              number: 8000
-      - path: /manage
-        pathType: Prefix
-        backend:
-          service:
-            name: ml-service
-            port:
-              number: 8002
+              number: 8001
+{{- end }}

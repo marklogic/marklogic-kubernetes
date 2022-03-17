@@ -27,5 +27,26 @@ helm uninstall RELEASE_NAME
 ```
 
 
+## Install Nginx Ingress Controller
 
+### Create Internal Ingress
 
+```
+helm upgrade --install ingress-nginx-internal ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx-internal --create-namespace \
+  --set controller.ingressClassResource.name=ingress-internal \
+  --set controller.service.external.enabled=false \
+  --set controller.service.internal.enable=true \
+  --set controller.service.internal.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-internal"=true
+```
+
+### Create External Ingress
+```
+helm upgrade --install ingress-nginx-external ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx-external --create-namespace \
+  --set controller.ingressClassResource.name=ingress-external \
+  --set controller.service.external.enabled=true \
+  --set controller.service.internal.enable=false
+```

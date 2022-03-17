@@ -82,3 +82,11 @@ dnsConfig:
   enabled: true
   searches:
     - marklogic-headless.marklogic.svc.cluster.local
+
+ingress:
+  external:
+    enabled: false
+    className: ingress-external
+  internal:
+    enabled: true
+    className: ingress-internal
