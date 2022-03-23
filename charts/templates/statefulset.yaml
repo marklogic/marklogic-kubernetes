@@ -156,9 +156,12 @@ spec:
         searches:
           {{- range .Values.dnsConfig.searches }}
           - {{ . | quote}}
-          {{- end }}      {{- end}}
+          {{- end }}
+      {{- end}}
+      {{- if .Values.imagePullSecret }}
       imagePullSecrets:
-        - name: regcred
+        - name: {{ include "marklogic.fullname" . }}-registry
+      {{- end }}
       {{- if not .Values.persistence.enabled }}
       volumes:
         - name: data
