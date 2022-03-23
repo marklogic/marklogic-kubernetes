@@ -6,7 +6,7 @@ replicaCount: 1
 # Marklogic image parameters
 image:
   repository: store/marklogicdb/marklogic-server
-  tag: 10.0-8.1-centos-1.0.0-ea2
+  tag: 10.0-8.3-centos-1.0.0-ea3
   pullPolicy: IfNotPresent
 
 imagePullSecret: {}
