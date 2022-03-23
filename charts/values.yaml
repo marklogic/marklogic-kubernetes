@@ -8,8 +8,12 @@ image:
   repository: store/marklogicdb/marklogic-server
   tag: 10.0-8.1-centos-1.0.0-ea2
   pullPolicy: IfNotPresent
-  imagePullSecrets: 
-    - name: regcred
+
+imagePullSecret: {}
+  ## docker hub registry: https://index.docker.io/v1/
+  # registry: "https://index.docker.io/v1/"
+  # username: "your username"
+  # password: "your password"
 
 nameOverride: ""
 
