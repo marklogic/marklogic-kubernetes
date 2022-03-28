@@ -111,7 +111,7 @@ Events:
   Normal   Started    13m   kubelet            Started container marklogic
   Warning  Unhealthy  13m   kubelet            Startup probe failed: ls: cannot access /var/opt/MarkLogic/ready: No such file or directory
 ```
-Note here its ok that the startup probe failed once, the probe will poll a few times. 
+Note here it's ok that the startup probe failed once, the probe will poll a few times. 
 
 -----
 
