@@ -97,7 +97,7 @@ The below command gives additional information on the state of each pod in a clu
 ```sh
 kubectl describe pods
 ```
-The output of this command is large and contains a lot of information pay attention to the bottom events section to see the state of events and what occured during the startup of the pod. 
+The output of this command is large and contains a lot of information pay attention to the bottom events section to see the state of events and what occurred during the startup of the pod. 
 EX: 
 
 ```
