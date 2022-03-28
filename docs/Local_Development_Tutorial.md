@@ -85,7 +85,7 @@ kubectl port-forward marklogic-0 8001 8000 7997
  --  If you want to forward other ports just append them to the command separated by a space
 
 - Finally access your browser and navigate to `localhost:8001` and you should see the MarkLogic Server Admin Interface
-  -- If your unable to see the MarkLogic Server Admin Interface interface proceed to the debugging section to gather more information on the cluster and potential errors. 
+  -- If you're unable to see the MarkLogic Server Admin Interface interface proceed to the debugging section to gather more information on the cluster and potential errors. 
 
 - Proceed to the [Cleanup](##Cleanup) section in order to teardown the cluster when finished 
 
