@@ -22,14 +22,14 @@ This tutorial serves as a guide for local development setup with Minikube and Ma
 ## Prerequisites
 The following assumes you are running this tutorial from a desktop environment, mobile environments will likely experience problems and may not work
 - [Docker](https://docs.docker.com/engine/install/)
-  -- Subscribe and pulldown the latest image from: https://hub.docker.com/_/marklogic
+  - Subscribe and pulldown the latest image from: https://hub.docker.com/_/marklogic
   ```sh
   # Something similar to this, with the latest version tag, which can be found on the dockerhub link above
   docker pull store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4 
   ```
 - [KubeCTL](https://kubernetes.io/docs/tasks/tools/)
 - [HELM](https://helm.sh/docs/intro/install/)
-  -- Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
+  - Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
 - [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/)
 - If running on Mac OSX: [Virtual Box](https://www.virtualbox.org/)
 - A supported [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
@@ -40,7 +40,7 @@ Below is the procedure for setting up Minikube, installing MarkLogic, and verify
 
 ## Setting Up minikube
 - Start minikube: `minikube start --driver=virtualbox`
-  -- If running in Linux: `minikube start --driver=docker`
+  - If running in Linux: `minikube start --driver=docker`
 To verify the minikube started correctly run the following command: 
 ```sh
 kubectl get nodes
@@ -54,16 +54,16 @@ minikube   Ready    control-plane,master   1d    v1.23.3
 - Enable Addons: `minikube addons enable ingress` for ingress
 ##  Installing a Single MarkLogic Host to minikube
 - Push the image used for ML to the VM: `minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`
-  -- The above Image ID: `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is whatever the latest image is, to find the latest id go to https://hub.docker.com/_/marklogic
+  - The above Image ID: `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is whatever the latest image is, to find the latest id go to https://hub.docker.com/_/marklogic
 - Navigate to where you downloaded or cloned the MarkLogic helm repository 
-  -- Verify the image loaded to minikube above matches the `repository` and `tag` in the `values.yaml` 
+  - Verify the image loaded to minikube above matches the `repository` and `tag` in the `values.yaml` 
   ```YAML
   image:
     repository: store/marklogicdb/marklogic-server
     tag: 10.0-9-centos-1.0.0-ea4
   ```
-  -- Navigate to the `/charts` folder
-  -- Run `helm install RELEASE_NAME .` Where the `RELEASE_NAME` can be anything you want to identify this deployment EX: `helm install marklogic-local-dev-env .`
+  - Navigate to the `/charts` folder
+  - Run `helm install RELEASE_NAME .` Where the `RELEASE_NAME` can be anything you want to identify this deployment EX: `helm install marklogic-local-dev-env .`
 ## Installing Multiple MarkLogic Hosts to Minikube
 TODO
 
@@ -82,10 +82,10 @@ It may take a minute or two.
 ```sh
 kubectl port-forward marklogic-0 8001 8000 7997
 ```
- --  If you want to forward other ports just append them to the command separated by a space
+ -  If you want to forward other ports just append them to the command separated by a space
 
 - Finally access your browser and navigate to `localhost:8001` and you should see the MarkLogic Server Admin Interface
-  -- If you're unable to see the MarkLogic Server Admin Interface interface proceed to the debugging section to gather more information on the cluster and potential errors. 
+  - If you're unable to see the MarkLogic Server Admin Interface interface proceed to the debugging section to gather more information on the cluster and potential errors. 
 
 - Proceed to the [Cleanup](##Cleanup) section in order to teardown the cluster when finished 
 
