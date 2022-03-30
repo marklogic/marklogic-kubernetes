@@ -12,4 +12,4 @@ keywords:
 sources:
   - https://github.com/marklogic/marklogic-kubernetes
   - https://www.marklogic.com/
-version: 1.0.0-alpha.1
+version: 0.1.0
