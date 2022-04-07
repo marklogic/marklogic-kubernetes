@@ -3,7 +3,7 @@ annotations:
 apiVersion: v2
 name: marklogic
 description: MarkLogic Server is a multi-model database that has both NoSQL and trusted enterprise data management capabilities.
-appVersion: "10.0-8.3"
+appVersion: "10.0-9"
 type: application
 keywords:
   - marklogic
