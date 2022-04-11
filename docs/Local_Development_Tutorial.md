@@ -50,7 +50,7 @@ First you will need to set up the Kubernetes control plan on your local machine.
 
 To verify the Minikube started correctly, use the Kubernetes command line tool, KubeCTL:  
 
-``sh
+```sh
 kubectl get nodes
 ```
 ```
