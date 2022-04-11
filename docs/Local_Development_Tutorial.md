@@ -59,17 +59,17 @@ minikube   Ready    control-plane,master   1d    v1.23.3
 ##  Installing a Single MarkLogic Host to Minikube
 - Push the image used for MarkLogic Server to the VM:  
 `minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`
-  - For the image ID in this example,`store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is what the latest image is. To find the latest id go to https://hub.docker.com/_/marklogic
+  For the image ID in this example,`store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is what the latest image is. To find the latest id go to https://hub.docker.com/_/marklogic
 - Navigate to where you downloaded or cloned the MarkLogic Helm repository.
-  - Verify that the image loaded to Minikube with the comand above matches the `repository` and `tag` in the `values.yaml`.
+  Verify that the image loaded to Minikube with the comand above matches the `repository` and `tag` in the `values.yaml`.
   ```YAML
   image:
     repository: store/marklogicdb/marklogic-server
     tag: 10.0-9-centos-1.0.0-ea4
   ```
-  - Navigate to the `/charts` folder in your local directory. 
-  - Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.   
-  For example: `helm install marklogic-local-dev-env .`.
+  Navigate to the `/charts` folder in your local directory. 
+  Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.   
+  For example: `helm install marklogic-local-dev-env .`
 ## Installing Multiple MarkLogic Hosts to Minikube
 TODO
 
