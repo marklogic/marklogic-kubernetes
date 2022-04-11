@@ -71,7 +71,7 @@ minikube   Ready    control-plane,master   1d    v1.23.3
   Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.   
   For example: `helm install marklogic-local-dev-env .`
 ## Installing Multiple MarkLogic Hosts to Minikube
-TODO
+To create a MarkLogic cluster in Minikube change the `replicaCount` in the `values.yaml` file to 3 or some other odd number. Then follow the procedure outlined in the [Installing a Single MarkLogic Host to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube) section. 
 
 ## Verifying the Installation
 - After the installation is complete, verify the status of the deployment to the cluster with this command:
