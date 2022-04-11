@@ -4,8 +4,8 @@
 * [Introduction](#Introduction)
 * [Prerequisites](##Prerequisites)
 * [Procedure](#Procedure)
-* [Setting Up minikube](##Setting-Up-minikube)
-* [Installing MarkLogic to minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube)
+* [Setting Up Minikube](##Setting-Up-Minikube)
+* [Installing MarkLogic to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube)
 * [Verifying the Installation](##Verifying-the-Installation)
 * [Debugging](#Debugging)
 * [Cleanup](#Cleanup)
@@ -15,8 +15,8 @@ This tutorial describes how to set up local Kubernetes development environment w
 - Set up the prerequisites necessary for local development using MarkLogic Server in Kubernetes 
 - How to run Minikube and load MarkLogic Server into the Kubernetes cluster 
 - Access the MarkLogic Server cluster
-- How to Debug the Kubernetes environment 
-- How to Clean up your environment
+- How to debug the Kubernetes environment 
+- How to clean up your environment
 
 
 ## Prerequisites
@@ -28,12 +28,12 @@ The following steps assume you are running this tutorial from a desktop environm
   docker pull store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4 
   ```
 - [KubeCTL](https://kubernetes.io/docs/tasks/tools/)
-  - Download and install this tool to assit with debugging in a Kubernetes environment. 
+  - Download and install this tool to assist with debugging in a Kubernetes environment. 
 - [HELM](https://helm.sh/docs/intro/install/)
   - Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
 - [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/)
 - If you are running on Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/)
-  - Virtual Box is used as the VM for the Minikube Kubernetes environment which will host the MarkLogic Server Application
+  - Virtual Box is used as the VM for the Minikube Kubernetes environment, which will host the MarkLogic Server Application.
 - The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
 
 
@@ -42,12 +42,15 @@ This section describes the procedure for setting up Minikube, installing MarkLog
 
 
 ## Setting Up Minikube
-First we need to setup the Kubernetes control plane on our local machine, Minikube is an easy tool which handles setting up a Kubernetes enviornment locally. 
+First you will need to set up the Kubernetes control plan on your local machine. Minikube is a tool that makes it easy to set up a local Kubernetes enviornment.
 
-- Start Minikube: `minikube start --driver=virtualbox`
-  - If you are running in a Linux OS: `minikube start --driver=docker`
-To verify the minikube started correctly we can use the Kubernetes command line tool, KubeCTL: 
-```sh
+- Start Minikube:   
+  `minikube start --driver=virtualbox`
+  - If you are running in a Linux OS: `minikube start --driver=docker`  
+
+To verify the Minikube started correctly, use the Kubernetes command line tool, KubeCTL:  
+
+``sh
 kubectl get nodes
 ```
 ```
@@ -56,10 +59,13 @@ NAME       STATUS   ROLES                  AGE   VERSION
 minikube   Ready    control-plane,master   1d    v1.23.3
 ```
 
-- Enable Addons: `minikube addons enable ingress` for ingress.
-##  Installing a Single MarkLogic Host to minikube
-- Push the image used for MarkLogic Server to the VM: `minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`
-  - The above Image ID: `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is whatever the latest image is, to find the latest id go to https://hub.docker.com/_/marklogic
+- Enable Addons:  
+`minikube addons enable ingress`  
+ for ingress.
+##  Installing a Single MarkLogic Host to Minikube
+- Push the image used for MarkLogic Server to the VM:  
+`minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`
+  - For the image ID in this example,`store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is what the latest image is. To find the latest id go to https://hub.docker.com/_/marklogic
 - Navigate to where you downloaded or cloned the MarkLogic Helm repository.
   - Verify that the image loaded to Minikube with the comand above matches the `repository` and `tag` in the `values.yaml`.
   ```YAML
@@ -68,7 +74,8 @@ minikube   Ready    control-plane,master   1d    v1.23.3
     tag: 10.0-9-centos-1.0.0-ea4
   ```
   - Navigate to the `/charts` folder in your local directory. 
-  - Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment. For example: `helm install marklogic-local-dev-env .`.
+  - Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.   
+  For example: `helm install marklogic-local-dev-env .`.
 ## Installing Multiple MarkLogic Hosts to Minikube
 TODO
 
@@ -87,7 +94,7 @@ This process may take a minute or two.
 ```sh
 kubectl port-forward marklogic-0 8001 8000 7997
 ```
- If you want to forward other ports just append them to the command separated by a space
+ If you want to forward other ports, just append them to the command separated by a space.  
 For example: 
 
 ```sh
@@ -96,9 +103,9 @@ kubectl port-forward marklogic-0 8001 8000 7997 7996
 
 
 - To complete this step, access your browser and navigate to `localhost:8001`. You should see the MarkLogic Server Admin interface.
-If you are unable to see the MarkLogic Server Admin Interface, see the Debugging section to gather more information about the cluster and potential errors. 
+If you are unable to see the MarkLogic Server Admin interface, see the [Debugging](#Debugging) section to gather more information about the cluster and potential errors. 
 
-- When you are finished, see the [Cleanup](##Cleanup) section in order to teardown the cluster when finished 
+- When you are done, see the [Cleanup](##Cleanup) section in order to teardown the cluster when done. 
 
 # Debugging
 This Debugging section contains useful commands to help debug a Kubernetes cluster running MarkLogic Server. Additional information and commands can be found here: https://kubernetes.io/docs/tasks/debug-application-cluster/debug-running-pod/
@@ -109,7 +116,7 @@ This command provides additional information about the state of each pod in the 
 kubectl describe pods
 ```
 The command outputs a large amount of data and contains a lot of information. Pay attention to the events section near the bottom of the output to view the state of events, and what occurred during the startup of the pod.  
-EX: 
+For Example:
 
 ```
 ...
@@ -126,13 +133,13 @@ Events:
 
 -----
 
-Run the following command to see the logs on a specific pod:
+Run the following command to see the logs for a specific pod:
 ```sh
 kubectl logs {POD_NAME} 
 ```
 The `{POD_NAME}` can be found with the `kubectl get pods` command. 
 
-Example Output: 
+Example output: 
 
 ```
 2022-03-28 16:53:00.127 Info: Memory 4% phys=5812 size=536(9%) rss=275(4%) anon=205(3%) file=9(0%) forest=853(14%) cache=1920(33%) registry=1(0%)
@@ -143,14 +150,14 @@ Example Output:
 
 -----
 
-Run the following command to see the logs on a specific pod : 
+Run the following command to see the logs for a specific pod : 
 
 ```sh
 kubectl exec --stdin --tty {POD_NAME} -- /bin/bash
 ```
 The `{POD_NAME}` can be found with the `kubectl get pods` command.
 
-For Example:
+For example:
 ```sh
 > kubectl exec --stdin --tty marklogic-0 -- /bin/bash
 [marklogic_user@marklogic-0 /]$ 
@@ -158,8 +165,9 @@ For Example:
 
 # Cleanup 
 To cleanup a running kubernetes cluster, run the following commands:
-- `helm uninstall <deployment_name>` 
-  For Example: `helm uninstall marklogic-local-dev-env`
+- `helm uninstall <deployment_name>`   
+  For Example:   
+  `helm uninstall marklogic-local-dev-env`
 - `minikube delete`
 
 
