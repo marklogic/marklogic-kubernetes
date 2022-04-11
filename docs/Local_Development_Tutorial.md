@@ -1,4 +1,4 @@
-# Local Development Tutorial: Getting Started with Kubernetes in MarkLogic 
+# Local Development Tutorial: Getting Started with MarkLogic in Kubernetes
 
 # Table of contents
 * [Introduction](#Introduction)
