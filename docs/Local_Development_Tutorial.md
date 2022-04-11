@@ -21,19 +21,15 @@ This tutorial describes how to set up local Kubernetes development environment w
 
 ## Prerequisites
 The following steps assume you are running this tutorial from a desktop environment. Mobile environments will likely experience problems and may not work.
-- [Docker](https://docs.docker.com/engine/install/)
-  - Subscribe to Docker Hub and pulldown the latest image from: https://hub.docker.com/_/marklogic
+- [Docker](https://docs.docker.com/engine/install/) Subscribe to Docker Hub and pulldown the latest image from: https://hub.docker.com/_/marklogic
   ```sh
   # Something similar to this, with the latest version tag, which can be found on the dockerhub link above
   docker pull store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4 
   ```
-- [KubeCTL](https://kubernetes.io/docs/tasks/tools/)
-  - Download and install this tool to assist with debugging in a Kubernetes environment. 
-- [HELM](https://helm.sh/docs/intro/install/)
-  - Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
+- [KubeCTL](https://kubernetes.io/docs/tasks/tools/)  Download and install this tool to assist with debugging in a Kubernetes environment. 
+- [HELM](https://helm.sh/docs/intro/install/)  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
 - [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/)
-- If you are running on Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/)
-  - Virtual Box is used as the VM for the Minikube Kubernetes environment, which will host the MarkLogic Server application.
+- If you are running on Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/) Virtual Box is used as the VM for the Minikube Kubernetes environment, which will host the MarkLogic Server application.
 - The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
 
 
@@ -42,11 +38,10 @@ This section describes the procedure for setting up Minikube, installing MarkLog
 
 
 ## Setting Up Minikube
-First you will need to set up the Kubernetes control plan on your local machine. Minikube is a tool that makes it easy to set up a local Kubernetes enviornment.
+First you will need to set up the Kubernetes control plane on your local machine. Minikube is a tool that makes it easy to set up a local Kubernetes enviornment.
 
-- Start Minikube:   
-  `minikube start --driver=virtualbox`
-  - If you are running in a Linux OS: `minikube start --driver=docker`  
+- Start Minikube: `minikube start --driver=virtualbox`
+ If you are running in a Linux OS: `minikube start --driver=docker`  
 
 To verify the Minikube started correctly, use the Kubernetes command line tool, KubeCTL:  
 
@@ -59,9 +54,8 @@ NAME       STATUS   ROLES                  AGE   VERSION
 minikube   Ready    control-plane,master   1d    v1.23.3
 ```
 
-- Enable Addons:  
-`minikube addons enable ingress`  
- for ingress.
+ To enable addons run the follow Minikube command for ingress:     
+ `minikube addons enable ingress`  
 ##  Installing a Single MarkLogic Host to Minikube
 - Push the image used for MarkLogic Server to the VM:  
 `minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`
