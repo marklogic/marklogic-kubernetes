@@ -99,7 +99,7 @@ kubectl port-forward marklogic-0 8001 8000 7997 7996 7888 1234 1337
 - To complete this step, access your browser and navigate to `localhost:8001`. You should see the MarkLogic Server Admin interface.
 If you are unable to see the MarkLogic Server Admin interface, see the [Debugging](#Debugging) section to gather more information about the cluster and potential errors. 
 
-- When you are done, see the [Cleanup](##Cleanup) section in order to teardown the cluster when done. 
+- When you are done, see the [Cleanup](#Cleanup) section in order to teardown the cluster when done. 
 
 # Debugging
 This Debugging section contains useful commands to help debug a Kubernetes cluster running MarkLogic Server. Additional information and commands can be found here: https://kubernetes.io/docs/tasks/debug-application-cluster/debug-running-pod/
