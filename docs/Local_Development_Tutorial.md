@@ -57,9 +57,9 @@ minikube   Ready    control-plane,master   1d    v1.23.3
  To enable addons run the follow Minikube command for ingress:     
  `minikube addons enable ingress`  
 ##  Installing a Single MarkLogic Host to Minikube
-- Push the image used for MarkLogic Server to the VM:  
-`minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`
-  For the image ID in this example,`store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4` is what the latest image is. To find the latest id go to https://hub.docker.com/_/marklogic
+- Push the image used for MarkLogic Server to the VM:   
+`minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`  
+  The image ID used in the example is `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`, which may not be the latest image. To find the latest ID go to https://hub.docker.com/_/marklogic  
 - Navigate to where you downloaded or cloned the MarkLogic Helm repository.
   Verify that the image loaded to Minikube with the comand above matches the `repository` and `tag` in the `values.yaml`.
   ```YAML
