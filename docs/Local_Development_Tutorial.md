@@ -29,7 +29,7 @@ The following steps assume you are running this tutorial from a desktop environm
 - [KubeCTL](https://kubernetes.io/docs/tasks/tools/)  Download and install this tool to assist with debugging in a Kubernetes environment. 
 - [HELM](https://helm.sh/docs/intro/install/)  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
 - [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/)
-- If you are running on Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/) Virtual Box is used as the VM for the Minikube Kubernetes environment, which will host the MarkLogic Server application.
+- If you are running in Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/) Virtual Box is used as the VM for the Minikube Kubernetes environment, which will host the MarkLogic Server application.
 - The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
 
 
