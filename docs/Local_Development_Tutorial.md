@@ -92,7 +92,7 @@ kubectl port-forward marklogic-0 8001 8000 7997
 For example: 
 
 ```sh
-kubectl port-forward marklogic-0 8001 8000 7997 7996
+kubectl port-forward marklogic-0 8001 8000 7997 7996 7888 1234 1337
 ```
 
 
