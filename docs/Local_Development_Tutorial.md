@@ -6,6 +6,7 @@
 * [Procedure](#Procedure)
 * [Setting Up Minikube](##Setting-Up-Minikube)
 * [Installing MarkLogic to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube)
+* [Installing Multiple MarkLogic Hosts to Minikube](##Installing-Multiple-MarkLogic-Hosts-to-Minikube)
 * [Verifying the Installation](##Verifying-the-Installation)
 * [Debugging](#Debugging)
 * [Cleanup](#Cleanup)
@@ -71,7 +72,7 @@ minikube   Ready    control-plane,master   1d    v1.23.3
   Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.   
   For example: `helm install marklogic-local-dev-env .`
 ## Installing Multiple MarkLogic Hosts to Minikube
-To create a MarkLogic cluster in Minikube change the `replicaCount` in the `values.yaml` file to 3 or some other odd number. Then follow the procedure outlined in the [Installing a Single MarkLogic Host to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube) section. 
+To create a MarkLogic cluster in Minikube, change the `replicaCount` in the `values.yaml` file to 3, or any other odd number to avoid the [split brain problem](https://help.marklogic.com/Knowledgebase/Article/View/119/0/start-up-quorum-and-forest-level-failover). Then follow the procedure outlined in the [Installing a Single MarkLogic Host to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube) section. 
 
 ## Verifying the Installation
 - After the installation is complete, verify the status of the deployment to the cluster with this command:
