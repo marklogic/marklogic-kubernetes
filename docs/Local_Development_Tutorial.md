@@ -22,16 +22,16 @@ This tutorial describes how to set up local Kubernetes development environment w
 
 ## Prerequisites
 The following steps assume you are running this tutorial from a desktop environment. Mobile environments will likely experience problems and may not work.
-- [Docker](https://docs.docker.com/engine/install/) Subscribe to Docker Hub and pulldown the latest image from: https://hub.docker.com/_/marklogic
+- [Docker](https://docs.docker.com/engine/install/): Subscribe to Docker Hub and pulldown the latest image from: https://hub.docker.com/_/marklogic
   ```sh
   # Something similar to this, with the latest version tag, which can be found on the dockerhub link above
   docker pull store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4 
   ```
-- [KubeCTL](https://kubernetes.io/docs/tasks/tools/)  Download and install this tool to assist with debugging in a Kubernetes environment. 
-- [HELM](https://helm.sh/docs/intro/install/)  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
-- [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/)
-- If you are running in Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/) Virtual Box is used as the VM for the Minikube Kubernetes environment, which will host the MarkLogic Server application.
-- The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
+- [KubeCTL](https://kubernetes.io/docs/tasks/tools/):  Download and install this tool to assist with debugging in a Kubernetes environment. 
+- [Helm](https://helm.sh/docs/intro/install/):  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
+- [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/): Minikube Kubernetes environment, which will host the MarkLogic Server application.
+- Mac OSX VM: If you are running in Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/) the VM used inside of Minikube. 
+- Browser: The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
 
 
 # Procedure 
@@ -100,7 +100,7 @@ kubectl port-forward marklogic-0 8001 8000 7997 7996 7888 1234 1337
 - To complete this step, access your browser and navigate to `localhost:8001`. You should see the MarkLogic Server Admin interface.
 If you are unable to see the MarkLogic Server Admin interface, see the [Debugging](#Debugging) section to gather more information about the cluster and potential errors. 
 
-- When you are done, see the [Cleanup](#Cleanup) section in order to teardown the cluster when done. 
+- See the [Cleanup](#Cleanup) section in order to teardown the cluster when you are finished. 
 
 # Debugging
 This Debugging section contains useful commands to help debug a Kubernetes cluster running MarkLogic Server. Additional information and commands can be found here: https://kubernetes.io/docs/tasks/debug-application-cluster/debug-running-pod/
