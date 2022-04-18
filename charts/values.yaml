@@ -15,7 +15,22 @@ imagePullSecret: {}
   # username: "your username"
   # password: "your password"
 
+# 1. re arrange 
+
+# 2. provide example values.yaml in doc
+
+  # Marklogic pods' resource requests and limits
+# ref: https://kubernetes.io/docs/user-guide/compute-resources/
+# requests:
+#   memory: "3000Mi"
+#   cpu: "1000m"
+# limits:
+#   memory: "3000Mi"
+#   cpu: "1000m"
+resources: {}
+
 nameOverride: ""
+fullnameOverride: ""
 
 # Configure Marklogic Admin Username and Password
 auth:
@@ -61,15 +76,7 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-# Marklogic pods' resource requests and limits
-# ref: https://kubernetes.io/docs/user-guide/compute-resources/
-# requests:
-#   memory: "3000Mi"
-#   cpu: "1000m"
-# limits:
-#   memory: "3000Mi"
-#   cpu: "1000m"
-resources: {}
+
 
 
 # Configure persistence using persistent Volume Claim
@@ -83,10 +90,6 @@ persistence:
     - ReadWriteOnce
   mountPath: /var/opt/MarkLogic
 
-dnsConfig:
-  enabled: true
-  searches:
-    - marklogic-headless.marklogic.svc.cluster.local
 
 ingress:
   external:

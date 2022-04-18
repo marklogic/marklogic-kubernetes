@@ -26,6 +26,21 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+Create headless service name for statefulset
+*/}}
+{{- define "marklogic.headlessServiceName" -}}
+{{- printf "%s-headless" (include "marklogic.fullname" .) }}
+{{- end}}
+
+
+{{/*
+Create dns search entry
+*/}}
+{{- define "marklogic.dnsSearch" -}}
+{{- printf "%s.%s.svc.cluster.local" (include "marklogic.headlessServiceName" .) .Release.Namespace }}
+{{- end}}
+
+{{/*
 Common labels
 */}}
 {{- define "marklogic.labels" -}}

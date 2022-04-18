@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
 spec:
-  serviceName: {{ include "marklogic.fullname" . }}-headless
+  serviceName: {{ include "marklogic.headlessServiceName" . }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -151,13 +151,9 @@ spec:
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if .Values.dnsConfig.enabled }}
       dnsConfig:
         searches:
-          {{- range .Values.dnsConfig.searches }}
-          - {{ . | quote}}
-          {{- end }}
-      {{- end}}
+          - {{ include "marklogic.dnsSearch" . }}
       {{- if .Values.imagePullSecret }}
       imagePullSecrets:
         - name: {{ include "marklogic.fullname" . }}-registry
