@@ -63,7 +63,7 @@ minikube   Ready    control-plane,master   1d    v1.23.3
   `helm repo add marklogic https://github.com/marklogic/marklogic-kubernetes`  
   Additionally create a `values.yaml` file for your installation, like the one found in the repository under `/charts`: https://github.com/marklogic/marklogic-kubernetes/. The `values.yaml` file controls configuration for MarkLogic Server running in kubernetes. 
   Run `helm install RELEASE_NAME marklogic/marklogic --version=1.0.0-ea1 -f values.yaml` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.    
-  For example: `helm install marklogic-local-dev-env marklogic/marklogic --version=1.0.0-ea1`
+  For example: `helm install marklogic-local-dev-env marklogic/marklogic --version=1.0.0-ea1 -f values.yaml`
 ## Installing Multiple MarkLogic Hosts to Minikube
 To create a MarkLogic cluster in Minikube, change the `replicaCount` in the `values.yaml` file to 3, or any other odd number to avoid the [split brain problem](https://help.marklogic.com/Knowledgebase/Article/View/119/0/start-up-quorum-and-forest-level-failover). Then follow the procedure outlined in the [Installing a Single MarkLogic Host to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube) section. 
 
@@ -141,13 +141,13 @@ Example output:
 Run the following command to see the logs for a specific pod : 
 
 ```sh
-kubectl exec --stdin --tty {POD_NAME} -- /bin/bash
+kubectl exec -it {POD_NAME} -- /bin/bash
 ```
 The `{POD_NAME}` can be found with the `kubectl get pods` command.
 
 For example:
 ```sh
-> kubectl exec --stdin --tty marklogic-0 -- /bin/bash
+> kubectl exec -it marklogic-0 -- /bin/bash
 [marklogic_user@marklogic-0 /]$ 
 ```
 
