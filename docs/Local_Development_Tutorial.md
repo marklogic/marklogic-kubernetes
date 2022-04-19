@@ -29,8 +29,7 @@ The following steps assume you are running this tutorial from a desktop environm
   ```
 - [KubeCTL](https://kubernetes.io/docs/tasks/tools/):  Download and install this tool to assist with debugging in a Kubernetes environment. 
 - [Helm](https://helm.sh/docs/intro/install/):  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
-- [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/): Minikube Kubernetes environment, which will host the MarkLogic Server application.
-- Mac OSX VM: If you are running in Mac OSX, you will need Virtual Box: [Virtual Box](https://www.virtualbox.org/) the VM used inside of Minikube. 
+- [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/): Download the Minikube Kubernetes environment, which will host the MarkLogic Server applications.
 - Browser: The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
 
 
@@ -41,8 +40,7 @@ This section describes the procedure for setting up Minikube, installing MarkLog
 ## Setting Up Minikube
 First you will need to set up the Kubernetes control plane on your local machine. Minikube is a tool that makes it easy to set up a local Kubernetes enviornment.
 
-- Start Minikube: `minikube start --driver=virtualbox`
- If you are running in a Linux OS: `minikube start --driver=docker`  
+- Start Minikube: `minikube start --driver=docker`
 
 To verify the Minikube started correctly, use the Kubernetes command line tool, KubeCTL:  
 
