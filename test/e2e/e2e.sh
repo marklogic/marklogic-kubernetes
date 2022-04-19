@@ -1,16 +1,13 @@
 #!/bin/bash
 
-echo "=====installing kind cluster"
-# kind create cluster --name="kind-test"
+echo "=====Delete minikube cluster"
+minikube delete
 
-echo "=====loading marklogc images to clusters"
-# kind load docker-image store/marklogicdb/marklogic-server:10.0-8.3-centos-1.0.0-ea3
+echo "=====Installing minikube cluster"
+minikube start --driver=docker -n=1
 
-echo "=====Deploying Marklogic to test"
-# helm install marklogic-test ../charts
+echo "=====Loading marklogc images to minikube cluster"
+minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4
 
 echo "=====Running tests"
 go test -v ./test/e2e/...
-
-echo "=====Delete kind cluster"
-# kind delete cluster kind
