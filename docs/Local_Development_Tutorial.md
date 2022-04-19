@@ -59,16 +59,11 @@ minikube   Ready    control-plane,master   1d    v1.23.3
 - Push the image used for MarkLogic Server to the VM:   
 `minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`  
   The image ID used in the example is `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`, which may not be the latest image. To find the latest ID go to https://hub.docker.com/_/marklogic  
-- Navigate to where you downloaded or cloned the MarkLogic Helm repository.
-  Verify that the image loaded to Minikube with the comand above matches the `repository` and `tag` in the `values.yaml`.
-  ```YAML
-  image:
-    repository: store/marklogicdb/marklogic-server
-    tag: 10.0-9-centos-1.0.0-ea4
-  ```
-  Navigate to the `/charts` folder in your local directory. 
-  Run `helm install RELEASE_NAME .` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.   
-  For example: `helm install marklogic-local-dev-env .`
+- Add the helm repository
+  `helm repo add marklogic https://github.com/marklogic/marklogic-kubernetes`  
+  Additionally create a `values.yaml` file for your installation, like the one found in the repository under `/charts`: https://github.com/marklogic/marklogic-kubernetes/. The `values.yaml` file controls configuration for MarkLogic Server running in kubernetes. 
+  Run `helm install RELEASE_NAME marklogic/marklogic --version=1.0.0-ea1 -f values.yaml` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.    
+  For example: `helm install marklogic-local-dev-env marklogic/marklogic --version=1.0.0-ea1`
 ## Installing Multiple MarkLogic Hosts to Minikube
 To create a MarkLogic cluster in Minikube, change the `replicaCount` in the `values.yaml` file to 3, or any other odd number to avoid the [split brain problem](https://help.marklogic.com/Knowledgebase/Article/View/119/0/start-up-quorum-and-forest-level-failover). Then follow the procedure outlined in the [Installing a Single MarkLogic Host to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube) section. 
 
