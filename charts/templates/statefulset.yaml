@@ -22,7 +22,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy}}
           volumeMounts:
-            - name: data
+            - name: datadir
               mountPath: {{ .Values.persistence.mountPath }}
           env:
             - name: ML_ADMIN_USER
@@ -160,13 +160,13 @@ spec:
       {{- end }}
       {{- if not .Values.persistence.enabled }}
       volumes:
-        - name: data
+        - name: datadir
           emptyDir: {}
       {{- end }}
   {{- if .Values.persistence.enabled}}
   volumeClaimTemplates:
     - metadata:
-        name: data
+        name: datadir
         labels: 
           {{- include "marklogic.selectorLabels" . | nindent 10 }}
         {{- if .Values.persistence.annotations }}

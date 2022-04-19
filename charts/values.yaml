@@ -81,9 +81,11 @@ startupProbe:
 
 # Configure persistence using persistent Volume Claim
 # ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+# The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
+# If set the enabled to false, it will use EmptyDir volume
 persistence:
   enabled: true
-  storageClass: gp2
+  storageClass: ""
   size: 10Gi
   annotations: {}
   accessModes:
