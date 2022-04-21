@@ -6,6 +6,5 @@ metadata:
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
 data:
-  ML_BOOTSTRAP_HOST: "marklogic-0"
-  DOMAIN_SUFFIX: "ml-headless.marklogic.svc.cluster.local"
+  ML_BOOTSTRAP_HOST: {{ include "marklogic.fullname" . }}-0
   
