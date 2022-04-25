@@ -7,4 +7,5 @@ metadata:
     {{- include "marklogic.labels" . | nindent 4 }}
 data:
   ML_BOOTSTRAP_HOST: {{ include "marklogic.fullname" . }}-0
+  ML_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
   

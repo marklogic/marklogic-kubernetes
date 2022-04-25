@@ -34,9 +34,9 @@ Create headless service name for statefulset
 
 
 {{/*
-Create dns search entry
+Create URL for headless service 
 */}}
-{{- define "marklogic.dnsSearch" -}}
+{{- define "marklogic.headlessURL" -}}
 {{- printf "%s.%s.svc.cluster.local" (include "marklogic.headlessServiceName" .) .Release.Namespace }}
 {{- end}}
 
