@@ -45,7 +45,8 @@ spec:
               echo '### Begin ML Container Config ###'
 
               # Set Hostname to the value of hostname command to /etc/marklogic.conf
-              echo "export MARKLOGIC_HOSTNAME=$(hostname)" | sudo tee /etc/marklogic.conf
+              HOST_FQDN="$(hostname).$ML_FQDN_SUFFIX"
+              echo "export MARKLOGIC_HOSTNAME=\"$HOST_FQDN\"" | sudo tee /etc/marklogic.conf
 
               cd ~
 
@@ -153,7 +154,7 @@ spec:
           {{- end }}
       dnsConfig:
         searches:
-          - {{ include "marklogic.dnsSearch" . }}
+          - {{ include "marklogic.headlessURL" . }}
       {{- if .Values.imagePullSecret }}
       imagePullSecrets:
         - name: {{ include "marklogic.fullname" . }}-registry
