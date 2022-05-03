@@ -15,11 +15,7 @@ imagePullSecret: {}
   # username: "your username"
   # password: "your password"
 
-# 1. re arrange 
-
-# 2. provide example values.yaml in doc
-
-  # Marklogic pods' resource requests and limits
+# Marklogic pods' resource requests and limits
 # ref: https://kubernetes.io/docs/user-guide/compute-resources/
 # requests:
 #   memory: "3000Mi"
@@ -76,9 +72,6 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-
-
-
 # Configure persistence using persistent Volume Claim
 # ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
 # The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
@@ -91,12 +84,3 @@ persistence:
   accessModes:
     - ReadWriteOnce
   mountPath: /var/opt/MarkLogic
-
-
-ingress:
-  external:
-    enabled: false
-    className: ingress-external
-  internal:
-    enabled: true
-    className: ingress-internal
