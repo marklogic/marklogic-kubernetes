@@ -34,9 +34,9 @@ This custom Helm Chart deploys MarkLogic Server on Kubernetes using Helm.
 
 Helm is a Kubernetes package manager that helps to easily install MarkLogic on Kubernetes.
 
-To install Helm, follow steps in: https://helm.sh/docs/intro/install/
+To install Helm, follow the steps described in: https://helm.sh/docs/intro/install/
 
-Verify the installation:
+Verify the installation with this command:
 
 ```
 helm -h 
@@ -64,7 +64,7 @@ To install eksctl, follow the steps described here: https://docs.aws.amazon.com/
 
 #### Using eksctl to provision Kubernetes cluster on EKS
 
-The following code using eksctl can be used to create a Kubernetes cluster in EKS. You will need to replace CLUSTER_NAME, KUBERNETES_VERSION, REGION, NODEGROUP_NAME, NODE_TYPE and NUMBER_OF_NODES based on your configuration.
+The following eksctl code can be used to create a Kubernetes cluster in EKS. You will need to replace CLUSTER_NAME, KUBERNETES_VERSION, REGION, NODEGROUP_NAME, NODE_TYPE and NUMBER_OF_NODES based on your configuration.
 
 ```
 eksctl create cluster \
@@ -78,11 +78,11 @@ eksctl create cluster \
 
 #### Suggestions for Naming
 
-CLUSTER_NAME: Choose a distinctive cluster name.
-KUBERNETES_VERSION: For now, we only support the latest version of Kubernetes in EKS, which is 1.21.
-NODEGROUP_NAME: Choose a distinctive node group name.
-NODE_TYPE: The recommendation from our performance team is to use the r5.large node type for development purpose.
-NUMBER_OF_NODES: Total number of nodes running not only Marklogic database, but also nodes running other applications.
+* CLUSTER_NAME: Choose a distinctive cluster name.
+* KUBERNETES_VERSION: For now, we only support the latest version of Kubernetes in EKS, which is 1.21.
+* NODEGROUP_NAME: Choose a distinctive node group name.
+* NODE_TYPE: The recommendation from our performance team is to use the r5.large node type for development purposes.
+* NUMBER_OF_NODES: Total number of nodes running not only Marklogic database, but also nodes running other applications.
 
 # Install Marklogic Helm Chart
 
@@ -205,42 +205,42 @@ helm delete my-release
 
 This table describes the list of available parameters for Helm Chart.
 
-| Name                                 | Description                                                                                                   | Default Value                        |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `replicaCount`                       | Number of MarkLogic Nodes                                                                                     | `1`                                  |
-| `image.repository`                   | repository for MarkLogic image                                                                                | `store/marklogicdb/marklogic-server` |
-| `image.tag`                          | Image tag for MarkLogic                                                                                       | `10.0-9-centos-1.0.0-ea4`            |
-| `image.pullPolicy`                   | Image pull policy                                                                                             | `IfNotPresent`                       |
-| `imagePullSecret.registry`           | Registry of the imagePullSecret                                                                               | `""`                                 |
-| `imagePullSecret.username`           | Username of the imagePullSecret                                                                               | `""`                                 |
-| `imagePullSecret.password`           | Password of the imagePullSecret                                                                               | `""`                                 |
-| `nameOverride`                       | String to override the app name                                                                               | `""`                                 |
-| `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                  | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                  | `admin`                              |
-| `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                         | `true`                               |
-| `serviceAccount.annotations`         | Annotations for MarkLogic service account                                                                     | `{}`                                 |
-| `serviceAccount.name`                | Name of the serviceAccount                                                                                    | `""`                                 |
-| `livenessProbe.enabled`              | Enable this parameter to enable the liveness probe                                                            | `true`                               |
-| `livenessProbe.initialDelaySeconds`  | Initial delay seconds for liveness probe                                                                      | `30`                                 |
-| `livenessProbe.periodSeconds`        | Period seconds for liveness probe                                                                             | `60`                                 |
-| `livenessProbe.timeoutSeconds`       | Timeout second for liveness probe                                                                             | `5`                                  |
-| `livenessProbe.failureThreshold`     | Failure threshold for liveness probe                                                                          | `3`                                  |
-| `livenessProbe.successThreshold`     | Success threshold for liveness probe                                                                          | `1`                                  |
-| `readinessProbe.enabled`             | Use this parameter to enable the readiness probe                                                              | `true`                               |
-| `readinessProbe.initialDelaySeconds` | Initial delay seconds for readiness probe                                                                     | `10`                                 |
-| `readinessProbe.periodSeconds`       | Period seconds for readiness probe                                                                            | `60`                                 |
-| `readinessProbe.timeoutSeconds`      | Timeout second for readiness probe                                                                            | `5`                                  |
-| `readinessProbe.failureThreshold`    | Failure threshold for readiness probe                                                                         | `3`                                  |
-| `readinessProbe.successThreshold`    | Success threshold for readiness probe                                                                         | `1`                                  |
-| `startupProbe.enabled`               | Parameter to enable startup probe                                                                             | `true`                               |
-| `startupProbe.initialDelaySeconds`   | Initial delay seconds for startup probe                                                                       | `10`                                 |
-| `startupProbe.periodSeconds`         | Period seconds for startup probe                                                                              | `20`                                 |
-| `startupProbe.timeoutSeconds`        | Timeout second for startup probe                                                                              | `1`                                  |
-| `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                           | `30`                                 |
-| `startupProbe.successThreshold`      | Success threshold for startup probe                                                                           | `1`                                  |
-| `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim(PVC). If set to false, EmptyDir will be used | `true`                               |
-| `persistence.storageClass`           | Storage class for MarkLogic data volume, leave empty will use the default storage class                       | `""`                                 |
-| `persistence.size`                   | Size of storage request for MarkLogic data volume                                                             | `10Gi`                               |
-| `persistence.annotations`            | Annotations for Persistence Volume Claim                                                                      | `{}`                                 |
-| `persistence.accessModes`            | Access mode for persistence volume                                                                            | `["ReadWriteOnce"]`                  |
-| `persistence.mountPath`              | The path the data volume will be mounted at                                                                   | `/var/opt/MarkLogic`                 |
+| Name                                 | Description                                                                                                    | Default Value                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `replicaCount`                       | Number of MarkLogic Nodes                                                                                      | `1`                                  |
+| `image.repository`                   | repository for MarkLogic image                                                                                 | `store/marklogicdb/marklogic-server` |
+| `image.tag`                          | Image tag for MarkLogic                                                                                        | `10.0-9-centos-1.0.0-ea4`            |
+| `image.pullPolicy`                   | Image pull policy                                                                                              | `IfNotPresent`                       |
+| `imagePullSecret.registry`           | Registry of the imagePullSecret                                                                                | `""`                                 |
+| `imagePullSecret.username`           | Username of the imagePullSecret                                                                                | `""`                                 |
+| `imagePullSecret.password`           | Password of the imagePullSecret                                                                                | `""`                                 |
+| `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
+| `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
+| `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                          | `true`                               |
+| `serviceAccount.annotations`         | Annotations for MarkLogic service account                                                                      | `{}`                                 |
+| `serviceAccount.name`                | Name of the serviceAccount                                                                                     | `""`                                 |
+| `livenessProbe.enabled`              | Enable this parameter to enable the liveness probe                                                             | `true`                               |
+| `livenessProbe.initialDelaySeconds`  | Initial delay seconds for liveness probe                                                                       | `30`                                 |
+| `livenessProbe.periodSeconds`        | Period seconds for liveness probe                                                                              | `60`                                 |
+| `livenessProbe.timeoutSeconds`       | Timeout seconds for liveness probe                                                                             | `5`                                  |
+| `livenessProbe.failureThreshold`     | Failure threshold for liveness probe                                                                           | `3`                                  |
+| `livenessProbe.successThreshold`     | Success threshold for liveness probe                                                                           | `1`                                  |
+| `readinessProbe.enabled`             | Use this parameter to enable the readiness probe                                                               | `true`                               |
+| `readinessProbe.initialDelaySeconds` | Initial delay seconds for readiness probe                                                                      | `10`                                 |
+| `readinessProbe.periodSeconds`       | Period seconds for readiness probe                                                                             | `60`                                 |
+| `readinessProbe.timeoutSeconds`      | Timeout seconds for readiness probe                                                                            | `5`                                  |
+| `readinessProbe.failureThreshold`    | Failure threshold for readiness probe                                                                          | `3`                                  |
+| `readinessProbe.successThreshold`    | Success threshold for readiness probe                                                                          | `1`                                  |
+| `startupProbe.enabled`               | Parameter to enable startup probe                                                                              | `true`                               |
+| `startupProbe.initialDelaySeconds`   | Initial delay seconds for startup probe                                                                        | `10`                                 |
+| `startupProbe.periodSeconds`         | Period seconds for startup probe                                                                               | `20`                                 |
+| `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
+| `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
+| `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
+| `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
+| `persistence.storageClass`           | Storage class for MarkLogic data volume, leave empty to use the default storage class                          | `""`                                 |
+| `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
+| `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
+| `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
+| `persistence.mountPath`              | The path for the mounted persistence data volume                                                               | `/var/opt/MarkLogic`                 |
