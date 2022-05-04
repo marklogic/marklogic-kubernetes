@@ -152,7 +152,7 @@ REVISION: 1
 
 **Note:** --version=1.0.0-ea1 must be provided as part of the name. You can choose a distinctive release name to replace "my-release".
 
-We strongly recommend that you deploy MarkLogic Chart in and exclusive namespace. Use the `--create-namespace` flag if the namespace has not already been created:
+We strongly recommend that you deploy MarkLogic Chart in an exclusive namespace. Use the `--create-namespace` flag if the namespace has not already been created:
 
 ```
 helm install my-release marklogic/marklogic --version=1.0.0-ea1 --namespace=marklogic --create-namespace
@@ -218,13 +218,13 @@ Use this Helm command to uninstall the chart:
 helm delete my-release
 ```
 
-The output will be like this:
+The output will look like this:
 
 ```
 release "my-release" uninstalled
 ```
 
-Use this command to verify the uninstall is successful:
+Use this command to verify that the uninstall was successful:
 
 ```
 helm list --all-namespaces
