@@ -15,7 +15,7 @@
 - [Install Marklogic Helm Chart](#install-marklogic-helm-chart)
   - [Add Marklogic Repo](#add-marklogic-repo)
   - [Installing the Chart](#installing-the-chart)
-  - [Configuration Options for Installation](#configuration-options-for-installation)
+  - [Configuration Options](#configuration-options)
     - [--values](#--values)
     - [--set](#--set)
 - [Uninstalling the Chart](#uninstalling-thechart)
@@ -166,7 +166,7 @@ helm list --all-namespaces
 
 You should see an entry named "my-release" (or the release name you chose) with a status of "deployed".
 
-## Configuration Options for Installation
+## Configuration Options
 
 This section describes the configuration options you can use with Helm. 
 
