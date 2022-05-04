@@ -5,6 +5,7 @@
 - [Prerequisites](#prerequisites)
   - [Set up the required tools](#set-up-the-required-tools)
     - [Helm](#helm)
+    - [Kubectl](#kubectl)
   - [Set up the Kubernetes Cluster](#set-up-the-kubernetes-cluster)
     - [Local Development MiniKube](#local-development-minikube)
     - [Production Workload: AWS EKS](#production-workload-aws-eks)
@@ -32,7 +33,7 @@ This custom Helm Chart deploys MarkLogic Server on Kubernetes using Helm.
 
 ### Helm
 
-Helm is a Kubernetes package manager that helps to easily install MarkLogic on Kubernetes.
+Helm is a Kubernetes package manager that makes it easy to install MarkLogic on Kubernetes.
 
 To install Helm, follow the steps described in: https://helm.sh/docs/intro/install/
 
@@ -43,6 +44,21 @@ helm -h
 ```
 
 If Helm is installed correctly, you will see the Helm user manual.
+
+If Helm is not installed correctly, you will see the error: `command not found: helm`
+
+### Kubectl
+
+Kubectl is a command line tool that serves as a client, to connect to a Kubernetes cluster.
+
+To install Kubectl, follow the steps at: https://kubernetes.io/docs/tasks/tools/
+
+To verify the Kubectl installation, use this command: 
+
+```
+kubectl -h 
+```
+If Kubectl is installed correctly, you will see the the Kubectl user manual.
 
 If kubectl is not installed correctly, you will see the error: `command not found: kubectl`
 
@@ -88,7 +104,7 @@ eksctl create cluster \
 
 ## Add Marklogic Repo
 
-If you haven’t already, add the Marklogic official repo to Helm.
+If you haven’t already, add the MarkLogic official repo to Helm using this command:
 
 ```
 helm repo add marklogic https://github.com/marklogic/marklogic-kubernetes
@@ -118,13 +134,14 @@ helm repo update
 
 ## Installing the Chart
 
-Use this command to install marklogic chart to current namespace with default settings:
+Use this command to install MarkLogic Chart to the current namespace with default settings:
 
 ```
 helm install my-release marklogic/marklogic --version=1.0.0-ea1
 ```
 
-After you install, the output would look like this:
+After you install MarkLogic Chart, the output will look like this:
+
 ```
 NAME: my-release
 LAST DEPLOYED: 
@@ -133,9 +150,9 @@ STATUS: deployed
 REVISION: 1
 ```
 
-**Note:** --version=1.0.0-ea1 must be provided. You can choose a distinctive release name to replace "my-release"
+**Note:** --version=1.0.0-ea1 must be provided as part of the name. You can choose a distinctive release name to replace "my-release".
 
-It's strongly recommend to deploy marklogic chart in exclusive namespace, use --create-namespace flag if the namespace have not be created:
+We strongly recommend that you deploy MarkLogic Chart in and exclusive namespace. Use the `--create-namespace` flag if the namespace has not already been created:
 
 ```
 helm install my-release marklogic/marklogic --version=1.0.0-ea1 --namespace=marklogic --create-namespace
@@ -155,7 +172,7 @@ This section describes the configuration options you can use with Helm. 
 
 ### --values
 
-The --values flag points to a YAML file. The values in the file override the default Helm values.
+The `--values` flag points to a YAML file. The values in the file will override the default Helm values.
 
 Use this command to view the default configurable values:
 
@@ -163,9 +180,9 @@ Use this command to view the default configurable values:
 helm show values marklogic/marklogic --version=1.0.0-ea1
 ```
 
-To configure a different value for your installation, first you need to create a values.yaml file.
+To configure a different value for your installation, create a `values.yaml` file.
 
-For example, if you want to set the credential for Docker Hub, configure the values.yaml file like this:
+For example, if you want to set the credential for Docker Hub, configure the `values.yaml` file like this:
 
 ```
 imagePullSecret: 
@@ -174,7 +191,7 @@ imagePullSecret:
   password: YOUR_PASSWORD
 ```
 
-Use the following command to install MarkLogic with the values.yaml you just created.
+Use the following command to install MarkLogic with the `values.yaml` file you just created.
 
 ```
 helm install my-release marklogic/marklogic --version=1.0.0-ea1 --values values.yaml
@@ -182,7 +199,7 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 --values values.
 
 ### --set
 
-Use the --set flag to make one or more configuration changes directly:
+Use the `--set` flag to make one or more configuration changes directly:
 
 ```
 helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
@@ -191,7 +208,7 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 --set imagePullSecret.password=YOUR_PASSWORD
 ```
 
-We recommend that you use the  values.yaml for configuring your installation.
+We recommend that you use the `values.yaml` file for configuring your installation.
 
 # Uninstalling the Chart
 
@@ -200,6 +217,19 @@ Use this Helm command to uninstall the chart:
 ```
 helm delete my-release
 ```
+
+The output will be like this:
+
+```
+release "my-release" uninstalled
+```
+
+Use this command to verify the uninstall is successful:
+
+```
+helm list --all-namespaces
+```
+You should not see an entry named "my-release" (or the release name you chose).
 
 # Parameters
 
