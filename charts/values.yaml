@@ -51,6 +51,12 @@ persistence:
 extraVolumes: []
 # specify extra list of volumeMounts
 extraVolumeMounts: []
+# specify extra list of containerPorts
+extraContainerPorts:
+- containerPort: 8003
+  name: app
+- containerPort: 11111
+  name: qa-lb1
 
 # Configure the Service to access Marklogic Clusters
 service:

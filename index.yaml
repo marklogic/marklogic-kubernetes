@@ -5,10 +5,10 @@ entries:
       category: Database
     apiVersion: v2
     appVersion: 10.0-9
-    created: "2022-05-10T09:09:46.07197-07:00"
+    created: "2022-05-10T09:27:31.637922-07:00"
     description: MarkLogic Server is a multi-model database that has both NoSQL and
       trusted enterprise data management capabilities.
-    digest: 40d0c7cbe705d56ececbe0680734bc7e51fcc4789e20324cde9377cdc9cf9518
+    digest: 59985f15e679d0843ccb9b40dacac80fbdba45345b382eebba47e2881a06227e
     keywords:
     - marklogic
     - database
@@ -21,4 +21,4 @@ entries:
     urls:
     - marklogic-1.0.0-ea1.tgz
     version: 1.0.0-ea1
-generated: "2022-05-10T09:09:46.069154-07:00"
+generated: "2022-05-10T09:27:31.636538-07:00"

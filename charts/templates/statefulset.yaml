@@ -117,6 +117,9 @@ spec:
               name: admin
             - containerPort: 8002
               name: manage
+            {{- if .Values.extraContainerPorts }}
+              {{- toYaml .Values.extraContainerPorts | nindent 12 }}
+            {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
