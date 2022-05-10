@@ -5,15 +5,16 @@ replicaCount: 1
 
 # Marklogic image parameters
 image:
-  repository: store/marklogicdb/marklogic-server
+  repository: marklogicdb/marklogic-db
   tag: 10.0-9-centos-1.0.0-ea4
   pullPolicy: IfNotPresent
 
+# Configure the imagePullSecret to pull the image from private repository that requires credential
 imagePullSecret: {}
-  ## docker hub registry: https://index.docker.io/v1/
-  # registry: "https://index.docker.io/v1/"
-  # username: "your username"
-  # password: "your password"
+## docker hub registry: https://index.docker.io/v1/
+# registry: "https://index.docker.io/v1/"
+# username: "your username"
+# password: "your password"
 
 # Marklogic pods' resource requests and limits
 # ref: https://kubernetes.io/docs/user-guide/compute-resources/
@@ -33,6 +34,34 @@ auth:
   adminUsername: admin
   adminPassword: admin
 
+# Configure persistence using persistent Volume Claim
+# ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+# The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
+# If set the enabled to false, it will use EmptyDir volume
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 10Gi
+  annotations: {}
+  accessModes:
+    - ReadWriteOnce
+  mountPath: /var/opt/MarkLogic
+
+# specify extra list of volumes
+extraVolumes: []
+# specify extra list of volumeMounts
+extraVolumeMounts: []
+
+# Configure the Service to access Marklogic Clusters
+service:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      name: query-console
+      port: 8000
+    - protocol: TCP
+      name: manage
+      port: 8002
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -41,6 +70,9 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
+
+
+# Below are the advanced configurations, please understand read the reference before you make changes
 
 # Configure options for liveness probe
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
@@ -72,15 +104,3 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-# Configure persistence using persistent Volume Claim
-# ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
-# The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
-# If set the enabled to false, it will use EmptyDir volume
-persistence:
-  enabled: true
-  storageClass: ""
-  size: 10Gi
-  annotations: {}
-  accessModes:
-    - ReadWriteOnce
-  mountPath: /var/opt/MarkLogic
