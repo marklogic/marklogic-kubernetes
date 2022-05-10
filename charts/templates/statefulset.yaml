@@ -74,10 +74,11 @@ spec:
                     http://$HOSTNAME:8001/admin/v1/instance-admin
                 sleep 10s
 
+                # for EA1 release, disable turning on XDQP by default.
                 # Turn on XDQP encryption via CMA
-                $AUTH_CURL -X POST -H 'Content-Type: application/json' \
-                    -d '{"config":[{"op":"update","group":[{"group-name":"Default","xdqp-ssl-enabled":true}]}]}' \
-                    http://$HOSTNAME:8002/manage/v3/
+                # $AUTH_CURL -X POST -H 'Content-Type: application/json' \
+                #     -d '{"config":[{"op":"update","group":[{"group-name":"Default","xdqp-ssl-enabled":true}]}]}' \
+                #     http://$HOSTNAME:8002/manage/v3/
 
                 # Join Cluster
                 if [ "$HOSTNAME" != "$ML_BOOTSTRAP_HOST" ]; then
