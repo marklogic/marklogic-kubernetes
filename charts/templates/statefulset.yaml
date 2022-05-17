@@ -17,6 +17,9 @@ spec:
         {{- include "marklogic.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8}}
+      {{- end }}
       containers:
         - name: marklogic-server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
