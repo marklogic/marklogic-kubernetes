@@ -6,7 +6,7 @@ replicaCount: 1
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 10.0-9-centos-1.0.0-ea4
+  tag: 10.0-9.1-centos-1.0.0-ea4
   pullPolicy: IfNotPresent
 
 # Configure the imagePullSecret to pull the image from private repository that requires credential
@@ -52,11 +52,7 @@ extraVolumes: []
 # specify extra list of volumeMounts
 extraVolumeMounts: []
 # specify extra list of containerPorts
-extraContainerPorts:
-- containerPort: 8003
-  name: app
-- containerPort: 11111
-  name: qa-lb1
+extraContainerPorts: []
 
 # Configure the Service to access Marklogic Clusters
 service:
