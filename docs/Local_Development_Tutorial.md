@@ -157,5 +157,3 @@ To cleanup a running kubernetes cluster, run the following commands:
   For Example:   
   `helm uninstall marklogic-local-dev-env`
 - `minikube delete`
-
-
