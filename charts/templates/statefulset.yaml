@@ -43,19 +43,9 @@ spec:
                     key: password
             - name: MARKLOGIC_INIT
               value: "true"
-            - name: REPLICA_COUNT
-              value: {{ .Values.replicaCount  | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
-          command: 
-              - /bin/sh
-              - -c
-              - |
-                echo "====Running Start Marklogic Script";
-                sh /usr/local/bin/start-marklogic.sh;
-                echo "====Running Start Marklogic Script Complete, Marking Pod as Ready";
-                sudo touch /var/opt/MarkLogic/ready;
           ports:
             - containerPort: 7997
               name: health-check
