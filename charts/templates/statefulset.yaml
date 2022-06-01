@@ -41,8 +41,6 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
-            - name: MARKLOGIC_INIT
-              value: "true"
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
