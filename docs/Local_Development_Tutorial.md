@@ -61,7 +61,7 @@ minikube   Ready    control-plane,master   1d    v1.23.3
   The image ID used in the example is `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`, which may not be the latest image. To find the latest ID go to https://hub.docker.com/_/marklogic  
 - Add the helm repository
   `helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/`  
-  Additionally create a `values.yaml` file for your installation, like the one found in the repository under `/charts`: https://github.com/marklogic/marklogic-kubernetes/. The `values.yaml` file controls configuration for MarkLogic Server running in kubernetes. 
+  Additionally create a `values.yaml` file for your installation, like the one found in the repository under `/charts`: https://marklogic.github.io/marklogic-kubernetes/. The `values.yaml` file controls configuration for MarkLogic Server running in kubernetes. 
   Run `helm install RELEASE_NAME marklogic/marklogic --version=1.0.0-ea1 -f values.yaml` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.    
   For example: `helm install marklogic-local-dev-env marklogic/marklogic --version=1.0.0-ea1 -f values.yaml`
 ## Installing Multiple MarkLogic Hosts to Minikube
