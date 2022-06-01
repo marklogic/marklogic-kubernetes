@@ -107,7 +107,7 @@ eksctl create cluster \
 If you haven’t already, add the MarkLogic official repo to Helm using this command:
 
 ```
-helm repo add marklogic https://github.com/marklogic/marklogic-kubernetes
+helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
 ```
 
 The output will look like this:
@@ -124,7 +124,7 @@ helm repo list
 
 You should see an entry like this:
 
-`marklogic           https://github.com/marklogic/marklogic-kubernetes`
+`marklogic           https://marklogic.github.io/marklogic-kubernetes/`
 
 Use this command to ensure the Helm repo is up to date:
 
