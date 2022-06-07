@@ -31,12 +31,12 @@ spec:
               {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
           env:
-            - name: ML_ADMIN_USER
+            - name: MARKLOGIC_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "marklogic.fullname" . }}
                   key: username
-            - name: ML_ADMIN_PASS
+            - name: MARKLOGIC_ADMIN_PASSWORD
               valueFrom:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
@@ -44,70 +44,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
-          command:
-            - bash
-            - '-c'
-            - |
-              echo '### Begin ML Container Config ###'
-
-              # Set Hostname to the value of hostname command to /etc/marklogic.conf
-              HOST_FQDN="$(hostname).$ML_FQDN_SUFFIX"
-              echo "export MARKLOGIC_HOSTNAME=\"$HOST_FQDN\"" | sudo tee /etc/marklogic.conf
-
-              cd ~
-
-              AUTH_CURL="curl --anyauth --user $ML_ADMIN_USER:$ML_ADMIN_PASS -m 20 -s "
-
-              # Start MarkLogic
-              sudo service MarkLogic start
-              sleep 5s
-
-              # Initialize and Setup Admin User
-              echo '### Initialize and Setup Admin User ###'
-              ML_STATUS_CODE=`curl -s -o /dev/null --write-out %{response_code}  http://localhost:8001/admin/v1/init`
-              if [ "$ML_STATUS_CODE" == "401" ]; then
-                echo "Server is already configured." 
-              else
-                curl -X POST -d "" http://$HOSTNAME:8001/admin/v1/init
-                sleep 5s
-
-                curl -X POST -H "Content-type: application/x-www-form-urlencoded" \
-                    --data "admin-username=$ML_ADMIN_USER" --data "admin-password=$ML_ADMIN_PASS" \
-                    --data "realm=public" \
-                    http://$HOSTNAME:8001/admin/v1/instance-admin
-                sleep 10s
-
-                # for EA1 release, disable turning on XDQP by default.
-                # Turn on XDQP encryption via CMA
-                # $AUTH_CURL -X POST -H 'Content-Type: application/json' \
-                #     -d '{"config":[{"op":"update","group":[{"group-name":"Default","xdqp-ssl-enabled":true}]}]}' \
-                #     http://$HOSTNAME:8002/manage/v3/
-
-                # Join Cluster
-                if [ "$HOSTNAME" != "$ML_BOOTSTRAP_HOST" ]; then
-                  echo "### joining cluster ###"
-                  joiner=$HOSTNAME
-                  cluster="$ML_BOOTSTRAP_HOST"
-                  $AUTH_CURL -o host.xml -X GET -H "Accept: application/xml" http://${joiner}:8001/admin/v1/server-config
-                  $AUTH_CURL -X POST -d "group=Default" --data-urlencode "server-config@./host.xml" -H "Content-type: application/x-www-form-urlencoded" -o cluster.zip http://${cluster}:8001/admin/v1/cluster-config
-
-                  sleep 10s
-
-                  $AUTH_CURL -X POST -H "Content-type: application/zip" --data-binary @./cluster.zip http://${joiner}:8001/admin/v1/cluster-config 
-                  sleep 5s
-
-                  rm -f host.xml
-                  rm -f cluster.zip
-                fi
-
-              fi
-
-              # mark the pod ready for readiness probe
-              sudo touch /var/opt/MarkLogic/ready
-
-              echo '### END ML Container Config ###'
-
-              tail -f $MARKLOGIC_DATA_DIR/Logs/ErrorLog.txt
           ports:
             - containerPort: 7997
               name: health-check
