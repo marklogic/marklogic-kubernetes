@@ -6,57 +6,38 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-	
+
 	"github.com/gruntwork-io/terratest/modules/helm"
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	digest_auth "github.com/judgegregg/go-http-digest-auth-client"
-	"github.com/stretchr/testify/require"
 )
 
 // Path to the helm chart we will test
 var helmChartPath, err = filepath.Abs("../../charts")
 var releaseName string = "test"
-var namespaceName string = "marklogic-" + strings.ToLower(random.UniqueId())
-var kubectlOptions = k8s.NewKubectlOptions("", "", namespaceName)
-var options = &helm.Options{
-	KubectlOptions: kubectlOptions,
-	SetValues: map[string]string{
-		"persistence.enabled": "false",
-		"replicaCount":        "1",
-		"image.repository":    "marklogic-centos/marklogic-server-centos",
-		"image.tag":           "10-internal",
-	},
-}
-
-func TestMain(m *testing.M) {
-	t := &testing.T{}
-	require.NoError(t, err)
-	log.Println("====Creating namespace: " + namespaceName)
-
-	// create a new namespace for testing
-	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
-
-	// anything before this runs before the tests run
-	exitVal := m.Run()
-	// anything after this runs after the tests run
-	log.Println("====Deleting Helm Releases: " + namespaceName)
-	helm.Delete(t, options, releaseName+"-upgrade", true)
-	helm.Delete(t, options, releaseName+"-install", true)
-	helm.Delete(t, options, releaseName+"-join", true)
-	log.Println("====Deleting namespace: " + namespaceName)
-	k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
-
-	os.Exit(exitVal)
-}
 
 func TestHelmInstall(t *testing.T) {
+	var namespaceName string = "marklogic-" + strings.ToLower(random.UniqueId())
+	var kubectlOptions = k8s.NewKubectlOptions("", "", namespaceName)
+	var options = &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled": "false",
+			"replicaCount":        "1",
+			"image.repository":    "marklogic-centos/marklogic-server-centos",
+			"image.tag":           "10-internal",
+		},
+	}
+
+	log.Println("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+
 	t.Logf("====Installing Helm Chart")
 	releaseName := releaseName + "-install"
 	helm.Install(t, options, helmChartPath, releaseName)
@@ -82,9 +63,27 @@ func TestHelmInstall(t *testing.T) {
 			return statusCode == 200
 		},
 	)
+
+	log.Println("====Deleting namespace: " + namespaceName)
+	k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 }
 
 func TestHelmUpgrade(t *testing.T) {
+	var namespaceName string = "marklogic-" + strings.ToLower(random.UniqueId())
+	var kubectlOptions = k8s.NewKubectlOptions("", "", namespaceName)
+	var options = &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled": "false",
+			"replicaCount":        "1",
+			"image.repository":    "marklogic-centos/marklogic-server-centos",
+			"image.tag":           "10-internal",
+		},
+	}
+
+	log.Println("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+
 	t.Logf("====Installing Helm Chart")
 	releaseName := releaseName + "-upgrade"
 	helm.Install(t, options, helmChartPath, releaseName)
@@ -124,9 +123,14 @@ func TestHelmUpgrade(t *testing.T) {
 			return statusCode == 200
 		},
 	)
+
+	log.Println("====Deleting namespace: " + namespaceName)
+	k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 }
 
 func TestClusterJoin(t *testing.T) {
+	var namespaceName string = "marklogic-" + strings.ToLower(random.UniqueId())
+	var kubectlOptions = k8s.NewKubectlOptions("", "", namespaceName)
 	var username string = "admin"
 	var password string = "admin"
 	var resp *http.Response
@@ -144,6 +148,10 @@ func TestClusterJoin(t *testing.T) {
 			"auth.adminPassword":  password,
 		},
 	}
+
+	log.Println("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+
 	t.Logf("====Installing Helm Chart")
 	releaseName := releaseName + "-join"
 	helm.Install(t, options, helmChartPath, releaseName)
@@ -160,7 +168,7 @@ func TestClusterJoin(t *testing.T) {
 	t.Logf(`Endpoint: %s`, endpoint)
 
 	dr := digest_auth.NewRequest(username, password, "GET", endpoint, "")
-	
+
 	if resp, err = dr.Execute(); err != nil {
 		log.Fatalln(err)
 	}
@@ -174,4 +182,7 @@ func TestClusterJoin(t *testing.T) {
 	if !strings.Contains(string(body), "<list-count units=\"quantity\">2</list-count>") {
 		t.Errorf("Wrong number of hosts")
 	}
+
+	log.Println("====Deleting namespace: " + namespaceName)
+	k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 }
