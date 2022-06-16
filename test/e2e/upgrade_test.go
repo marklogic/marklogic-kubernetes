@@ -12,39 +12,53 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/stretchr/testify/require"
 )
 
-func TestHelmInstall(t *testing.T) {
-	// Path to the helm chart we will test
-	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-test"
-	t.Log(helmChartPath, releaseName)
-	require.NoError(t, err)
+func TestHelmUpgrade(t *testing.T) {
+	// Path to the helm chart we will test 
+	helmChartPath, e := filepath.Abs("../../charts")
+	if (e != nil) {
+		t.Fatalf(e.Error())
+	}
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
-	t.Logf("creating namespace: %s", namespaceName)
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
-
-	// create a new namespace for testing
-	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
-
-	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled": "false",
+			"replicaCount":        "1",
+			"image.repository":    "marklogic-centos/marklogic-server-centos",
+			"image.tag":           "10-internal",
 		},
 	}
 
-	defer helm.Delete(t, options, releaseName, true)
+	t.Logf("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	//install Helm Chart for testing
+	t.Logf("====Installing Helm Chart")
+	releaseName := "test-upgrade"
 	helm.Install(t, options, helmChartPath, releaseName)
 
+	newOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled": "false",
+			"replicaCount":        "2",
+			"image.repository":    "marklogic-centos/marklogic-server-centos",
+			"image.tag":           "10-internal",
+		},
+	}
+
+	t.Logf("====Upgrading Helm Chart")
+	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
+
 	tlsConfig := tls.Config{}
-	podName := "marklogic-0"
+	podName := releaseName + "-marklogic-1"
+
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 10*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
 	defer tunnel.Close()
