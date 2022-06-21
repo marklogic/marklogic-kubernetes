@@ -7,3 +7,5 @@ test/e2e: install-go-modules
 
 test/template: install-go-modules
 	go test -v ./test/template/...
+
+test: test/template test/e2e
