@@ -222,11 +222,11 @@ We recommend that you use the `values.yaml` file for configuring your installati
 
 ## Service
 
-You can use the ClusterIP service to access MarkLogic with in the Kubernetes cluster.
+You can use the ClusterIP service to access MarkLogic within the Kubernetes cluster.
 
 ### Get the ClusterIP Service Name
 
-First use the following command to get a list of Kubernetes services:
+Use the following command to get a list of Kubernetes services:
 
 ```
 kubectl get services
