@@ -255,10 +255,10 @@ For example, if the service-name is "marklogic" and namespace-name is "default",
 
 ## Port Forward
 
-The kubectl port-forward command can help you access MarkLogic outside of the Kubernetes cluster. Use the service to access a specific pod, or the whole cluster.
+The `kubectl port-forward` command can help you access MarkLogic outside of the Kubernetes cluster. Use the service to access a specific pod, or the whole cluster.
 ### Forward to Pod
 
-To access each pod directly, use the kubectl port-forward command using the following format:
+To access each pod directly, use the `kubectl port-forward` command using the following format:
 
 ```
 kubectl port-forward <POD-NAME> <LOCAL-PORT>:<CONTAINER-PORT>
@@ -274,7 +274,7 @@ This pod can now be accessed via http://localhost:8001.
 
 ### Forward to Service
 
-To access the whole cluster, use the kubectl port-forward command with the following format:
+To access the whole cluster, use the `kubectl port-forward` command with the following format:
 
 ```
 kubectl port-forward svc/<SERVICE-NAME> <LOCAL-PORT>:<CONTAINER-PORT>
