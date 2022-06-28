@@ -21,7 +21,7 @@
 - [Access the MarkLogic Server](#access-the-marklogic-server)
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
-    - [Using Service DNS Record to access MarkLogic](#using-service-dns-record-to-access-marklogic)
+    - [Using the Service DNS Record to Access MarkLogic](#using-the-service-dns-record-to-access-marklogic)
   - [Port Forward](#port-forward)
     - [Forward to Pod](#forward-to-pod)
     - [Forward to Service](#forward-to-service)
@@ -232,7 +232,7 @@ Use the following command to get a list of Kubernetes services:
 kubectl get services
 ```
 
-The output will be like this: (the actual name could be different)
+The output will look like this: (the actual names may be different)
 
 ```
 NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                                                 AGE
@@ -241,24 +241,24 @@ marklogic            ClusterIP   10.109.182.205   <none>        8000/TCP,8002/TC
 marklogic-headless   ClusterIP   None             <none>        7997/TCP,7998/TCP,7999/TCP,8000/TCP,8001/TCP,8002/TCP   1d
 ```
 
-The service we are looking for is the one with the name ends with "marklogic" and CLUSTER-IP is not None. In example above, "marklogic" is the service name for the ClusterIP service.
+The service you are looking for is the one ending with "marklogic" and where the CLUSTER-IP is not None. In the example above, "marklogic" is the service name for the ClusterIP service.
 
-### Using Service DNS Record to access MarkLogic
+### Using the Service DNS Record to Access MarkLogic
 
-For each Kubernetes Service, a DNS with the following format will be created: 
+For each Kubernetes service, a DNS with the following format is created:
 
 ```
 <service-name>.<namespace-name>.svc.cluster.local
 ```
 
-For example, if the service-name is marklogic and namespace-name is default, marklogic.default.svc.cluster.local will be the DNS URL to access MarkLogic cluster.
+For example, if the service-name is "marklogic" and namespace-name is "default", the DNS URL to access the MarkLogic cluster is "marklogic.default.svc.cluster.local".
 
 ## Port Forward
 
-Kubectl port-forward command can help you access MarkLogic outside of the Kubernetes cluster. You can access a specific pod, or access the whole cluster via service.
+The kubectl port-forward command can help you access MarkLogic outside of the Kubernetes cluster. Use the service to access a specific pod, or the whole cluster.
 ### Forward to Pod
 
-To access each pod directly, use the kubectl port-forward command with the following format:
+To access each pod directly, use the kubectl port-forward command using the following format:
 
 ```
 kubectl port-forward <POD-NAME> <LOCAL-PORT>:<CONTAINER-PORT>
@@ -270,7 +270,7 @@ For example, run this command to forward ports 8000 and 8001 from marklogic-0 po
 kubectl port-forward marklogic-0 8000:8000 8001:8001
 ```
 
-Now this pod can be accessed via http://localhost:8001.
+This pod can now be accessed via http://localhost:8001.
 
 ### Forward to Service
 
@@ -286,11 +286,11 @@ For example, run this command to forward ports 8000 from marklogic service to lo
 kubectl port-forward svc/marklogic 8000:8000
 ```
 
-Now this pod can be accessed via http://localhost:8000.
+This pod can now be accessed via http://localhost:8001.
 
 ## Notice
 
-To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie based session affinity. This function will be supported in future release.
+To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie-based session affinity. This function will be supported in a future release.
 
 # Uninstalling the Chart
 
