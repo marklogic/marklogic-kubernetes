@@ -18,6 +18,14 @@
   - [Configuration Options](#configuration-options)
     - [--values](#--values)
     - [--set](#--set)
+- [Access the MarkLogic Server](#access-the-marklogic-server)
+  - [Service](#service)
+    - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
+    - [Using the Service DNS Record to Access MarkLogic](#using-the-service-dns-record-to-access-marklogic)
+  - [Port Forward](#port-forward)
+    - [Forward to Pod](#forward-to-pod)
+    - [Forward to Service](#forward-to-service)
+  - [Notice](#notice)
 - [Uninstalling the Chart](#uninstalling-thechart)
 - [Parameters](#parameters)
 
@@ -210,6 +218,80 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 
 We recommend that you use the `values.yaml` file for configuring your installation.
 
+# Access the MarkLogic Server
+
+## Service
+
+You can use the ClusterIP service to access MarkLogic within the Kubernetes cluster.
+
+### Get the ClusterIP Service Name
+
+Use the following command to get a list of Kubernetes services:
+
+```
+kubectl get services
+```
+
+The output will look like this: (the actual names may be different)
+
+```
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                                                 AGE
+kubernetes           ClusterIP   10.96.0.1        <none>        443/TCP                                                 1d
+marklogic            ClusterIP   10.109.182.205   <none>        8000/TCP,8002/TCP                                       1d
+marklogic-headless   ClusterIP   None             <none>        7997/TCP,7998/TCP,7999/TCP,8000/TCP,8001/TCP,8002/TCP   1d
+```
+
+The service you are looking for is the one ending with "marklogic" and where the CLUSTER-IP is not None. In the example above, "marklogic" is the service name for the ClusterIP service.
+
+### Using the Service DNS Record to Access MarkLogic
+
+For each Kubernetes service, a DNS with the following format is created:
+
+```
+<service-name>.<namespace-name>.svc.cluster.local
+```
+
+For example, if the service-name is "marklogic" and namespace-name is "default", the DNS URL to access the MarkLogic cluster is "marklogic.default.svc.cluster.local".
+
+## Port Forward
+
+The `kubectl port-forward` command can help you access MarkLogic outside of the Kubernetes cluster. Use the service to access a specific pod, or the whole cluster.
+### Forward to Pod
+
+To access each pod directly, use the `kubectl port-forward` command using the following format:
+
+```
+kubectl port-forward <POD-NAME> <LOCAL-PORT>:<CONTAINER-PORT>
+```
+
+For example, run this command to forward ports 8000 and 8001 from marklogic-0 pod to localhost:
+
+```
+kubectl port-forward marklogic-0 8000:8000 8001:8001
+```
+
+This pod can now be accessed via http://localhost:8001.
+
+### Forward to Service
+
+To access the whole cluster, use the `kubectl port-forward` command with the following format:
+
+```
+kubectl port-forward svc/<SERVICE-NAME> <LOCAL-PORT>:<CONTAINER-PORT>
+```
+
+For example, run this command to forward ports 8000 from marklogic service to localhost:
+
+```
+kubectl port-forward svc/marklogic 8000:8000
+```
+
+This pod can now be accessed via http://localhost:8001.
+
+## Notice
+
+To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie-based session affinity. This function will be supported in a future release.
+
 # Uninstalling the Chart
 
 Use this Helm command to uninstall the chart:
@@ -244,9 +326,24 @@ This table describes the list of available parameters for Helm Chart.
 | `imagePullSecret.registry`           | Registry of the imagePullSecret                                                                                | `""`                                 |
 | `imagePullSecret.username`           | Username of the imagePullSecret                                                                                | `""`                                 |
 | `imagePullSecret.password`           | Password of the imagePullSecret                                                                                | `""`                                 |
+| `resources.limits`                   | The resource limits for MarkLogic container                                                                    | `{}`                                 |
+| `resources.requests`                 | The resource requests for MarkLogic container                                                                  | `{}`                                 |
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
 | `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
+| `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
+| `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
+| `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
+| `persistence.storageClass`           | Storage class for MarkLogic data volume, leave empty to use the default storage class                          | `""`                                 |
+| `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
+| `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
+| `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
+| `persistence.mountPath`              | The path for the mounted persistence data volume                                                               | `/var/opt/MarkLogic`                 |
+| `extraVolumes`                       | Extra list of additional volumes for MarkLogic statefulset                                                     | `[]`                                 |
+| `extraVolumeMounts`                  | Extra list of additional volumeMounts for MarkLogic container                                                  | `[]`                                 |
+| `extraContainerPorts`                | Extra list of additional containerPorts for MarkLogic container                                                | `[]`                                 |
+| `service.type`                       | type of the default service                                                                                    | `ClusterIP`                          |
+| `service.ports`                      | ports of the default service                                                                                   | `[8000, 8002]`                       |
 | `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                          | `true`                               |
 | `serviceAccount.annotations`         | Annotations for MarkLogic service account                                                                      | `{}`                                 |
 | `serviceAccount.name`                | Name of the serviceAccount                                                                                     | `""`                                 |
@@ -268,9 +365,3 @@ This table describes the list of available parameters for Helm Chart.
 | `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
 | `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
 | `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
-| `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
-| `persistence.storageClass`           | Storage class for MarkLogic data volume, leave empty to use the default storage class                          | `""`                                 |
-| `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
-| `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
-| `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
-| `persistence.mountPath`              | The path for the mounted persistence data volume                                                               | `/var/opt/MarkLogic`                 |

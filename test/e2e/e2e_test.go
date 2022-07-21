@@ -42,7 +42,7 @@ func TestHelmInstall(t *testing.T) {
 	helm.Install(t, options, helmChartPath, releaseName)
 
 	tlsConfig := tls.Config{}
-	podName := "marklogic-0"
+	podName := "marklogic-test-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 10*time.Second)
 	tunnel := k8s.NewTunnel(
