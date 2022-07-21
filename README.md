@@ -36,7 +36,7 @@ This tutorial describes how to set up Kubernetes development environment with AW
 - How to setup Kubernetes cluster and install MarkLogic Server on AWS EKS using eksctl
 - Access the MarkLogic Server cluster
 - How to clean up your environment
-- List of parameters using for configuration
+- List of parameters used for configuration
 
 # Prerequisites
 
