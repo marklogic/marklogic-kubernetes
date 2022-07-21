@@ -1,6 +1,5 @@
 # MarkLogic Kubernetes Helm Chart
 
-- [MarkLogic Kubernetes Helm Chart](#marklogic-kubernetes-helm-chart)
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
   - [Set up the required tools](#set-up-the-required-tools)
@@ -31,9 +30,13 @@
 
 # Introduction
 
-MarkLogic Server is a multi-model database that has both NoSQL and trusted enterprise data management capabilities. It is the most secure multi-model database.
-
-This custom Helm Chart deploys MarkLogic Server on Kubernetes using Helm.
+This tutorial describes how to set up Kubernetes development environment with AWS EKS and MarkLogic Server. It covers these tasks:
+- Set up the prerequisites necessary for setting up MarkLogic Server in Kubernetes
+- How to setup Kubernetes cluster and install MarkLogic Server on Minikube
+- How to setup Kubernetes cluster and install MarkLogic Server on AWS EKS using eksctl
+- Access the MarkLogic Server cluster
+- How to clean up your environment
+- List of parameters using for configuration
 
 # Prerequisites
 
@@ -297,7 +300,7 @@ To use transactional functionality with MarkLogic, you have to set up Ingress an
 Use this Helm command to uninstall the chart:
 
 ```
-helm delete my-release
+helm uninstall my-release
 ```
 
 The output will look like this:
@@ -329,6 +332,7 @@ This table describes the list of available parameters for Helm Chart.
 | `resources.limits`                   | The resource limits for MarkLogic container                                                                    | `{}`                                 |
 | `resources.requests`                 | The resource requests for MarkLogic container                                                                  | `{}`                                 |
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
+| `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
 | `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
