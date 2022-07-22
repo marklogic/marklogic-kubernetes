@@ -11,8 +11,8 @@
       - [Install eksctl](#install-eksctl)
       - [Using eksctl to provision Kubernetes cluster on EKS](#using-eksctl-to-provision-kubernetes-cluster-on-eks)
       - [Suggestions for Naming](#suggestions-for-naming)
-- [Install Marklogic Helm Chart](#install-marklogic-helm-chart)
-  - [Add Marklogic Repo](#add-marklogic-repo)
+- [Install MarkLogic Helm Chart](#install-marklogic-helm-chart)
+  - [Add MarkLogic Repo](#add-marklogic-repo)
   - [Installing the Chart](#installing-the-chart)
   - [Configuration Options](#configuration-options)
     - [--values](#--values)
@@ -109,11 +109,11 @@ eksctl create cluster \
 * KUBERNETES_VERSION: For now, we only support the latest version of Kubernetes in EKS, which is 1.21.
 * NODEGROUP_NAME: Choose a distinctive node group name.
 * NODE_TYPE: The recommendation from our performance team is to use the r5.large node type for development purposes.
-* NUMBER_OF_NODES: Total number of nodes running not only Marklogic database, but also nodes running other applications.
+* NUMBER_OF_NODES: Total number of nodes running not only MarkLogic database, but also nodes running other applications.
 
-# Install Marklogic Helm Chart
+# Install MarkLogic Helm Chart
 
-## Add Marklogic Repo
+## Add MarkLogic Repo
 
 If you haven’t already, add the MarkLogic official repo to Helm using this command:
 
