@@ -2,14 +2,14 @@
 
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
-  - [Set up the required tools](#set-up-the-required-tools)
+  - [Set Up the Required Tools](#set-up-the-required-tools)
     - [Helm](#helm)
     - [Kubectl](#kubectl)
-  - [Set up the Kubernetes Cluster](#set-up-the-kubernetes-cluster)
+  - [Set Up the Kubernetes Cluster](#set-up-the-kubernetes-cluster)
     - [Local Development MiniKube](#local-development-minikube)
     - [Production Workload: AWS EKS](#production-workload-aws-eks)
       - [Install eksctl](#install-eksctl)
-      - [Using eksctl to provision Kubernetes cluster on EKS](#using-eksctl-to-provision-kubernetes-cluster-on-eks)
+      - [Using eksctl to Provision Kubernetes Cluster on EKS](#using-eksctl-to-provision-kubernetes-cluster-on-eks)
       - [Suggestions for Naming](#suggestions-for-naming)
 - [Install MarkLogic Helm Chart](#install-marklogic-helm-chart)
   - [Add MarkLogic Repo](#add-marklogic-repo)
@@ -32,15 +32,15 @@
 
 This tutorial describes how to set up Kubernetes development environment with AWS EKS and MarkLogic Server. It covers these tasks:
 - Set up the prerequisites necessary for setting up MarkLogic Server in Kubernetes
-- How to setup Kubernetes cluster and install MarkLogic Server on Minikube
-- How to setup Kubernetes cluster and install MarkLogic Server on AWS EKS using eksctl
+- How to set up Kubernetes cluster and install MarkLogic Server on Minikube
+- How to set up Kubernetes cluster and install MarkLogic Server on AWS EKS using eksctl
 - Access the MarkLogic Server cluster
 - How to clean up your environment
 - List of parameters used for configuration
 
 # Prerequisites
 
-## Set up the required tools
+## Set Up the Required Tools
 
 ### Helm
 
@@ -51,7 +51,7 @@ To install Helm, follow the steps described in: https://helm.sh/docs/intro/insta
 Verify the installation with this command:
 
 ```
-helm -h 
+helm -h
 ```
 
 If Helm is installed correctly, you will see the Helm user manual.
@@ -64,16 +64,16 @@ Kubectl is a command line tool that serves as a client, to connect to a Kubernet
 
 To install Kubectl, follow the steps at: https://kubernetes.io/docs/tasks/tools/
 
-To verify the Kubectl installation, use this command: 
+To verify the Kubectl installation, use this command:
 
 ```
-kubectl -h 
+kubectl -h
 ```
 If Kubectl is installed correctly, you will see the the Kubectl user manual.
 
 If kubectl is not installed correctly, you will see the error: `command not found: kubectl`
 
-## Set up the Kubernetes Cluster
+## Set Up the Kubernetes Cluster
 
 ### Local Development MiniKube
 
@@ -81,7 +81,7 @@ For local development, you will want to set up MiniKube. See the set up instruct
 
 ### Production Workload: AWS EKS
 
-For production workload development, you will want to use a cloud platform. 
+For production workload development, you will want to use a cloud platform.
 
 EKS is a managed Kubernetes platform provided by AWS. The eksctl tool is a simple way to bring up a Kubernetes cluster on EKS.
 
@@ -89,7 +89,7 @@ EKS is a managed Kubernetes platform provided by AWS. The eksctl tool is a simpl
 
 To install eksctl, follow the steps described here: https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html
 
-#### Using eksctl to provision Kubernetes cluster on EKS
+#### Using eksctl to Provision Kubernetes Cluster on EKS
 
 The following eksctl code can be used to create a Kubernetes cluster in EKS. You will need to replace CLUSTER_NAME, KUBERNETES_VERSION, REGION, NODEGROUP_NAME, NODE_TYPE and NUMBER_OF_NODES based on your configuration.
 
