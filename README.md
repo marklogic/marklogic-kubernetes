@@ -1,6 +1,5 @@
 # MarkLogic Kubernetes Helm Chart
 
-- [MarkLogic Kubernetes Helm Chart](#marklogic-kubernetes-helm-chart)
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
   - [Set up the required tools](#set-up-the-required-tools)
@@ -12,8 +11,8 @@
       - [Install eksctl](#install-eksctl)
       - [Using eksctl to provision Kubernetes cluster on EKS](#using-eksctl-to-provision-kubernetes-cluster-on-eks)
       - [Suggestions for Naming](#suggestions-for-naming)
-- [Install Marklogic Helm Chart](#install-marklogic-helm-chart)
-  - [Add Marklogic Repo](#add-marklogic-repo)
+- [Install MarkLogic Helm Chart](#install-marklogic-helm-chart)
+  - [Add MarkLogic Repo](#add-marklogic-repo)
   - [Installing the Chart](#installing-the-chart)
   - [Configuration Options](#configuration-options)
     - [--values](#--values)
@@ -31,9 +30,13 @@
 
 # Introduction
 
-MarkLogic Server is a multi-model database that has both NoSQL and trusted enterprise data management capabilities. It is the most secure multi-model database.
-
-This custom Helm Chart deploys MarkLogic Server on Kubernetes using Helm.
+This tutorial describes how to set up Kubernetes development environment with AWS EKS and MarkLogic Server. It covers these tasks:
+- Set up the prerequisites necessary for setting up MarkLogic Server in Kubernetes
+- How to setup Kubernetes cluster and install MarkLogic Server on Minikube
+- How to setup Kubernetes cluster and install MarkLogic Server on AWS EKS using eksctl
+- Access the MarkLogic Server cluster
+- How to clean up your environment
+- List of parameters used for configuration
 
 # Prerequisites
 
@@ -106,11 +109,11 @@ eksctl create cluster \
 * KUBERNETES_VERSION: For now, we only support the latest version of Kubernetes in EKS, which is 1.21.
 * NODEGROUP_NAME: Choose a distinctive node group name.
 * NODE_TYPE: The recommendation from our performance team is to use the r5.large node type for development purposes.
-* NUMBER_OF_NODES: Total number of nodes running not only Marklogic database, but also nodes running other applications.
+* NUMBER_OF_NODES: Total number of nodes running not only MarkLogic database, but also nodes running other applications.
 
-# Install Marklogic Helm Chart
+# Install MarkLogic Helm Chart
 
-## Add Marklogic Repo
+## Add MarkLogic Repo
 
 If you haven’t already, add the MarkLogic official repo to Helm using this command:
 
@@ -297,7 +300,7 @@ To use transactional functionality with MarkLogic, you have to set up Ingress an
 Use this Helm command to uninstall the chart:
 
 ```
-helm delete my-release
+helm uninstall my-release
 ```
 
 The output will look like this:
@@ -329,6 +332,7 @@ This table describes the list of available parameters for Helm Chart.
 | `resources.limits`                   | The resource limits for MarkLogic container                                                                    | `{}`                                 |
 | `resources.requests`                 | The resource requests for MarkLogic container                                                                  | `{}`                                 |
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
+| `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
 | `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
