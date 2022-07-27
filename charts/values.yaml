@@ -1,0 +1,116 @@
+# Default values for marklogic server.
+
+# Number of Marklogic nodes
+replicaCount: 1
+
+# Marklogic image parameters
+image:
+  repository: marklogicdb/marklogic-db
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Configure the imagePullSecret to pull the image from private repository that requires credential
+imagePullSecret: {}
+## docker hub registry: https://index.docker.io/v1/
+# registry: "https://index.docker.io/v1/"
+# username: "your username"
+# password: "your password"
+
+# Marklogic pods' resource requests and limits
+# ref: https://kubernetes.io/docs/user-guide/compute-resources/
+# requests:
+#   memory: "3000Mi"
+#   cpu: "1000m"
+# limits:
+#   memory: "3000Mi"
+#   cpu: "1000m"
+resources: {}
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Configure Marklogic Admin Username and Password
+auth:
+  adminUsername: admin
+  adminPassword: admin
+
+# Configure Affinity property for scheduling pods to nodes
+# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+affinity: {}
+
+# Configure NodeSelector property for scheduling pods to nodes
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
+nodeSelector: {}
+
+# Configure persistence using persistent Volume Claim
+# ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+# The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
+# If set the enabled to false, it will use EmptyDir volume
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 10Gi
+  annotations: {}
+  accessModes:
+    - ReadWriteOnce
+  mountPath: /var/opt/MarkLogic
+
+# specify extra list of volumes
+extraVolumes: []
+# specify extra list of volumeMounts
+extraVolumeMounts: []
+# specify extra list of containerPorts
+extraContainerPorts: []
+
+# Configure the Service to access Marklogic Clusters
+service:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      name: query-console
+      port: 8000
+    - protocol: TCP
+      name: manage
+      port: 8002
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+
+# Below are the advanced configurations, please understand read the reference before you make changes
+
+# Configure options for liveness probe
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 60
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Configure options for readiness probe
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 60
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Configure options for startup probe
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 1
+  failureThreshold: 30
+  successThreshold: 1
+
