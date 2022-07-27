@@ -6,7 +6,7 @@ replicaCount: 1
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 10.0-9.1-centos-1.0.0-ea4
+  tag: latest
   pullPolicy: IfNotPresent
 
 # Configure the imagePullSecret to pull the image from private repository that requires credential

@@ -107,7 +107,7 @@ Events:
   Type     Reason     Age   From               Message
   ----     ------     ----  ----               -------
   Normal   Scheduled  13m   default-scheduler  Successfully assigned default/marklogic-0 to minikube
-  Normal   Pulled     13m   kubelet            Container image "store/marklogicdb/marklogic-server:10.0-8.3-centos-1.0.0-ea3" already present on machine
+  Normal   Pulled     13m   kubelet            Container image "marklogicdb/marklogic-db:latest" already present on machine
   Normal   Created    13m   kubelet            Created container marklogic
   Normal   Started    13m   kubelet            Started container marklogic
   Warning  Unhealthy  13m   kubelet            Startup probe failed: ls: cannot access /var/opt/MarkLogic/ready: No such file or directory
