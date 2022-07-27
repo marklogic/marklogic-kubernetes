@@ -323,8 +323,8 @@ This table describes the list of available parameters for Helm Chart.
 | Name                                 | Description                                                                                                    | Default Value                        |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | `replicaCount`                       | Number of MarkLogic Nodes                                                                                      | `1`                                  |
-| `image.repository`                   | repository for MarkLogic image                                                                                 | `store/marklogicdb/marklogic-server` |
-| `image.tag`                          | Image tag for MarkLogic                                                                                        | `10.0-9-centos-1.0.0-ea4`            |
+| `image.repository`                   | repository for MarkLogic image                                                                                 | `marklogicdb/marklogic-db`           |
+| `image.tag`                          | Image tag for MarkLogic                                                                                        | `latest`                             |
 | `image.pullPolicy`                   | Image pull policy                                                                                              | `IfNotPresent`                       |
 | `imagePullSecret.registry`           | Registry of the imagePullSecret                                                                                | `""`                                 |
 | `imagePullSecret.username`           | Username of the imagePullSecret                                                                                | `""`                                 |
