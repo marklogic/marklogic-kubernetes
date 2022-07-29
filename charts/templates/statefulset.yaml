@@ -69,11 +69,11 @@ spec:
                   - '-c'
                   - |
                     pid=$(ps aux | grep -i '/bin/bas[h] /usr' | awk {'print $2'})
-                    echo "Prestop Hook Execution" > /proc/$pid/fd/1
+                    echo "[prestop] Prestop Hook Execution" > /proc/$pid/fd/1
 
                     my_host=$(hostname -f)
 
-                    echo "MarkLogic Pod Hostname: "$my_host > /proc/$pid/fd/1
+                    echo "[prestop] MarkLogic Pod Hostname: "$my_host > /proc/$pid/fd/1
 
                     for ((i = 0; i < 5; i = i + 1)); do
                         res_code=$(curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
@@ -83,12 +83,12 @@ spec:
                             http://localhost:8002/manage/v2/hosts/$my_host?format=json)
 
                         if [[ ${res_code} -eq 202 ]]; then
-                            echo "Host shut down response code: "$res_code > /proc/$pid/fd/1
+                            echo "[prestop] Host shut down response code: "$res_code > /proc/$pid/fd/1
 
                             while (true)
                             do
                                ml_status=$(service MarkLogic status)
-                               echo "MarkLogic Status: "$ml_status > /proc/$pid/fd/1
+                               echo "[prestop] MarkLogic Status: "$ml_status > /proc/$pid/fd/1
                                if [[ "$ml_status" =~ "running" ]]; then
                                   sleep 20s
                                   continue
@@ -98,8 +98,8 @@ spec:
                             done
                             break
                         else
-                            echo "Retry Attempt: "$i > /proc/$pid/fd/1
-                            echo "ERROR: Host shut down expected response code 202, got "$res_code > /proc/$pid/fd/1
+                            echo "[prestop] Retry Attempt: "$i > /proc/$pid/fd/1
+                            echo "[prestop] ERROR: Host shut down expected response code 202, got "$res_code > /proc/$pid/fd/1
                             sleep 10s
                         fi
                     done
