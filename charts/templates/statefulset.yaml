@@ -96,6 +96,23 @@ spec:
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 12 }}
           {{- end }}
+        - name: fluentd
+          env:
+          - name: FLUENT_UID
+            value: root
+          - name: FLUENT_CONF
+            value: fluent.conf
+          - name: FLUENTD_ARGS
+            value: -c /fluentd/etc/fluent.conf
+          image: saravak/fluentd:elastic
+          volumeMounts:
+            - name: datadir
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- if .Values.extraVolumeMounts }}
+              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name:  fdconf
+              mountPath:  /fluentd/etc/
       dnsConfig:
         searches:
           - {{ include "marklogic.headlessURL" . }}
@@ -103,8 +120,11 @@ spec:
       imagePullSecrets:
         - name: {{ include "marklogic.fullname" . }}-registry
       {{- end }}
-      {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
       volumes:
+        - name: fdconf
+          configMap:
+            name: fluentd-config
+      {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
         {{- if not .Values.persistence.enabled }}
         - name: datadir
           emptyDir: {}
