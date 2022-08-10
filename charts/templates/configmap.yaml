@@ -14,56 +14,25 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: fluentd-config
+  name: {{ .Values.logging.configMapName }}
   namespace: {{ .Release.Namespace }}
-  labels:
-    kubernetes.io/cluster-service: "true"
 data:
-  fluent.conf: |
-      <match fluent.**>
-        @type null
-      </match>
+  fluent-bit.conf: |
+      [SERVICE]
+        Flush  5
+        Log_Level  info
+        Daemon  off
+      
+      [INPUT]
+        Name  tail
+        Path  {{ .Values.persistence.mountPath }}/Logs/*
+        Tag  marklogic-logs
+        Path_Key  path
 
-      <source>
-        @type tail
-        @id tail_marklogic_logs
-        format none
-        path /var/opt/MarkLogic/Logs/*
-        pos_file /tmp/log/ml-logs.log.pos
-        path_key log_file
-        tag marklogic.logs
-        read_from_head true
-        <parse>
-          @type none
-          time_key @timestamp
-          time_format %Y-%m-%dT%H:%M:%S.%N%z
-          keep_time_key true
-        </parse>
-      </source>
-
-      <filter marklogic.logs>
-        @type record_transformer
-        enable_ruby true
-        <record>
-          # overwrite full path to file name
-          log_file ${File.basename(record["log_file"])}
-        </record>
-      </filter>
-
-      <match marklogic.logs>
-        @type elasticsearch
-        host elasticsearch.default.svc.cluster.local
-        port 9200
-        user admin
-        password admin
-        index_name fluentd.${tag}
-        include_timestamp true
-        utc_index false
-        time_key_format "%Y-%m-%dT%H:%M:%S.%N%z"
-        time_key time
-        logstash_format true
-        logstash_prefix marklogic.logs
-        path_key out/${log_file}
-        flush_interval 1s
-      </match>
-
+      [OUTPUT]
+        Name  es
+        Match  *
+        Host  {{ .Values.logging.host }}
+        Port  {{ .Values.logging.port }}
+        HTTP_User  {{ .Values.logging.username }}
+        HTTP_Passwd  {{ .Values.logging.password }}

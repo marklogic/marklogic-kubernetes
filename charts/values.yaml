@@ -110,3 +110,10 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
+logging:
+  enabled: true
+  username: admin
+  password: admin
+  configMapName: fluent-bit-config
+  host: elasticsearch.default.svc.cluster.local
+  port: 9200

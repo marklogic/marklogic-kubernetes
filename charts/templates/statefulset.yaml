@@ -96,23 +96,20 @@ spec:
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 12 }}
           {{- end }}
-        - name: fluentd
-          env:
-          - name: FLUENT_UID
-            value: root
-          - name: FLUENT_CONF
-            value: fluent.conf
-          - name: FLUENTD_ARGS
-            value: -c /fluentd/etc/fluent.conf
-          image: saravak/fluentd:elastic
+        {{- if .Values.logging.enabled }}
+        - name: fluent-bit
+          image: fluent/fluent-bit:latest
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: datadir
               mountPath: {{ .Values.persistence.mountPath }}
             {{- if .Values.extraVolumeMounts }}
               {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
-            - name:  fdconf
-              mountPath:  /fluentd/etc/
+            - name: {{ .Values.logging.configMapName }}
+              mountPath: /fluent-bit/etc/fluent-bit.conf
+              subPath: fluent-bit.conf
+        {{- end }}
       dnsConfig:
         searches:
           - {{ include "marklogic.headlessURL" . }}
@@ -121,9 +118,11 @@ spec:
         - name: {{ include "marklogic.fullname" . }}-registry
       {{- end }}
       volumes:
-        - name: fdconf
+        {{- if .Values.logging.enabled }}
+        - name: {{ .Values.logging.configMapName }}
           configMap:
-            name: fluentd-config
+            name: {{ .Values.logging.configMapName }}
+        {{- end }}
       {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
         {{- if not .Values.persistence.enabled }}
         - name: datadir
