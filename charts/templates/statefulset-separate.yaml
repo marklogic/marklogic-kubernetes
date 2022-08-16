@@ -1,21 +1,24 @@
-{{- if ne .Values.deploymentType "separate" }}
+{{- if eq .Values.deploymentType "separate" }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "marklogic.fullname" . }}
+  name: {{ include "marklogic.fullname" . }}-{{ .Values.groupName}}
   namespace: {{ .Release.Namespace }}
   labels:
+    app.kubernetes.io/component: marklogic-{{ .Values.groupName}}
     {{- include "marklogic.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.dNodeCount }}
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: marklogic-{{ .Values.groupName}}
   template:
     metadata:
       labels:
         {{- include "marklogic.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: marklogic-{{ .Values.groupName}}
     spec:
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
       {{- with .Values.affinity }}
@@ -42,6 +45,16 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
+            - name: ML_HOST_TYPE
+              value: {{ .Values.hostType }}
+            - name: GROUP_NAME
+              value: {{ .Values.groupName }}
+            - name: JOIN_GROUP
+              value: {{ .Values.joinGroup }}
+            - name: "BOOTSTRAP_HOST"
+              value: {{ .Values.bootstrapHost }}
+            - name: "ADD_GROUP"
+              value: {{ .Values.addGroupName }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
@@ -50,6 +63,20 @@ spec:
             - '-c'
             - |
               echo '### Begin ML Container Config ###'
+              
+              echo "ML_HOST_TYPE: $ML_HOST_TYPE"
+              echo "GROUP_NAME: $GROUP_NAME"
+              echo "JOIN_GROUP: $JOIN_GROUP"
+              echo "ADD_GROUP: $ADD_GROUP"
+
+              GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
+              GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$GROUP_NAME")
+              ADD_GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$ADD_GROUP")
+
+              echo "GROUP_CFG: $GROUP_CFG"
+              echo "ADD_GROUP_CFG: $ADD_GROUP_CFG"
+
+              echo "ML_FQDN_SUFFIX: $ML_FQDN_SUFFIX"
 
               # Set Hostname to the value of hostname command to /etc/marklogic.conf
               HOST_FQDN="$(hostname).$ML_FQDN_SUFFIX"
@@ -78,6 +105,17 @@ spec:
                     http://$HOSTNAME:8001/admin/v1/instance-admin
                 sleep 10s
 
+                if [ "$ML_HOST_TYPE" == "bootstrap" ]; then
+                  echo "### Deployment type is separate E/D node ###"
+                  echo '### Creating Groups ###'
+                
+                  
+                  $AUTH_CURL -X PUT -H "Content-type: application/json" \
+                  -d "${GROUP_CFG}" http://localhost:8002/manage/v2/groups/Default/properties
+                  sleep 5s
+          
+                fi
+
                 # for EA1 release, disable turning on XDQP by default.
                 # Turn on XDQP encryption via CMA
                 # $AUTH_CURL -X POST -H 'Content-Type: application/json' \
@@ -85,12 +123,19 @@ spec:
                 #     http://$HOSTNAME:8002/manage/v3/
 
                 # Join Cluster
-                if [ "$HOSTNAME" != "$ML_BOOTSTRAP_HOST" ]; then
-                  echo "### joining cluster ###"
+                
+                if [ "$ML_HOST_TYPE" != "bootstrap" ]; then
+                  echo "### Joining Cluster ###"
                   joiner=$HOSTNAME
-                  cluster="$ML_BOOTSTRAP_HOST"
+                  cluster="$BOOTSTRAP_HOST"
+                  echo "ML_BOOTSTRAP_HOST: $ML_BOOTSTRAP_HOST"
+                  echo "BOOTSTRAP_HOST: $BOOTSTRAP_HOST"
+                  $AUTH_CURL -X POST  -H "Content-type: application/json" \
+                  -d "${ADD_GROUP_CFG}" http://${cluster}:8002/manage/v2/groups
+                  sleep 10s
+
                   $AUTH_CURL -o host.xml -X GET -H "Accept: application/xml" http://${joiner}:8001/admin/v1/server-config
-                  $AUTH_CURL -X POST -d "group=Default" --data-urlencode "server-config@./host.xml" -H "Content-type: application/x-www-form-urlencoded" -o cluster.zip http://${cluster}:8001/admin/v1/cluster-config
+                  $AUTH_CURL -X POST -d "group=${JOIN_GROUP}" --data-urlencode "server-config@./host.xml" -H "Content-type: application/x-www-form-urlencoded" -o cluster.zip http://${cluster}:8001/admin/v1/cluster-config
 
                   sleep 10s
 
