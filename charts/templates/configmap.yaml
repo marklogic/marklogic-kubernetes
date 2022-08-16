@@ -6,6 +6,11 @@ metadata:
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
 data:
+{{- if ne .Values.deploymentType "separate" }}
   ML_BOOTSTRAP_HOST: {{ include "marklogic.fullname" . }}-0
+  DEPLOYMENT_TYPE: combined
+{{- else }}
+  DEPLOYMENT_TYPE: separate
+  ML_BOOTSTRAP_HOST: {{ include "marklogic.fullname" . }}-dnode-0
+{{- end }}
   ML_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
-  

@@ -1,7 +1,56 @@
-# Default values for marklogic server.
+# Number of stateful sets
+masterCount: 3
 
-# Number of Marklogic nodes
+# deployment type
+deploymentType: separate
+
+# deployment host
+hostType: bootstrap | non-bootstrap
+
+# default group node to update
+groupName: dnode
+
+# additional groups to be created
+addGroupName: enode
+
+#group node to join
+joinGroup: dnode
+
+#bootstrap host to join the clsuter
+bootstrapHost: dnode
+
+# Number of Marklogic combined E/D nodes
 replicaCount: 1
+
+# Number of nodes
+eNodeCount: 2
+dNodeCount: 1# Number of stateful sets
+masterCount: 3
+
+# deployment type
+deploymentType: separate
+
+# deployment host
+hostType: bootstrap | non-bootstrap
+
+# default group node to update
+groupName: dnode
+
+# additional groups to be created
+addGroupName: enode
+
+#group node to join
+joinGroup: dnode
+
+#bootstrap host to join the clsuter
+bootstrapHost: dnode
+
+# Number of Marklogic combined E/D nodes
+replicaCount: 1
+
+# Number of nodes
+eNodeCount: 2
+dNodeCount: 1
 
 # Marklogic image parameters
 image:
