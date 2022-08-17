@@ -1,21 +1,24 @@
-{{- if ne .Values.deploymentType "separate" }}
+{{- if eq .Values.deploymentType "separate" }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "marklogic.fullname" . }}
+  name: {{ include "marklogic.fullname" . }}-{{ .Values.groupName}}
   namespace: {{ .Release.Namespace }}
   labels:
+    app.kubernetes.io/component: marklogic-{{ .Values.groupName}}
     {{- include "marklogic.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.dNodeCount }}
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: marklogic-{{ .Values.groupName}}
   template:
     metadata:
       labels:
         {{- include "marklogic.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: marklogic-{{ .Values.groupName}}
     spec:
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
       {{- with .Values.affinity }}
@@ -42,7 +45,11 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
-          envFrom:
+            - name: "BOOTSTRAP_CLUSTER_NAME"
+              value: {{ .Values.bootstrapClusterName }}
+            - name: GROUP_NAME
+              value: {{ .Values.group.name }}
+          envFrom:s
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
           command:
@@ -50,6 +57,16 @@ spec:
             - '-c'
             - |
               echo '### Begin ML Container Config ###'
+              
+              echo "BOOTSTRAP_CLUSTER_NAME: $BOOTSTRAP_CLUSTER_NAME"
+              echo "GROUP_NAME: $GROUP_NAME"
+
+              GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
+              GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$GROUP_NAME")
+
+              echo "GROUP_CFG: $GROUP_CFG"
+
+              echo "ML_FQDN_SUFFIX: $ML_FQDN_SUFFIX"
 
               # Set Hostname to the value of hostname command to /etc/marklogic.conf
               HOST_FQDN="$(hostname).$ML_FQDN_SUFFIX"
@@ -78,6 +95,16 @@ spec:
                     http://$HOSTNAME:8001/admin/v1/instance-admin
                 sleep 10s
 
+                if [[ -z "${BOOTSTRAP_CLUSTER_NAME}" ]]; then
+                  echo "### Deployment type is separate E/D node ###"
+                  echo '### Setting Group on Bootstrap host###'
+                  
+                  $AUTH_CURL -X PUT -H "Content-type: application/json" \
+                  -d "${GROUP_CFG}" http://localhost:8002/manage/v2/groups/Default/properties
+                  sleep 5s
+          
+                fi
+
                 # for EA1 release, disable turning on XDQP by default.
                 # Turn on XDQP encryption via CMA
                 # $AUTH_CURL -X POST -H 'Content-Type: application/json' \
@@ -85,12 +112,19 @@ spec:
                 #     http://$HOSTNAME:8002/manage/v3/
 
                 # Join Cluster
-                if [ "$HOSTNAME" != "$ML_BOOTSTRAP_HOST" ]; then
-                  echo "### joining cluster ###"
+                
+                if [[ -n "${BOOTSTRAP_CLUSTER_NAME}" ]]; then
+                  echo "### Joining Cluster ###"
                   joiner=$HOSTNAME
-                  cluster="$ML_BOOTSTRAP_HOST"
+                  cluster="$BOOTSTRAP_CLUSTER_NAME"
+                  echo "ML_BOOTSTRAP_HOST: $ML_BOOTSTRAP_HOST"
+                  echo "BOOTSTRAP_CLUSTER_NAME: $BOOTSTRAP_CLUSTER_NAME"
+                  $AUTH_CURL -X POST  -H "Content-type: application/json" \
+                  -d "${GROUP_CFG}" http://${cluster}:8002/manage/v2/groups
+                  sleep 10s
+
                   $AUTH_CURL -o host.xml -X GET -H "Accept: application/xml" http://${joiner}:8001/admin/v1/server-config
-                  $AUTH_CURL -X POST -d "group=Default" --data-urlencode "server-config@./host.xml" -H "Content-type: application/x-www-form-urlencoded" -o cluster.zip http://${cluster}:8001/admin/v1/cluster-config
+                  $AUTH_CURL -X POST -d "group=${GROUP_NAME}" --data-urlencode "server-config@./host.xml" -H "Content-type: application/x-www-form-urlencoded" -o cluster.zip http://${cluster}:8001/admin/v1/cluster-config
 
                   sleep 10s
 
