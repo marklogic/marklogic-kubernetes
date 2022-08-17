@@ -3,6 +3,9 @@
 # Number of Marklogic nodes
 replicaCount: 1
 
+# Termination Grace Period
+terminationGracePeriod: 120
+
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
