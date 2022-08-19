@@ -10,7 +10,7 @@ bootstrapClusterName: ""
 # Group related settings
 group:
   # the group name of the current Marklogic Helm Deployment
-  name: dnode
+  name: Default
 
 # Number of Marklogic combined E/D nodes
 replicaCount: 1

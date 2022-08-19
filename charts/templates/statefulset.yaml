@@ -1,4 +1,3 @@
-{{- if eq .Values.deploymentType "separate" }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -49,7 +48,7 @@ spec:
               value: {{ .Values.bootstrapClusterName }}
             - name: GROUP_NAME
               value: {{ .Values.group.name }}
-          envFrom:s
+          envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
           command:
@@ -234,4 +233,3 @@ spec:
           requests:
             storage: {{ .Values.persistence.size }}
   {{- end }}
-{{- end }}
