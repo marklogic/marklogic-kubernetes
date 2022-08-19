@@ -4,20 +4,13 @@ masterCount: 3
 # deployment type
 deploymentType: separate
 
-# deployment host
-hostType: bootstrap | non-bootstrap
+# The name of the cluster to join. If not provided, the deployment is a bootstrap cluster.
+bootstrapClusterName: ""
 
-# default group node to update
-groupName: dnode
-
-# additional groups to be created
-addGroupName: enode
-
-#group node to join
-joinGroup: dnode
-
-#bootstrap host to join the clsuter
-bootstrapHost: dnode
+# Group related settings
+group:
+  # the group name of the current Marklogic Helm Deployment
+  name: Default
 
 # Number of Marklogic combined E/D nodes
 replicaCount: 1
@@ -34,7 +27,7 @@ deploymentType: separate
 hostType: bootstrap | non-bootstrap
 
 # default group node to update
-groupName: dnode
+groupName: default
 
 # additional groups to be created
 addGroupName: enode
