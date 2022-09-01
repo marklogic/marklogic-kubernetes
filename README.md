@@ -71,7 +71,7 @@ For local development, you will want to set up MiniKube. See the set up instruct
 ### Production Workload: AWS EKS
 
 For production workload development, you will want to use a cloud platform. 
-The MarkLogic Helm chart creates one MarkLogic "host" per Kubernetes pod in a StatefulSet. To add a new MarkLogic host to an existing cluster, simply increase the number of pods in your StatefulSet. For example, if we want to change the host count of an existing MarkLogic cluster from 2 to 3, run the following Helm command
+
 EKS is a managed Kubernetes platform provided by AWS. The eksctl tool is a simple way to bring up a Kubernetes cluster on EKS.
 
 #### Install eksctl
