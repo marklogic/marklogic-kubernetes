@@ -210,9 +210,9 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 
 We recommend that you use the `values.yaml` file for configuring your installation.
 
-## Cluster Scaling
+## Adding and Removing Hosts from Clusters
 
-### Adding Hosts to a Cluster
+### Adding Hosts
 
 The MarkLogic Helm chart creates one MarkLogic "host" per Kubernetes pod in a StatefulSet.
 To add a new MarkLogic host to an existing cluster, simply increase the number of pods in your StatefulSet.
@@ -223,10 +223,10 @@ helm upgrade release-name [chart-path] --namespace name-space --set replicaCount
 ```
 
 When created, the MarkLogic host will join the existing cluster once the deployment is completed.
-Status can be tracked using the “**kubectl get pods**”. Note that no forests will not be created on the new host.
+Status can be tracked using the “**kubectl get pods**” command. Note that no forests will not be created on the new host.
 If the host will be managing forests for a database, they will need to be created via MarkLogic's administrative UI or APIs once the Pod is up and running.
 
-### Removing Hosts from a Cluster
+### Removing Hosts
 
 When scaling a StatefulSet down, Kubernetes will attempt to stop one or more pods in the set to achieve the desired number of pods.
 When doing so, Kubernetes will stop the pod(s) but the storage attached to the pod will remain until the Persistent Volume Claim(s) have been deleted.
