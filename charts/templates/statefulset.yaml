@@ -112,6 +112,11 @@ spec:
             - name: {{ .Values.logging.configMapName }}
               mountPath: /fluent-bit/etc/parsers.conf
               subPath: parsers.conf
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
         {{- end }}
       dnsConfig:
         searches:

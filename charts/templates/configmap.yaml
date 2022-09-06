@@ -61,6 +61,21 @@ data:
       
       [FILTER]
         Name modify
+        Match *
+        Add pod ${POD_NAME}
+      
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.error
+        Add tag kube.marklogic.logs.error
+
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.access
+        Add tag kube.marklogic.logs.access
+
+      [FILTER]
+        Name modify
         Match kube.marklogic.logs.request
         Add tag kube.marklogic.logs.request
       
@@ -73,16 +88,6 @@ data:
         Name modify
         Match kube.marklogic.logs.crash
         Add tag kube.marklogic.logs.crash
-
-      [FILTER]
-        Name modify
-        Match kube.marklogic.logs.access
-        Add tag kube.marklogic.logs.access
-
-      [FILTER]
-        Name modify
-        Match kube.marklogic.logs.error
-        Add tag kube.marklogic.logs.error
 
       [FILTER]
         Name parser
@@ -104,7 +109,8 @@ data:
         Key_Name log
         Parser json_parser
         Reserve_Data On
-
+      
+      # Configure export to logging backend
       [OUTPUT]
         Name es
         Match *
