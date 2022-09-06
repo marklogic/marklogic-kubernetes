@@ -8,8 +8,8 @@ terminationGracePeriod: 120
 
 # Marklogic image parameters
 image:
-  repository: marklogic-centos/marklogic-server-centos
-  tag: 10-internal
+  repository: marklogicdb/marklogic-db
+  tag: 10.0-9.4-centos-1.0.0-ea4
   pullPolicy: IfNotPresent
 
 # Configure the imagePullSecret to pull the image from private repository that requires credential

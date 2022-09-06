@@ -133,22 +133,19 @@ data:
       [PARSER]
         Name error_parser
         Format regex
-        Regex ^(?<date_time>(.+?)(?=[a-zA-Z]))(?<log_level>(.+?)(?=:))(.+?)(?=[a-zA-Z])(?<log>.*)
+        Regex ^(?<time>(.+?)(?=[a-zA-Z]))(?<log_level>(.+?)(?=:))(.+?)(?=[a-zA-Z])(?<log>.*)
         Time_Key time 
         Time_Format %Y-%m-%d %H:%M:%S.%L
-        Time_Keep On
-      
+
       [PARSER]
         Name access_parser
         Format regex
-        Regex ^(?<host>[^ ]*)(.+?)(?<=\- )(?<user>(.+?)(?=\[))(.+?)(?<=\[)(?<date_time>(.+?)(?=\]))(.+?)(?<=")(?<request>[^\ ]+[^\"]+)(.+?)(?=\d)(?<response_code>[^\ ]*)(.+?)(?=\d|-)(?<response_obj_size>[^\ ]*)(.+?)(?=")(?<request_info>.*)
+        Regex ^(?<host>[^ ]*)(.+?)(?<=\- )(?<user>(.+?)(?=\[))(.+?)(?<=\[)(?<time>(.+?)(?=\]))(.+?)(?<=")(?<request>[^\ ]+[^\"]+)(.+?)(?=\d)(?<response_code>[^\ ]*)(.+?)(?=\d|-)(?<response_obj_size>[^\ ]*)(.+?)(?=")(?<request_info>.*)
         Time_Key time 
         Time_Format %d/%b/%Y:%H:%M:%S %z
-        Time_Keep On
-      
+
       [PARSER]
         Name json_parser
         Format json
         Time_Key time
         Time_Format %Y-%m-%dT%H:%M:%S%z
-        Time_Keep On
