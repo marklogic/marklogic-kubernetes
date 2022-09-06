@@ -107,11 +107,7 @@ spec:
               {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
             - name: {{ .Values.logging.configMapName }}
-              mountPath: /fluent-bit/etc/fluent-bit.conf
-              subPath: fluent-bit.conf
-            - name: {{ .Values.logging.configMapName }}
-              mountPath: /fluent-bit/etc/parsers.conf
-              subPath: parsers.conf
+              mountPath: /fluent-bit/etc/
           env:
             - name: POD_NAME
               valueFrom:

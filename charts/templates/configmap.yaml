@@ -21,9 +21,14 @@ data:
       [SERVICE]
         Flush 5
         Log_Level info
-        Parsers_File parsers.conf
         Daemon off
+        Parsers_File parsers.conf
+      
+      @INCLUDE inputs.conf
+      @INCLUDE filters.conf
+      @INCLUDE outputs.conf
 
+  inputs.conf: |
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*Error*
@@ -58,11 +63,14 @@ data:
         Read_from_head true
         tag kube.marklogic.logs.audit
         Path_Key path
-      
+
+  filters.conf: |
+      # Enrich Logs
       [FILTER]
         Name modify
         Match *
         Add pod ${POD_NAME}
+        Add namespace {{ .Release.Namespace }}
       
       [FILTER]
         Name modify
@@ -88,7 +96,8 @@ data:
         Name modify
         Match kube.marklogic.logs.crash
         Add tag kube.marklogic.logs.crash
-
+      
+      # Parse Logs
       [FILTER]
         Name parser
         Match kube.marklogic.logs.error
@@ -110,6 +119,7 @@ data:
         Parser json_parser
         Reserve_Data On
       
+  outputs.conf: |
       # Configure export to logging backend
       [OUTPUT]
         Name es
@@ -118,12 +128,13 @@ data:
         Port {{ .Values.logging.port }}
         HTTP_User {{ .Values.logging.username }}
         HTTP_Passwd {{ .Values.logging.password }}
+
   parsers.conf: |
       [PARSER]
         Name error_parser
         Format regex
         Regex ^(?<date_time>(.+?)(?=[a-zA-Z]))(?<log_level>(.+?)(?=:))(.+?)(?=[a-zA-Z])(?<log>.*)
-        Time_Key date_time 
+        Time_Key time 
         Time_Format %Y-%m-%d %H:%M:%S.%L
         Time_Keep On
       
@@ -131,7 +142,7 @@ data:
         Name access_parser
         Format regex
         Regex ^(?<host>[^ ]*)(.+?)(?<=\- )(?<user>(.+?)(?=\[))(.+?)(?<=\[)(?<date_time>(.+?)(?=\]))(.+?)(?<=")(?<request>[^\ ]+[^\"]+)(.+?)(?=\d)(?<response_code>[^\ ]*)(.+?)(?=\d|-)(?<response_obj_size>[^\ ]*)(.+?)(?=")(?<request_info>.*)
-        Time_Key date_time 
+        Time_Key time 
         Time_Format %d/%b/%Y:%H:%M:%S %z
         Time_Keep On
       
