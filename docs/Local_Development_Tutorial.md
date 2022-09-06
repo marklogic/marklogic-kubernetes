@@ -1,6 +1,5 @@
 # Local Development Tutorial: Getting Started with MarkLogic in Kubernetes
 
-# Table of contents
 * [Introduction](#Introduction)
 * [Prerequisites](##Prerequisites)
 * [Procedure](#Procedure)
@@ -21,13 +20,12 @@ This tutorial describes how to set up local Kubernetes development environment w
 
 
 ## Prerequisites
-The following steps assume you are running this tutorial from a desktop environment. Mobile environments will likely experience problems and may not work.
-- [Docker](https://docs.docker.com/engine/install/): Subscribe to Docker Hub and pulldown the latest image from: https://hub.docker.com/_/marklogic
+The following steps assume you are running this tutorial from a desktop environment.
+- [Docker](https://docs.docker.com/engine/install/): Pull the latest MarkLogic Server image from: https://hub.docker.com/r/marklogicdb/marklogic-db
   ```sh
-  # Something similar to this, with the latest version tag, which can be found on the dockerhub link above
-  docker pull store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4 
+  docker pull marklogicdb/marklogic-db:latest
   ```
-- [KubeCTL](https://kubernetes.io/docs/tasks/tools/):  Download and install this tool to assist with debugging in a Kubernetes environment. 
+- [Kubectl](https://kubernetes.io/docs/tasks/tools/):  Download and install this tool to assist with debugging in a Kubernetes environment.
 - [Helm](https://helm.sh/docs/intro/install/):  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
 - [Minikube](https://k8s-docs.netlify.app/en/docs/tasks/tools/install-minikube/): Download the Minikube Kubernetes environment, which will host the MarkLogic Server applications.
 - Browser: The latest version of a supported web browser. See the list here: [Web Browser](https://developer.marklogic.com/products/support-matrix/) 
@@ -53,17 +51,14 @@ NAME       STATUS   ROLES                  AGE   VERSION
 minikube   Ready    control-plane,master   1d    v1.23.3
 ```
 
- To enable addons run the follow Minikube command for ingress:     
- `minikube addons enable ingress`  
 ##  Installing a Single MarkLogic Host to Minikube
-- Push the image used for MarkLogic Server to the VM:   
-`minikube image load store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`  
-  The image ID used in the example is `store/marklogicdb/marklogic-server:10.0-9-centos-1.0.0-ea4`, which may not be the latest image. To find the latest ID go to https://hub.docker.com/_/marklogic  
-- Add the helm repository
+- Push the image used for MarkLogic Server to the Minikube:
+`minikube image load marklogicdb/marklogic-db:latest`
+- Add the Helm repository
   `helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/`  
   Additionally create a `values.yaml` file for your installation, like the one found in the repository under `/charts`: https://marklogic.github.io/marklogic-kubernetes/. The `values.yaml` file controls configuration for MarkLogic Server running in kubernetes. 
-  Run `helm install RELEASE_NAME marklogic/marklogic --version=1.0.0-ea1 -f values.yaml` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.    
-  For example: `helm install marklogic-local-dev-env marklogic/marklogic --version=1.0.0-ea1 -f values.yaml`
+  Run `helm install RELEASE_NAME marklogic/marklogic --version=1.0.0-ea1 --values values.yaml` where the `RELEASE_NAME` can be any name you want to use to identify this deployment.
+  For example: `helm install marklogic-local-dev-env marklogic/marklogic --version=1.0.0-ea1 --values values.yaml`
 ## Installing Multiple MarkLogic Hosts to Minikube
 To create a MarkLogic cluster in Minikube, change the `replicaCount` in the `values.yaml` file to 3, or any other odd number to avoid the [split brain problem](https://help.marklogic.com/Knowledgebase/Article/View/119/0/start-up-quorum-and-forest-level-failover). Then follow the procedure outlined in the [Installing a Single MarkLogic Host to Minikube](##Installing-a-Single-MarkLogic-Host-to-Minikube) section. 
 
@@ -112,7 +107,7 @@ Events:
   Type     Reason     Age   From               Message
   ----     ------     ----  ----               -------
   Normal   Scheduled  13m   default-scheduler  Successfully assigned default/marklogic-0 to minikube
-  Normal   Pulled     13m   kubelet            Container image "store/marklogicdb/marklogic-server:10.0-8.3-centos-1.0.0-ea3" already present on machine
+  Normal   Pulled     13m   kubelet            Container image "marklogicdb/marklogic-db:latest" already present on machine
   Normal   Created    13m   kubelet            Created container marklogic
   Normal   Started    13m   kubelet            Started container marklogic
   Warning  Unhealthy  13m   kubelet            Startup probe failed: ls: cannot access /var/opt/MarkLogic/ready: No such file or directory
