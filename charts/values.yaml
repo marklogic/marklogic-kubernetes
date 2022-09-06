@@ -119,8 +119,15 @@ startupProbe:
 
 logging:
   enabled: true
-  username: admin
-  password: admin
   configMapName: fluent-bit-config
-  host: elasticsearch.default.svc.cluster.local
-  port: 9200
+  trackFiles:
+    errorLogs: true
+    accessLogs: true
+    requestLogs: true
+    crashLogs: true
+    auditLogs: true
+  # Example values for ElasticSearch output
+  # username: admin
+  # password: admin
+  # host: elasticsearch.default.svc.cluster.local
+  # port: 9200

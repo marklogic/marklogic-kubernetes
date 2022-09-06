@@ -23,46 +23,68 @@ data:
         Log_Level info
         Daemon off
         Parsers_File parsers.conf
-      
+
       @INCLUDE inputs.conf
       @INCLUDE filters.conf
       @INCLUDE outputs.conf
 
   inputs.conf: |
+      {{- if .Values.logging.trackFiles.errorLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*Error*
         Read_from_head true
         Tag kube.marklogic.logs.error
         Path_Key path
+      {{- end }}
       
+      {{- if .Values.logging.trackFiles.accessLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*Access*
         Read_from_head true
         tag kube.marklogic.logs.access
         Path_Key path
-      
+      {{- end }}
+
+      {{- if .Values.logging.trackFiles.requestLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*Request*
         Read_from_head true
         tag kube.marklogic.logs.request
         Path_Key path
-      
+      {{- end }}
+
+      {{- if .Values.logging.trackFiles.crashLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/CrashLog.txt
         Read_from_head true
         tag kube.marklogic.logs.crash
         Path_Key path
-      
+      {{- end }}
+
+      {{- if .Values.logging.trackFiles.auditLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/AuditLog.txt
         Read_from_head true
         tag kube.marklogic.logs.audit
         Path_Key path
+      {{- end }}
+
+  outputs.conf: |
+      # Example output config for ElasticSearch output
+      # [OUTPUT]
+      #   Name es
+      #   Match *
+      #   Host {{ .Values.logging.host }}
+      #   Port {{ .Values.logging.port }}
+      #   HTTP_User {{ .Values.logging.username }}
+      #   HTTP_Passwd {{ .Values.logging.password }}
+      # Configure desired output below, documentation on how to set up output can be found here
+      # https://docs.fluentbit.io/manual/pipeline/outputs
 
   filters.conf: |
       # Enrich Logs
@@ -71,7 +93,7 @@ data:
         Match *
         Add pod ${POD_NAME}
         Add namespace {{ .Release.Namespace }}
-      
+
       [FILTER]
         Name modify
         Match kube.marklogic.logs.error
@@ -86,7 +108,7 @@ data:
         Name modify
         Match kube.marklogic.logs.request
         Add tag kube.marklogic.logs.request
-      
+
       [FILTER]
         Name modify
         Match kube.marklogic.logs.audit
@@ -96,7 +118,7 @@ data:
         Name modify
         Match kube.marklogic.logs.crash
         Add tag kube.marklogic.logs.crash
-      
+
       # Parse Logs
       [FILTER]
         Name parser
@@ -111,23 +133,13 @@ data:
         Key_Name log
         Parser access_parser
         Reserve_Data On
-      
+
       [FILTER]
         Name parser
         Match kube.marklogic.logs.request
         Key_Name log
         Parser json_parser
         Reserve_Data On
-      
-  outputs.conf: |
-      # Configure export to logging backend
-      [OUTPUT]
-        Name es
-        Match *
-        Host {{ .Values.logging.host }}
-        Port {{ .Values.logging.port }}
-        HTTP_User {{ .Values.logging.username }}
-        HTTP_Passwd {{ .Values.logging.password }}
 
   parsers.conf: |
       [PARSER]
