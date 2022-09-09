@@ -32,7 +32,7 @@ data:
       {{- if .Values.logging.trackFiles.errorLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/*Error*
+        Path {{ .Values.persistence.mountPath }}/Logs/*ErrorLog.txt
         Read_from_head true
         Tag kube.marklogic.logs.error
         Path_Key path
@@ -41,7 +41,7 @@ data:
       {{- if .Values.logging.trackFiles.accessLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/*Access*
+        Path {{ .Values.persistence.mountPath }}/Logs/*AccessLog.txt
         Read_from_head true
         tag kube.marklogic.logs.access
         Path_Key path
@@ -50,7 +50,7 @@ data:
       {{- if .Values.logging.trackFiles.requestLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/*Request*
+        Path {{ .Values.persistence.mountPath }}/Logs/*RequestLog.txt
         Read_from_head true
         tag kube.marklogic.logs.request
         Path_Key path
