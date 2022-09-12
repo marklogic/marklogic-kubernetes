@@ -98,7 +98,7 @@ spec:
           {{- end }}
         {{- if .Values.logging.enabled }}
         - name: fluent-bit
-          image: fluent/fluent-bit:latest
+          image: fluent/fluent-bit:1.9.7
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: datadir
