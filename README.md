@@ -216,41 +216,38 @@ We recommend that you use the `values.yaml` file for configuring your installati
 
 The MarkLogic Helm chart creates one MarkLogic "host" per Kubernetes pod in a StatefulSet.
 To add a new MarkLogic host to an existing cluster, simply increase the number of pods in your StatefulSet.
-For example, if we want to change the host count of an existing MarkLogic cluster from 2 to 3, run the following Helm command
+For example, if you want to change the host count of an existing MarkLogic cluster from 2 to 3, run the following Helm command:
 
 ```
 helm upgrade release-name [chart-path] --namespace name-space --set replicaCount=3
 ```
 
-When created, the MarkLogic host will join the existing cluster once the deployment is completed.
-Status can be tracked using the “**kubectl get pods**” command. Note that no forests will not be created on the new host.
-If the host will be managing forests for a database, they will need to be created via MarkLogic's administrative UI or APIs once the Pod is up and running.
+Once this deployment is completed, the new MarkLogic host joins the existing cluster.
+To track deployment status, use “**kubectl get pods**” command. This procedure does not automatically create forests on the new host.
+If the host will be managing forests for a database, create them via MarkLogic's administrative UI or APIs once the pod is up and running.
 
 ### Removing Hosts
 
 When scaling a StatefulSet down, Kubernetes will attempt to stop one or more pods in the set to achieve the desired number of pods.
-When doing so, Kubernetes will stop the pod(s) but the storage attached to the pod will remain until the Persistent Volume Claim(s) have been deleted.
+When doing so, Kubernetes will stop the pod(s), but the storage attached to the pod will remain until you delete the Persistent Volume Claim(s).
 Shutting down a pod from the Kubernetes side does not modify the MarkLogic cluster configuration.
-It only stops the pod which causes the MarkLogic host to go offline. If there are forests assigned to the stopped host(s), those forests will go offline.
+It only stops the pod, which causes the MarkLogic host to go offline. If there are forests assigned to the stopped host(s), those forests will go offline.
 
-The procedure to scale down the number of MarkLogic hosts in a cluster depends on whether or not forests are assigned to
-the host(s) to be removed and if the goal is to permanently remove the host(s) from the MarkLogic cluster.
-If there are forests assigned to the host(s) and we we want to remove the host(s) from the cluster,
-follow MarkLogic administrative procedures to migrate the data from the forests assigned to the host(s) forests assigned
+The procedure to scale down the number of MarkLogic hosts in a cluster depends on whether or not forests are assigned to the host(s) to be removed and if the goal is to permanently remove the host(s) from the MarkLogic cluster. If there are forests assigned to the host(s) and you want to remove the host(s) from the cluster, follow MarkLogic administrative procedures to migrate the data from the forests assigned to the host(s) forests assigned
 to the remaining hosts in the cluster (see https://docs.marklogic.com/guide/admin/database-rebalancing#id_23094 and
 https://help.marklogic.com/knowledgebase/article/View/507/0/using-the-rebalancer-to-move-the-content-in-one-forest-to-another-location for details).
-Once the data are safely migrated from the forests on the host(s) to be removed, the host can be removed from the MarkLogic cluster.
-If there are forests assigned to the host(s) but we just want to temporarily shut down the MarkLogic host/pod,
-the data do not need to be migrated but the forests will go offline while the host is shutdown.
+Once the data are safely migrated from the forests on the host(s) to be removed, the host can be removed from the MarkLogic cluster. If there are forests assigned to the host(s) but you just want to temporarily shut down the MarkLogic host/pod, the data do not need to be migrated, but the forests will go offline while the host is shut down.
 
-For example, once we have migrated any forest data from the 3rd MarkLogic host, we can change the host count on an
-existing MarkLogic cluster from 3 to 2 by running the following Helm command
+For example, once you have migrated any forest data from the third MarkLogic host, you can change the host count on an
+existing MarkLogic cluster from 3 to 2 by running the following Helm command:
 
 ```
 helm upgrade release-name [chart-path] --namespace name-space --set replicaCount=2
 ```
 
-In order to track the host shutdown progress, run the following command
+Before Kubernetes stops the pod, it makes a call to the MarkLogic host to tell it to shut down with the "fastFailOver" flag set to TRUE. This tells the remaining hosts in the cluster that this host is shutting down and to trigger failover for any replica forests that may be available for forests on this host. There is a two minute grace period to allow MarkLogic to shut down cleanly before Kubernetes will kill the pod.
+
+In order to track the host shutdown progress, run the following command:
 ```
 kubectl logs pod/terminated-host-pod-name
 ```
