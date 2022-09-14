@@ -233,8 +233,7 @@ When doing so, Kubernetes will stop the pod(s), but the storage attached to the 
 Shutting down a pod from the Kubernetes side does not modify the MarkLogic cluster configuration.
 It only stops the pod, which causes the MarkLogic host to go offline. If there are forests assigned to the stopped host(s), those forests will go offline.
 
-The procedure to scale down the number of MarkLogic hosts in a cluster depends on whether or not forests are assigned to the host(s) to be removed and if the goal is to permanently remove the host(s) from the MarkLogic cluster. If there are forests assigned to the host(s) and you want to remove the host(s) from the cluster, follow MarkLogic administrative procedures to migrate the data from the forests assigned to the host(s) forests assigned
-to the remaining hosts in the cluster (see https://docs.marklogic.com/guide/admin/database-rebalancing#id_23094 and
+The procedure to scale down the number of MarkLogic hosts in a cluster depends on whether or not forests are assigned to the host(s) to be removed and if the goal is to permanently remove the host(s) from the MarkLogic cluster. If there are forests assigned to the host(s) and you want to remove the host(s) from the cluster, follow MarkLogic administrative procedures to migrate the data from the forests assigned to the host(s) you want to shut down to the forests assigned to the remaining hosts in the cluster (see https://docs.marklogic.com/guide/admin/database-rebalancing#id_23094 and
 https://help.marklogic.com/knowledgebase/article/View/507/0/using-the-rebalancer-to-move-the-content-in-one-forest-to-another-location for details).
 Once the data are safely migrated from the forests on the host(s) to be removed, the host can be removed from the MarkLogic cluster. If there are forests assigned to the host(s) but you just want to temporarily shut down the MarkLogic host/pod, the data do not need to be migrated, but the forests will go offline while the host is shut down.
 
@@ -245,17 +244,14 @@ existing MarkLogic cluster from 3 to 2 by running the following Helm command:
 helm upgrade release-name [chart-path] --namespace name-space --set replicaCount=2
 ```
 
-Before Kubernetes stops the pod, it makes a call to the MarkLogic host to tell it to shut down with the "fastFailOver" flag set to TRUE. This tells the remaining hosts in the cluster that this host is shutting down and to trigger failover for any replica forests that may be available for forests on this host. There is a two minute grace period to allow MarkLogic to shut down cleanly before Kubernetes will kill the pod.
+Before Kubernetes stops the pod, it makes a call to the MarkLogic host to tell it to shut down with the "fastFailOver" flag set to TRUE. This tells the remaining hosts in the cluster that this host is shutting down and to trigger failover for any replica forests that may be available for forests on this host. There is a two-minute grace period to allow MarkLogic to shut down cleanly before Kubernetes kills the pod.
 
 In order to track the host shutdown progress, run the following command:
 ```
 kubectl logs pod/terminated-host-pod-name
 ```
 
-If permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic 
-administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. 
-Also, because Kubernetes will keep the persistent volume claims and persistent volumes around until they are explicitly deleted, 
-they must be manually deleted using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
 
 # Uninstalling the Chart
 
