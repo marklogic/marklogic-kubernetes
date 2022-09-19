@@ -179,7 +179,7 @@ You should see an entry named "my-release" (or the release name you chose) with 
 
 ## Configuration Options
 
-This section describes the configuration options you can use with Helm. 
+This section describes the configuration options you can use with Helm.
 
 ### --values
 
@@ -220,6 +220,14 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 ```
 
 We recommend that you use the `values.yaml` file for configuring your installation.
+
+### Logging
+
+To enable log collection for all Marklogic logs set logging.enabled to true. Set each option in logging.trackFiles to true of false depending on if you want to track each type of Marklogic log file.
+
+In order to use the logs that are colleceted you must define an output in the configmap.yaml file. Fluent Bit will parse and output all the log files from each pod to the output you set.
+
+For documentation on how to setup the Fluent Bit output with your logging backend see Fluent Bit's output documentation here: <https://docs.fluentbit.io/manual/pipeline/outputs>
 
 # Access the MarkLogic Server
 
@@ -369,3 +377,9 @@ This table describes the list of available parameters for Helm Chart.
 | `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
 | `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
 | `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
+| `logging.enabled`                    | Enable this parameter to enable cluster wide log collection of Marklogic server logs                           | `false`                              |
+| `logging.trackFiles.errorLogs`       | Enable this parameter to enable collection of Marklogics error logs when cluster level logging is enabled      | `true`                               |
+| `logging.trackFiles.accessLogs`      | Enable this parameter to enable collection of Marklogics access logs when cluster level logging is enabled     | `true`                               |
+| `logging.trackFiles.requestLogs`     | Enable this parameter to enable collection of Marklogics request logs when cluster level logging is enabled    | `true`                               |
+| `logging.trackFiles.crashLogs`       | Enable this parameter to enable collection of Marklogics crash logs when cluster level logging is enabled      | `true`                               |
+| `logging.trackFiles.auditLogs`       | Enable this parameter to enable collection of Marklogics audit logs when cluster level logging is enabled      | `true`                               |

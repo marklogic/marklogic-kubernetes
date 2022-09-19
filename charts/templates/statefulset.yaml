@@ -154,7 +154,7 @@ spec:
             {{- if .Values.extraVolumeMounts }}
               {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
-            - name: {{ .Values.logging.configMapName }}
+            - name: {{ include "marklogic.fullname" . }}-fb-config-map
               mountPath: /fluent-bit/etc/
           env:
             - name: POD_NAME
@@ -174,9 +174,9 @@ spec:
       {{- end }}
       volumes:
         {{- if .Values.logging.enabled }}
-        - name: {{ .Values.logging.configMapName }}
+        - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:
-            name: {{ .Values.logging.configMapName }}
+            name: {{ include "marklogic.fullname" . }}-fb-config-map
         {{- end }}
       {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
         {{- if not .Values.persistence.enabled }}

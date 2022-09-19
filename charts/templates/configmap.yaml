@@ -14,7 +14,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.logging.configMapName }}
+  name: {{ include "marklogic.fullname" . }}-fb-config-map
   namespace: {{ .Release.Namespace }}
 data:
   fluent-bit.conf: |
@@ -36,6 +36,7 @@ data:
         Read_from_head true
         Tag kube.marklogic.logs.error
         Path_Key path
+        Parser error_parser
       {{- end }}
       
       {{- if .Values.logging.trackFiles.accessLogs }}
@@ -45,6 +46,7 @@ data:
         Read_from_head true
         tag kube.marklogic.logs.access
         Path_Key path
+        Parser access_parser
       {{- end }}
 
       {{- if .Values.logging.trackFiles.requestLogs }}
@@ -54,6 +56,7 @@ data:
         Read_from_head true
         tag kube.marklogic.logs.request
         Path_Key path
+        Parser json_parser
       {{- end }}
 
       {{- if .Values.logging.trackFiles.crashLogs }}
@@ -118,28 +121,6 @@ data:
         Name modify
         Match kube.marklogic.logs.crash
         Add tag kube.marklogic.logs.crash
-
-      # Parse Logs
-      [FILTER]
-        Name parser
-        Match kube.marklogic.logs.error
-        Key_Name log
-        Parser error_parser
-        Reserve_Data On
-
-      [FILTER]
-        Name parser
-        Match kube.marklogic.logs.access
-        Key_Name log
-        Parser access_parser
-        Reserve_Data On
-
-      [FILTER]
-        Name parser
-        Match kube.marklogic.logs.request
-        Key_Name log
-        Parser json_parser
-        Reserve_Data On
 
   parsers.conf: |
       [PARSER]

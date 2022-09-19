@@ -118,8 +118,7 @@ startupProbe:
   successThreshold: 1
 
 logging:
-  enabled: true
-  configMapName: fluent-bit-config
+  enabled: false
   trackFiles:
     errorLogs: true
     accessLogs: true
