@@ -1,9 +1,10 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "marklogic.fullname" . }}
+  name: {{ include "marklogic.fullname" . }}-{{ .Values.group.name}}
   namespace: {{ .Release.Namespace }}
   labels:
+    app.kubernetes.io/component: marklogic-{{ .Values.group.name}}
     {{- include "marklogic.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
@@ -11,16 +12,61 @@ spec:
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: marklogic-{{ .Values.group.name}}
   template:
     metadata:
       labels:
         {{- include "marklogic.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: marklogic-{{ .Values.group.name}}
     spec:
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
       {{- with .Values.affinity }}
       affinity: {{- toYaml . | nindent 8}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
+      {{- if and (ne .Values.bootstrapClusterName "") (eq .Values.bootstrapHostName "") }}
+      initContainers:
+      - name: init-checkGroup
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        command:
+          - bash
+          - '-c'
+          - |
+            echo '### Begin init Container ###'
+            
+            echo "BOOTSTRAP_CLUSTER_NAME: $BOOTSTRAP_CLUSTER_NAME"
+            echo "MARKLOGIC_GROUP: $MARKLOGIC_GROUP"
+
+            GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
+            GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+
+            echo "GROUP_CFG: $GROUP_CFG"
+
+            ML_GROUPS=`curl --anyauth -m 20 -s -X GET http://${BOOTSTRAP_CLUSTER_NAME}:8002/manage/v2/groups?format=json --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} | jq '."group-default-list"."list-items"."list-item"'`; 
+            echo ML_GROUPS: $ML_GROUPS;
+            if [[ $(jq <<< "${ML_GROUPS}" --arg MARKLOGIC_GROUP "$MARKLOGIC_GROUP" 'any(.nameref==$MARKLOGIC_GROUP)') == "true" ]]; then
+              echo "Group is already configured." 
+            else
+              echo $MARKLOGIC_GROUP does not exist, creating $MARKLOGIC_GROUP on ML cluster;
+              resp=`curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${BOOTSTRAP_CLUSTER_NAME}:8002/manage/v2/groups`;
+              sleep 20s
+            fi
+        env: 
+        - name: "BOOTSTRAP_CLUSTER_NAME"
+          value: {{ .Values.bootstrapClusterName }}
+        - name: MARKLOGIC_GROUP
+          value: {{ .Values.group.name }}
+        - name: MARKLOGIC_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "marklogic.fullname" . }}
+              key: username
+        - name: MARKLOGIC_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "marklogic.fullname" . }}
+              key: password
+      {{- end }} 
       containers:
         - name: marklogic-server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -42,6 +88,15 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
+            - name: MARKLOGIC_WALLET_PASSWORD
+              valueFrom:
+                  secretKeyRef:
+                    name: {{ include "marklogic.fullname" . }}
+                    key: password
+            - name: "BOOTSTRAP_CLUSTER_NAME"
+              value: {{ .Values.bootstrapClusterName }}
+            - name: MARKLOGIC_GROUP
+              value: {{ .Values.group.name }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
@@ -62,6 +117,36 @@ spec:
               {{- toYaml .Values.extraContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
+            {{- if eq .Values.bootstrapClusterName "" }}
+            postStart:
+              exec:
+                command:
+                  - bash
+                  - '-c'
+                  - |
+                    pid=$(ps aux | grep -i '/bin/bas[h] /usr' | awk {'print $2'})
+
+                    log () {
+                      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
+                      echo "${TIMESTAMP}  $@" > /proc/$pid/fd/1
+                    }
+
+                    log "Info: [poststart] Poststart Hook Execution"
+
+                    while [ ! -f /var/opt/MarkLogic/ready ]; do
+                      sleep 5
+                    done
+
+                    log "Info: [poststart] Updating Default group on cluster"
+                    GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
+                    GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+
+                    AUTH_CURL="curl --anyauth --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" -m 20 -s "
+                    
+                    $AUTH_CURL -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://localhost:8002/manage/v2/groups/Default/properties
+                    
+                    log "Info: [poststart] Poststart Hook Execution Completed"
+            {{- end }}
             preStop:
               exec:
                 command:

@@ -6,6 +6,18 @@ replicaCount: 1
 # Termination Grace Period
 terminationGracePeriod: 120
 
+# Group related settings
+group:
+  # the group name of the current Marklogic Helm Deployment
+  name: Default
+
+# The name of the cluster to join. If not provided, the deployment is a bootstrap cluster.
+bootstrapClusterName: ""
+
+# The name of the host to join. If not provided, the deployment is a bootstrap host.
+bootstrapHostName: ""
+
+
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
