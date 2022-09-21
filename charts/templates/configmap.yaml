@@ -37,6 +37,7 @@ data:
         Tag kube.marklogic.logs.error
         Path_Key path
         Parser error_parser
+        Mem_Buf_Limit 4MB
       {{- end }}
       
       {{- if .Values.logging.trackFiles.accessLogs }}
@@ -47,6 +48,7 @@ data:
         tag kube.marklogic.logs.access
         Path_Key path
         Parser access_parser
+        Mem_Buf_Limit 4MB
       {{- end }}
 
       {{- if .Values.logging.trackFiles.requestLogs }}
@@ -57,6 +59,7 @@ data:
         tag kube.marklogic.logs.request
         Path_Key path
         Parser json_parser
+        Mem_Buf_Limit 4MB
       {{- end }}
 
       {{- if .Values.logging.trackFiles.crashLogs }}
@@ -66,6 +69,7 @@ data:
         Read_from_head true
         tag kube.marklogic.logs.crash
         Path_Key path
+        Mem_Buf_Limit 4MB
       {{- end }}
 
       {{- if .Values.logging.trackFiles.auditLogs }}
@@ -75,6 +79,7 @@ data:
         Read_from_head true
         tag kube.marklogic.logs.audit
         Path_Key path
+        Mem_Buf_Limit 4MB
       {{- end }}
 
   outputs.conf: |
