@@ -13,7 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 )
 
-func TestChartTemplateNoLogging(t *testing.T) {
+func TestChartTemplateNoLogCollection(t *testing.T) {
 	t.Parallel()
 
 	// Path to the helm chart we will test
@@ -54,7 +54,7 @@ func TestChartTemplateNoLogging(t *testing.T) {
 	require.Equal(t, statefulSetContainers[0].Image, expectedImage)
 }
 
-func TestChartTemplateLogging(t *testing.T) {
+func TestChartTemplateLogCollection(t *testing.T) {
 	t.Parallel()
 
 	// Path to the helm chart we will test

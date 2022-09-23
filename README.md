@@ -221,7 +221,7 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 
 We recommend that you use the `values.yaml` file for configuring your installation.
 
-### Logging
+### Log Collection
 
 To enable log collection for all Marklogic logs set logCollection.enabled to true. Set each option in logCollection.files to true of false depending on if you want to track each type of Marklogic log file.
 
@@ -421,8 +421,8 @@ This table describes the list of available parameters for Helm Chart.
 | `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
 | `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
 | `logCollection.enabled`                    | Enable this parameter to enable cluster wide log collection of Marklogic server logs                     | `false`                              |
-| `logCollection.files.errorLogs`       | Enable this parameter to enable collection of Marklogics error logs when cluster level logging is enabled     | `true`                               |
-| `logCollection.files.accessLogs`      | Enable this parameter to enable collection of Marklogics access logs when cluster level logging is enabled    | `true`                               |
-| `logCollection.files.requestLogs`     | Enable this parameter to enable collection of Marklogics request logs when cluster level logging is enabled   | `true`                               |
-| `logCollection.files.crashLogs`       | Enable this parameter to enable collection of Marklogics crash logs when cluster level logging is enabled     | `true`                               |
-| `logCollection.files.auditLogs`       | Enable this parameter to enable collection of Marklogics audit logs when cluster level logging is enabled     | `true`                               |
+| `logCollection.files.errorLogs`       | Enable this parameter to enable collection of Marklogics error logs when clog collection is enabled     | `true`                               |
+| `logCollection.files.accessLogs`      | Enable this parameter to enable collection of Marklogics access logs when log collection is enabled    | `true`                               |
+| `logCollection.files.requestLogs`     | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled   | `true`                               |
+| `logCollection.files.crashLogs`       | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled     | `true`                               |
+| `logCollection.files.auditLogs`       | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled     | `true`                               |
