@@ -420,9 +420,9 @@ This table describes the list of available parameters for Helm Chart.
 | `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
 | `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
 | `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
-| `logCollection.enabled`                    | Enable this parameter to enable cluster wide log collection of Marklogic server logs                     | `false`                              |
-| `logCollection.files.errorLogs`       | Enable this parameter to enable collection of Marklogics error logs when clog collection is enabled     | `true`                               |
-| `logCollection.files.accessLogs`      | Enable this parameter to enable collection of Marklogics access logs when log collection is enabled    | `true`                               |
-| `logCollection.files.requestLogs`     | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled   | `true`                               |
-| `logCollection.files.crashLogs`       | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled     | `true`                               |
-| `logCollection.files.auditLogs`       | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled     | `true`                               |
+| `logCollection.enabled`              | Enable this parameter to enable cluster wide log collection of Marklogic server logs                           | `false`                              |
+| `logCollection.files.errorLogs`      | Enable this parameter to enable collection of Marklogics error logs when clog collection is enabled            | `true`                               |
+| `logCollection.files.accessLogs`     | Enable this parameter to enable collection of Marklogics access logs when log collection is enabled            | `true`                               |
+| `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
+| `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
+| `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |
