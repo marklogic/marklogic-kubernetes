@@ -85,7 +85,7 @@ spec:
               valueFrom:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
-                    key: password
+                    key: walletPassword
             - name: MARKLOGIC_GROUP
               value: {{ .Values.group.name }}
           envFrom:
