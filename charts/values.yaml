@@ -125,8 +125,14 @@ logCollection:
     requestLogs: true
     crashLogs: true
     auditLogs: true
-  # Example values for ElasticSearch output
-  # username: admin
-  # password: admin
-  # host: elasticsearch.default.svc.cluster.local
-  # port: 9200
+  outputs: |-
+      # Example output config for ElasticSearch output
+      # [OUTPUT]
+      #   Name es
+      #   Match *
+      #   Host elasticsearch.default.svc.cluster.local
+      #   Port 9200
+      #   HTTP_User admin
+      #   HTTP_Passwd admin
+      # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
+      # Configure desired output below

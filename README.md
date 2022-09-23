@@ -225,9 +225,9 @@ We recommend that you use the `values.yaml` file for configuring your installati
 
 To enable log collection for all Marklogic logs set logCollection.enabled to true. Set each option in logCollection.files to true of false depending on if you want to track each type of Marklogic log file.
 
-In order to use the logs that are colleceted you must define an output in the configmap.yaml file. Fluent Bit will parse and output all the log files from each pod to the output you set.
+In order to use the logs that are colleceted you must define an output in the outputs section of the values file. Fluent Bit will parse and output all the log files from each pod to the output(s) you set.
 
-For documentation on how to setup the Fluent Bit output with your logging backend see Fluent Bit's output documentation here: <https://docs.fluentbit.io/manual/pipeline/outputs>
+For documentation on how to configure the Fluent Bit output with your logging backend see Fluent Bit's output documentation here: <https://docs.fluentbit.io/manual/pipeline/outputs>
 
 
 ## Adding and Removing Hosts from Clusters

@@ -82,17 +82,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-  outputs.conf: |
-      # Example output config for ElasticSearch output
-      # [OUTPUT]
-      #   Name es
-      #   Match *
-      #   Host {{ .Values.logCollection.host }}
-      #   Port {{ .Values.logCollection.port }}
-      #   HTTP_User {{ .Values.logCollection.username }}
-      #   HTTP_Passwd {{ .Values.logCollection.password }}
-      # Configure desired output below, documentation on how to set up output can be found here
-      # https://docs.fluentbit.io/manual/pipeline/outputs
+  outputs.conf: {{ toYaml .Values.logCollection.outputs | indent 2 }}
 
   filters.conf: |
       # Enrich Logs
