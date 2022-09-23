@@ -122,9 +122,9 @@ logCollection:
   image: fluent/fluent-bit:1.9.7
   resources:
     cpuRequest: 100m
-    memoryRequest: 128mi
+    memoryRequest: 128Mi
     cpuLimit: 100m
-    memoryLimit: 128mi
+    memoryLimit: 128Mi
   files:
     errorLogs: true
     accessLogs: true
