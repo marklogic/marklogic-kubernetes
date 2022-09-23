@@ -6,12 +6,11 @@ metadata:
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
 data:
-{{- if ne .Values.bootstrapClusterName "" }}
-  MARKLOGIC_BOOTSTRAP_HOST: {{ .Values.bootstrapClusterName }}
-  MARKLOGIC_JOIN_CLUSTER: "true"
+{{- if ne .Values.bootstrapHostName "" }}
+  MARKLOGIC_BOOTSTRAP_HOST: {{ .Values.bootstrapHostName }}
 {{- else }}
   MARKLOGIC_BOOTSTRAP_HOST: {{ include "marklogic.fullname" . }}-0
-  MARKLOGIC_JOIN_CLUSTER: "false"
 {{- end }}
   MARKLOGIC_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
   MARKLOGIC_INIT: "true"
+  MARKLOGIC_JOIN_CLUSTER: "true"
