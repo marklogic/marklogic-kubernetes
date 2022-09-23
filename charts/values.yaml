@@ -119,6 +119,12 @@ startupProbe:
 
 logCollection:
   enabled: true
+  image: fluent/fluent-bit:1.9.7
+  resources:
+    cpuRequest: 100m
+    memoryRequest: 128mi
+    cpuLimit: 100m
+    memoryLimit: 128mi
   files:
     errorLogs: true
     accessLogs: true

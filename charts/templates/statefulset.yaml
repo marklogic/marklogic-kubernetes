@@ -146,7 +146,7 @@ spec:
           {{- end }}
         {{- if .Values.logCollection.enabled }}
         - name: fluent-bit
-          image: fluent/fluent-bit:1.9.7
+          image: {{ .Values.logCollection.image }}
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: datadir
@@ -163,11 +163,11 @@ spec:
                   fieldPath: metadata.name
           resources:
             requests:
-              cpu: 10m
-              memory: 32Mi
+              cpu: {{ .Values.logCollection.resources.cpuRequest }}
+              memory: {{ .Values.logCollection.resources.memoryRequest }}
             limits:
-              cpu: 100m
-              memory: 128Mi
+              cpu: {{ .Values.logCollection.resources.cpuLimit }}
+              memory: {{ .Values.logCollection.resources.memoryLimit }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8}}
