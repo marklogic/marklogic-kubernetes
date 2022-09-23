@@ -29,7 +29,7 @@ data:
       @INCLUDE outputs.conf
 
   inputs.conf: |
-      {{- if .Values.logging.trackFiles.errorLogs }}
+      {{- if .Values.logCollection.files.errorLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*ErrorLog.txt
@@ -40,7 +40,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
       
-      {{- if .Values.logging.trackFiles.accessLogs }}
+      {{- if .Values.logCollection.files.accessLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*AccessLog.txt
@@ -51,7 +51,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-      {{- if .Values.logging.trackFiles.requestLogs }}
+      {{- if .Values.logCollection.files.requestLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/*RequestLog.txt
@@ -62,7 +62,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-      {{- if .Values.logging.trackFiles.crashLogs }}
+      {{- if .Values.logCollection.files.crashLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/CrashLog.txt
@@ -72,7 +72,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-      {{- if .Values.logging.trackFiles.auditLogs }}
+      {{- if .Values.logCollection.files.auditLogs }}
       [INPUT]
         Name tail
         Path {{ .Values.persistence.mountPath }}/Logs/AuditLog.txt
@@ -87,10 +87,10 @@ data:
       # [OUTPUT]
       #   Name es
       #   Match *
-      #   Host {{ .Values.logging.host }}
-      #   Port {{ .Values.logging.port }}
-      #   HTTP_User {{ .Values.logging.username }}
-      #   HTTP_Passwd {{ .Values.logging.password }}
+      #   Host {{ .Values.logCollection.host }}
+      #   Port {{ .Values.logCollection.port }}
+      #   HTTP_User {{ .Values.logCollection.username }}
+      #   HTTP_Passwd {{ .Values.logCollection.password }}
       # Configure desired output below, documentation on how to set up output can be found here
       # https://docs.fluentbit.io/manual/pipeline/outputs
 

@@ -144,7 +144,7 @@ spec:
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 12 }}
           {{- end }}
-        {{- if .Values.logging.enabled }}
+        {{- if .Values.logCollection.enabled }}
         - name: fluent-bit
           image: fluent/fluent-bit:1.9.7
           imagePullPolicy: IfNotPresent
@@ -180,7 +180,7 @@ spec:
         - name: {{ include "marklogic.fullname" . }}-registry
       {{- end }}
       volumes:
-        {{- if .Values.logging.enabled }}
+        {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:
             name: {{ include "marklogic.fullname" . }}-fb-config-map

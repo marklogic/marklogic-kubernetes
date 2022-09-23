@@ -37,7 +37,7 @@ func TestClusterJoin(t *testing.T) {
 			"image.tag":           "10-internal",
 			"auth.adminUsername":  username,
 			"auth.adminPassword":  password,
-			"logging.enabled":    "false",
+			"logCollection.enabled":    "false",
 		},
 	}
 

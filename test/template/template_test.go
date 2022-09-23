@@ -32,7 +32,7 @@ func TestChartTemplateNoLogging(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"logging.enabled":    "false",
+			"logCollection.enabled":    "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -73,7 +73,7 @@ func TestChartTemplateLogging(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"logging.enabled":    "true",
+			"logCollection.enabled":    "true",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}

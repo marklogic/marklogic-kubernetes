@@ -117,9 +117,9 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-logging:
-  enabled: false
-  trackFiles:
+logCollection:
+  enabled: true
+  files:
     errorLogs: true
     accessLogs: true
     requestLogs: true
