@@ -10,3 +10,132 @@ data:
   MARKLOGIC_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
   MARKLOGIC_INIT: "true"
   MARKLOGIC_JOIN_CLUSTER: "true"
+---
+{{- if .Values.logCollection.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "marklogic.fullname" . }}-fb-config-map
+  namespace: {{ .Release.Namespace }}
+data:
+  fluent-bit.conf: |
+      [SERVICE]
+        Flush 5
+        Log_Level info
+        Daemon off
+        Parsers_File parsers.conf
+
+      @INCLUDE inputs.conf
+      @INCLUDE filters.conf
+      @INCLUDE outputs.conf
+
+  inputs.conf: |
+      {{- if .Values.logCollection.files.errorLogs }}
+      [INPUT]
+        Name tail
+        Path {{ .Values.persistence.mountPath }}/Logs/*ErrorLog.txt
+        Read_from_head true
+        Tag kube.marklogic.logs.error
+        Path_Key path
+        Parser error_parser
+        Mem_Buf_Limit 4MB
+      {{- end }}
+      
+      {{- if .Values.logCollection.files.accessLogs }}
+      [INPUT]
+        Name tail
+        Path {{ .Values.persistence.mountPath }}/Logs/*AccessLog.txt
+        Read_from_head true
+        tag kube.marklogic.logs.access
+        Path_Key path
+        Parser access_parser
+        Mem_Buf_Limit 4MB
+      {{- end }}
+
+      {{- if .Values.logCollection.files.requestLogs }}
+      [INPUT]
+        Name tail
+        Path {{ .Values.persistence.mountPath }}/Logs/*RequestLog.txt
+        Read_from_head true
+        tag kube.marklogic.logs.request
+        Path_Key path
+        Parser json_parser
+        Mem_Buf_Limit 4MB
+      {{- end }}
+
+      {{- if .Values.logCollection.files.crashLogs }}
+      [INPUT]
+        Name tail
+        Path {{ .Values.persistence.mountPath }}/Logs/CrashLog.txt
+        Read_from_head true
+        tag kube.marklogic.logs.crash
+        Path_Key path
+        Mem_Buf_Limit 4MB
+      {{- end }}
+
+      {{- if .Values.logCollection.files.auditLogs }}
+      [INPUT]
+        Name tail
+        Path {{ .Values.persistence.mountPath }}/Logs/AuditLog.txt
+        Read_from_head true
+        tag kube.marklogic.logs.audit
+        Path_Key path
+        Mem_Buf_Limit 4MB
+      {{- end }}
+
+  outputs.conf: {{ toYaml .Values.logCollection.outputs | indent 2 }}
+
+  filters.conf: |
+      # Enrich Logs
+      [FILTER]
+        Name modify
+        Match *
+        Add pod ${POD_NAME}
+        Add namespace {{ .Release.Namespace }}
+
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.error
+        Add tag kube.marklogic.logs.error
+
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.access
+        Add tag kube.marklogic.logs.access
+
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.request
+        Add tag kube.marklogic.logs.request
+
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.audit
+        Add tag kube.marklogic.logs.audit
+
+      [FILTER]
+        Name modify
+        Match kube.marklogic.logs.crash
+        Add tag kube.marklogic.logs.crash
+
+  parsers.conf: |
+      [PARSER]
+        Name error_parser
+        Format regex
+        Regex ^(?<time>(.+?)(?=[a-zA-Z]))(?<log_level>(.+?)(?=:))(.+?)(?=[a-zA-Z])(?<log>.*)
+        Time_Key time 
+        Time_Format %Y-%m-%d %H:%M:%S.%L
+
+      [PARSER]
+        Name access_parser
+        Format regex
+        Regex ^(?<host>[^ ]*)(.+?)(?<=\- )(?<user>(.+?)(?=\[))(.+?)(?<=\[)(?<time>(.+?)(?=\]))(.+?)(?<=")(?<request>[^\ ]+[^\"]+)(.+?)(?=\d)(?<response_code>[^\ ]*)(.+?)(?=\d|-)(?<response_obj_size>[^\ ]*)(.+?)(?=")(?<request_info>.*)
+        Time_Key time 
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+      [PARSER]
+        Name json_parser
+        Format json
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S%z
+{{- end }}

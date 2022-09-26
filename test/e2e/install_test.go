@@ -29,6 +29,7 @@ func TestHelmInstall(t *testing.T) {
 			"replicaCount":        "1",
 			"image.repository":    "marklogic-centos/marklogic-server-centos",
 			"image.tag":           "10-internal",
+			"logCollection.enabled":    "false",
 		},
 	}
 

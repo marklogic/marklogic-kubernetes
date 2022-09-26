@@ -117,3 +117,33 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
+# Configure options for log collection
+# Log collection will collect all logs for each file type enabled, parse them, 
+# And export them to a logging backend specified in the outputs section below
+logCollection:
+  enabled: true
+  image: fluent/fluent-bit:1.9.7
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+  files:
+    errorLogs: true
+    accessLogs: true
+    requestLogs: true
+    crashLogs: true
+    auditLogs: true
+  outputs: |-
+      # Example output config for ElasticSearch output
+      # [OUTPUT]
+      #   Name es
+      #   Match *
+      #   Host elasticsearch.default.svc.cluster.local
+      #   Port 9200
+      #   HTTP_User admin
+      #   HTTP_Passwd admin
+      # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
+      # Configure desired output below

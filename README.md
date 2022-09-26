@@ -179,7 +179,7 @@ You should see an entry named "my-release" (or the release name you chose) with 
 
 ## Configuration Options
 
-This section describes the configuration options you can use with Helm. 
+This section describes the configuration options you can use with Helm.
 
 ### --values
 
@@ -220,6 +220,15 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 ```
 
 We recommend that you use the `values.yaml` file for configuring your installation.
+
+### Log Collection
+
+To enable log collection for all Marklogic logs set logCollection.enabled to true. Set each option in logCollection.files to true of false depending on if you want to track each type of Marklogic log file.
+
+In order to use the logs that are colleceted you must define an output in the outputs section of the values file. Fluent Bit will parse and output all the log files from each pod to the output(s) you set.
+
+For documentation on how to configure the Fluent Bit output with your logging backend see Fluent Bit's output documentation here: <https://docs.fluentbit.io/manual/pipeline/outputs>
+
 
 ## Adding and Removing Hosts from Clusters
 
@@ -263,7 +272,6 @@ kubectl logs pod/terminated-host-pod-name
 ```
 
 If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
-
 # Access the MarkLogic Server
 
 ## Service
@@ -412,3 +420,9 @@ This table describes the list of available parameters for Helm Chart.
 | `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
 | `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
 | `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
+| `logCollection.enabled`              | Enable this parameter to enable cluster wide log collection of Marklogic server logs                           | `false`                              |
+| `logCollection.files.errorLogs`      | Enable this parameter to enable collection of Marklogics error logs when clog collection is enabled            | `true`                               |
+| `logCollection.files.accessLogs`     | Enable this parameter to enable collection of Marklogics access logs when log collection is enabled            | `true`                               |
+| `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
+| `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
+| `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |

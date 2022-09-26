@@ -15,7 +15,6 @@ import (
 	digest_auth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
-
 func TestClusterJoin(t *testing.T) {
 	// Path to the helm chart we will test 
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -38,6 +37,7 @@ func TestClusterJoin(t *testing.T) {
 			"image.tag":           "10-internal",
 			"auth.adminUsername":  username,
 			"auth.adminPassword":  password,
+			"logCollection.enabled":    "false",
 		},
 	}
 

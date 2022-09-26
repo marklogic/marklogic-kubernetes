@@ -144,6 +144,25 @@ spec:
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 12 }}
           {{- end }}
+        {{- if .Values.logCollection.enabled }}
+        - name: fluent-bit
+          image: {{ .Values.logCollection.image }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: datadir
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- if .Values.extraVolumeMounts }}
+              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: {{ include "marklogic.fullname" . }}-fb-config-map
+              mountPath: /fluent-bit/etc/
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources: {{- toYaml .Values.logCollection.resources | nindent 12 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8}}
       {{- end }}
@@ -154,8 +173,13 @@ spec:
       imagePullSecrets:
         - name: {{ include "marklogic.fullname" . }}-registry
       {{- end }}
-      {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
       volumes:
+        {{- if .Values.logCollection.enabled }}
+        - name: {{ include "marklogic.fullname" . }}-fb-config-map
+          configMap:
+            name: {{ include "marklogic.fullname" . }}-fb-config-map
+        {{- end }}
+      {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
         {{- if not .Values.persistence.enabled }}
         - name: datadir
           emptyDir: {}
