@@ -11,6 +11,7 @@ data:
   MARKLOGIC_INIT: "true"
   MARKLOGIC_JOIN_CLUSTER: "true"
 ---
+{{- if .Values.logCollection.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -137,3 +138,4 @@ data:
         Format json
         Time_Key time
         Time_Format %Y-%m-%dT%H:%M:%S%z
+{{- end }}
