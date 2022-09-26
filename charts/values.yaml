@@ -117,6 +117,9 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
+# Configure options for log collection
+# Log collection will collect all logs for each file type enabled, parse them, 
+# And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: true
   image: fluent/fluent-bit:1.9.7
