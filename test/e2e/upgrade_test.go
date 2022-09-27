@@ -29,6 +29,7 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":        "1",
 			"image.repository":    "marklogic-centos/marklogic-server-centos",
 			"image.tag":           "10-internal",
+			"logCollection.enabled":    "false",
 		},
 	}
 
@@ -48,6 +49,7 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":        "2",
 			"image.repository":    "marklogic-centos/marklogic-server-centos",
 			"image.tag":           "10-internal",
+			"logCollection.enabled":    "false",
 		},
 	}
 
