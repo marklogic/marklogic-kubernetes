@@ -41,7 +41,6 @@ spec:
             else
               echo "Group $MARKLOGIC_GROUP does not exist, creating $MARKLOGIC_GROUP on the MarkLogic cluster"
               curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups
-              sleep 20s
             fi
             echo '### init container execution completed ###'
         env: 
