@@ -21,6 +21,12 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+# Init container image parameters
+initContainerImage:
+  repository: curlimages/curl
+  tag: latest
+  pullPolicy: IfNotPresent
+
 # Configure the imagePullSecret to pull the image from private repository that requires credential
 imagePullSecret: {}
 ## docker hub registry: https://index.docker.io/v1/
@@ -45,7 +51,6 @@ fullnameOverride: ""
 auth:
   adminUsername: admin
   adminPassword: admin
-  walletPassword: admin
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity

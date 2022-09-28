@@ -23,30 +23,28 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
       {{- if ne .Values.bootstrapHostName "" }}
       initContainers: 
-      - name: check-group-init-container
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      - name: configure-group
+        image: "{{ .Values.initContainerImage.repository }}:{{ .Values.initContainerImage.tag }}"
         command:
-          - bash
+          - sh
           - '-c'
           - |
-            echo '### Begin init container ###'
+            echo '### Begin configuring group ###'
 
             GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
             GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
 
-            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${BOOTSTRAP_HOST_NAME}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-            
+            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+
             if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
               echo "Group $MARKLOGIC_GROUP is already configured on the MarkLogic cluster." 
             else
               echo "Group $MARKLOGIC_GROUP does not exist, creating $MARKLOGIC_GROUP on the MarkLogic cluster"
-              curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${BOOTSTRAP_HOST_NAME}:8002/manage/v2/groups
+              curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups
               sleep 20s
             fi
             echo '### init container execution completed ###'
         env: 
-        - name: "BOOTSTRAP_HOST_NAME"
-          value: {{ .Values.bootstrapHostName }}
         - name: MARKLOGIC_GROUP
           value: {{ .Values.group.name }}
         - name: MARKLOGIC_ADMIN_USERNAME
@@ -59,6 +57,9 @@ spec:
             secretKeyRef:
               name: {{ include "marklogic.fullname" . }}
               key: password
+        envFrom:
+        - configMapRef:
+            name: {{ include "marklogic.fullname" . }}
       {{- end }}
       containers:
         - name: marklogic-server
@@ -81,13 +82,12 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
-            - name: MARKLOGIC_WALLET_PASSWORD
-              valueFrom:
-                  secretKeyRef:
-                    name: {{ include "marklogic.fullname" . }}
-                    key: walletPassword
             - name: MARKLOGIC_GROUP
               value: {{ .Values.group.name }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                    fieldPath: metadata.name
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
@@ -121,19 +121,22 @@ spec:
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
                       echo "${TIMESTAMP}  $@" > /proc/$pid/fd/1
                     }
-
-                    while [ ! -f /var/opt/MarkLogic/ready ]; do
-                      sleep 5s
-                    done
                     log "Info: [poststart] Begin Poststart Hook Execution"
-                    
-                    GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
-                    GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
-                    log "Info: [poststart] Updating Default group on cluster"
-                    AUTH_CURL="curl --anyauth --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" -m 20 -s "
-                    
-                    $AUTH_CURL -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://localhost:8002/manage/v2/groups/Default/properties
-                    sleep 10s
+                    if [[ $MARKLOGIC_GROUP == "Default" || $POD_NAME != *-0 ]]; then
+                      log "Info: [poststart] This is not a bootstrap host or group specified is Default"
+                      exit 1
+                    else
+                      while [ ! -f /var/opt/MarkLogic/ready ]; do
+                        sleep 5s
+                      done
+                      
+                      GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
+                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+
+                      log "Info: [poststart] Updating Default group on cluster"
+                      curl --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://localhost:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
+                      sleep 10s
+                    fi
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
             preStop:
