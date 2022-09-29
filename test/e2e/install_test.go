@@ -25,11 +25,11 @@ func TestHelmInstall(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
-			"replicaCount":        "1",
-			"image.repository":    "marklogic-centos/marklogic-server-centos",
-			"image.tag":           "10-internal",
-			"logCollection.enabled":    "false",
+			"persistence.enabled":   "false",
+			"replicaCount":          "1",
+			"image.repository":      "marklogic-centos/marklogic-server-centos",
+			"image.tag":             "10-internal",
+			"logCollection.enabled": "false",
 		},
 	}
 

@@ -16,9 +16,9 @@ import (
 )
 
 func TestClusterJoin(t *testing.T) {
-	// Path to the helm chart we will test 
+	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
-	if (e != nil) {
+	if e != nil {
 		t.Fatalf(e.Error())
 	}
 	username := "admin"
@@ -31,13 +31,13 @@ func TestClusterJoin(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
-			"replicaCount":        "2",
-			"image.repository":    "marklogic-centos/marklogic-server-centos",
-			"image.tag":           "10-internal",
-			"auth.adminUsername":  username,
-			"auth.adminPassword":  password,
-			"logCollection.enabled":    "false",
+			"persistence.enabled":   "false",
+			"replicaCount":          "2",
+			"image.repository":      "marklogic-centos/marklogic-server-centos",
+			"image.tag":             "10-internal",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
 		},
 	}
 
@@ -46,7 +46,7 @@ func TestClusterJoin(t *testing.T) {
 
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
-	
+
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-join"
 	helm.Install(t, options, helmChartPath, releaseName)

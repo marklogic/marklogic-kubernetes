@@ -15,9 +15,9 @@ import (
 )
 
 func TestHelmUpgrade(t *testing.T) {
-	// Path to the helm chart we will test 
+	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
-	if (e != nil) {
+	if e != nil {
 		t.Fatalf(e.Error())
 	}
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
@@ -25,11 +25,11 @@ func TestHelmUpgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
-			"replicaCount":        "1",
-			"image.repository":    "marklogic-centos/marklogic-server-centos",
-			"image.tag":           "10-internal",
-			"logCollection.enabled":    "false",
+			"persistence.enabled":   "false",
+			"replicaCount":          "1",
+			"image.repository":      "marklogic-centos/marklogic-server-centos",
+			"image.tag":             "10-internal",
+			"logCollection.enabled": "false",
 		},
 	}
 
@@ -45,11 +45,11 @@ func TestHelmUpgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
-			"replicaCount":        "2",
-			"image.repository":    "marklogic-centos/marklogic-server-centos",
-			"image.tag":           "10-internal",
-			"logCollection.enabled":    "false",
+			"persistence.enabled":   "false",
+			"replicaCount":          "2",
+			"image.repository":      "marklogic-centos/marklogic-server-centos",
+			"image.tag":             "10-internal",
+			"logCollection.enabled": "false",
 		},
 	}
 

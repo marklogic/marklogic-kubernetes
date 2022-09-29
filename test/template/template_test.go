@@ -29,10 +29,10 @@ func TestChartTemplateNoLogCollection(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
-			"image.tag":           "latest",
-			"persistence.enabled": "false",
-			"logCollection.enabled":    "false",
+			"image.repository":      "marklogicdb/marklogic-db",
+			"image.tag":             "latest",
+			"persistence.enabled":   "false",
+			"logCollection.enabled": "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -70,10 +70,10 @@ func TestChartTemplateLogCollection(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
-			"image.tag":           "latest",
-			"persistence.enabled": "false",
-			"logCollection.enabled":    "true",
+			"image.repository":      "marklogicdb/marklogic-db",
+			"image.tag":             "latest",
+			"persistence.enabled":   "false",
+			"logCollection.enabled": "true",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
