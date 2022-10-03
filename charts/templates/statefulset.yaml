@@ -29,24 +29,28 @@ spec:
           - sh
           - '-c'
           - |
-            echo '### Begin configuring group ###'
-
-            HOST_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-            if [[ ${HOST_RESP_CODE} -eq 200 ]]; then
-              GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
-              GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
-              GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-
-              if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
-                echo "Group $MARKLOGIC_GROUP is already configured on the MarkLogic cluster." 
-              else
-                echo "Group $MARKLOGIC_GROUP does not exist, creating $MARKLOGIC_GROUP on the MarkLogic cluster"
-                curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups
-              fi
+            echo '### Begin init container execution ###'
+            if [[ $POD_NAME != *-0 ]]; then
+                echo "This is not a first host in this cluster, not configuring group."
             else
-              echo "Bootstrap host not found"
+              HOST_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+              if [[ ${HOST_RESP_CODE} -ne 200 ]]; then
+                echo "Bootstrap host not found."
+              else
+                echo "Configuring group on the MarkLogic cluster."
+                GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
+                GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+                GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+
+                if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
+                  echo "Group $MARKLOGIC_GROUP is already configured on the MarkLogic cluster." 
+                else
+                  echo "Group $MARKLOGIC_GROUP does not exist, creating $MARKLOGIC_GROUP on the MarkLogic cluster"
+                  curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups
+                fi    
+              fi      
             fi
-            echo '### init container execution completed ###'
+            echo '### Init container execution completed ###'
         env: 
         - name: MARKLOGIC_GROUP
           value: {{ .Values.group.name }}
@@ -60,6 +64,10 @@ spec:
             secretKeyRef:
               name: {{ include "marklogic.fullname" . }}
               key: password
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         envFrom:
         - configMapRef:
             name: {{ include "marklogic.fullname" . }}
