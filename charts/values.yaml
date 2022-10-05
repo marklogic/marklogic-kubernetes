@@ -24,7 +24,7 @@ image:
 # Init container image parameters
 initContainerImage:
   repository: curlimages/curl
-  tag: latest
+  tag: 7.85.0
   pullPolicy: IfNotPresent
 
 # Configure the imagePullSecret to pull the image from private repository that requires credential
