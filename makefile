@@ -68,7 +68,7 @@ lint:
 	helm lint --with-subcharts charts/ $(if $(saveOutput), > helm-lint-output.txt,)
 
 	@echo "> Linting all tests....."
-	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run $(if $(saveOutput), > test-lint-output.txt,)
+	golangci-lint run $(if $(saveOutput), > test-lint-output.txt,)
 
 ## ---------- Testing Tasks ----------
 
