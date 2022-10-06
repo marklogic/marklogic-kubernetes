@@ -116,13 +116,15 @@ void resultNotification(message) {
 
 void lint() {
     sh '''
+        # Added to fix 'Context loading failed error'
+        go get ./...
         echo Installing golangci-lint
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.50.0
-        make lint saveOutput=true path=/home/builder/go/bin/
-        echo helm template lint output: ;echo; helm-lint-output.txt; echo all tests lint output: ;echo; test-lint-output.txt
+        make lint saveOutput=true path=./bin/
+        echo helm template lint output: ;cat helm-lint-output.txt ;echo all tests lint output: ;cat test-lint-output.txt
     '''
 
-    LINT_OUTPUT = sh(returnStdout: true, script: 'echo helm template lint output: ;echo; helm-lint-output.txt; echo all tests lint output: ;echo; test-lint-output.txt').trim()
+    LINT_OUTPUT = sh(returnStdout: true, script: 'echo helm template lint output: ;cat helm-lint-output.txt ;echo all tests lint output: ;cat test-lint-output.txt').trim()
 
     sh '''
         rm -f helm-lint-output.txt test-lint-output.txt
@@ -195,7 +197,7 @@ pipeline {
                 expression { return params.KUBERNETES_TESTS }
             }
             steps {
-                sh "make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true"
+                sh "go install gotest.tools/gotestsum@latest; make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true path=./bin/"
             }
         }
     }
