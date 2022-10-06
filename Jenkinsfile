@@ -7,7 +7,7 @@ import groovy.json.JsonSlurperClassic
 
 emailList = 'vkorolev@marklogic.com, irosenba@marklogic.com'
 gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
-mlVersion = ''
+dockerVersion = ''
 JIRA_ID = ''
 JIRA_ID_PATTERN = /CLD-\d{3,4}/
 LINT_OUTPUT = ''
@@ -114,22 +114,6 @@ void resultNotification(message) {
     }
 }
 
-String getServerVersion(branchName) {
-    switch (branchName) {
-        case 'develop':
-            mlVersion = '11.0'
-            return mlVersion
-        case 'develop-10.0':
-            mlVersion = '10.0'
-            return mlVersion
-        case 'develop-9.0':
-            mlVersion = '9.0'
-            return mlVersion
-        default:
-            return 'INVALID BRANCH'
-    }
-}
-
 void lint() {
     sh '''
         make lint saveOutput=true
@@ -149,14 +133,15 @@ void publishTestResults() {
 }
 
 void pullImage() {
+    dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
+
     withCredentials([usernamePassword(credentialsId: '8c2e0b38-9e97-4953-aa60-f2851bb70cc8', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
         sh """
-            echo "${docker_password}" | docker login --username ${docker_user} --password-stdin ${dockerRegistry}
-            docker pull ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:${dockerVersion}
+            echo "\$docker_password" | docker login --username \$docker_user --password-stdin ${dockerRegistry}
+            docker pull ml-docker-dev.marklogic.com/"marklogic"/marklogic-server-centos:${dockerVersion}
         """
     }
 }
-
 
 pipeline {
     agent {
@@ -176,12 +161,11 @@ pipeline {
     environment {
         timeStamp = sh(returnStdout: true, script: 'date +%Y%m%d').trim()
         dockerRegistry = 'https://ml-docker-dev.marklogic.com'
-        dockerVersion = "${mlVersion}-${timeStamp}-centos-1.0.0"
     }
 
     parameters {
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
-        choice(name: 'ML_SERVER_BRANCH', choices: 'develop-10.0\ndevelop\ndevelop-9.0', description: 'MarkLogic Server Branch. used to pick appropriate rpm')
+        choice(name: 'ML_VERSION', choices: '10.0\n11.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
     }
 
@@ -194,7 +178,6 @@ pipeline {
 
         stage('Pull-Image') {
             steps {
-                // TODO: Figure out how to build image
                 pullImage()
             }
         }
@@ -210,7 +193,7 @@ pipeline {
                 expression { return params.KUBERNETES_TESTS }
             }
             steps {
-                sh "make test dockerImage=marklogic-centos/marklogic-server-centos:${mlVersion}-${env.platformString}-${env.dockerVersion} saveOutput=true"
+                sh "make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true"
             }
         }
     }
@@ -218,8 +201,6 @@ pipeline {
     post {
         always {
             sh '''
-                cd src/centos
-                rm -rf *.rpm
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
