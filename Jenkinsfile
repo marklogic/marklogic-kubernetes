@@ -117,8 +117,8 @@ void resultNotification(message) {
 void lint() {
     sh '''
         echo Installing golangci-lint
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.49.0
-        make lint saveOutput=true
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.50.0
+        make lint saveOutput=true path=/home/builder/go/bin/
         echo helm template lint output: ;echo; helm-lint-output.txt; echo all tests lint output: ;echo; test-lint-output.txt
     '''
 

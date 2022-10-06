@@ -3,6 +3,7 @@ dockerImage?=marklogic-centos/marklogic-server-centos:10-internal
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
+## 		- golangci-lint
 ## - Helm 
 ## - Minikube
 ## - Docker
@@ -62,13 +63,14 @@ prepare:
 ## Lint the code
 ## Options:
 ## * [saveOutput] optional. Save the output to a text file. Example: saveOutput=true
+## * [path] optional. path to golangci-lint executable. Example: path=/home/builder/go/bin/
 .PHONY: lint
 lint:
 	@echo "> Linting helm charts....."
 	helm lint --with-subcharts charts/ $(if $(saveOutput), > helm-lint-output.txt,)
 
 	@echo "> Linting all tests....."
-	golangci-lint run $(if $(saveOutput), > test-lint-output.txt,)
+	$(if $(path),$(path),)golangci-lint run $(if $(saveOutput), > test-lint-output.txt,)
 
 ## ---------- Testing Tasks ----------
 
