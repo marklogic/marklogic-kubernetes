@@ -197,7 +197,8 @@ pipeline {
                 expression { return params.KUBERNETES_TESTS }
             }
             steps {
-                sh "go install gotest.tools/gotestsum@latest; make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true path=./bin/"
+                sh """curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v0.3.1/gotestsum_0.3.1_linux_amd64.tar.gz" | tar -xz -C /usr/local/bin gotestsum
+                      make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true"""
             }
         }
     }
