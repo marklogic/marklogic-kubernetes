@@ -50,11 +50,11 @@ func TestSeparateEDnode(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 	
-	releaseName := "test-dnode-group"
-	t.Logf("====Installing Helm Chart" + releaseName)
-	helm.Install(t, options, helmChartPath, releaseName)
+	dnodeReleaseName := "test-dnode-group"
+	t.Logf("====Installing Helm Chart" + dnodeReleaseName)
+	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName := dnodeReleaseName + "-marklogic-0"
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
@@ -81,6 +81,11 @@ func TestSeparateEDnode(t *testing.T) {
 	bootstrapHost := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
 	t.Logf(`BootstrapHost: = %s` , bootstrapHost)
 
+	// verify bootstrap host exists on the cluster
+	if bootstrapHost.String() == "" {
+		t.Errorf("Bootstrap does not exists on cluster")
+	}
+
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
@@ -95,14 +100,14 @@ func TestSeparateEDnode(t *testing.T) {
 			"logCollection.enabled":    "false",
 		},
 	}
-	releaseName2 := "test-enode-group"
-	t.Logf("====Installing Helm Chart " + releaseName2)
-	helm.Install(t, enodeOptions, helmChartPath, releaseName2)
+	enodeReleaseName := "test-enode-group"
+	t.Logf("====Installing Helm Chart " + enodeReleaseName)
+	helm.Install(t, enodeOptions, helmChartPath, enodeReleaseName)
 
-	enodePodName := releaseName2 + "-marklogic-0"
+	enodePodName-0 := enodeReleaseName + "-marklogic-0"
 
-	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName, 15, 20*time.Second)
+	// wait until the first enode pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName-0, 15, 20*time.Second)
 
 	group_endpoint := fmt.Sprintf("http://%s/manage/v2/groups", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, group_endpoint)
@@ -124,4 +129,31 @@ func TestSeparateEDnode(t *testing.T) {
 		t.Errorf("Groups does not exists on cluster")
 	}
 
+	enodePodName-1 := enodeReleaseName + "-marklogic-1"
+
+	// wait until the second enode pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName-1, 15, 20*time.Second)
+
+	enode_endpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode?format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint: %s`, enode_endpoint)
+
+	dr_enode := digest_auth.NewRequest(username, password, "GET", enode_endpoint, "")
+
+	if resp, err = dr_enode.Execute(); err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
+	t.Logf("Response:\n" + string(body))
+
+	enode_host_count := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
+	t.Logf(`enode_host_count: = %s` , enode_host_count)
+
+	// verify bootstrap host exists on the cluster
+	if !strings.Contains(enode_host_count.String(),"2") {
+		t.Errorf("enode hosts does not exists on cluster")
+	}
 }
