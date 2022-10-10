@@ -136,12 +136,10 @@ void publishTestResults() {
 }
 
 void pullImage() {
-    dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
-
     withCredentials([usernamePassword(credentialsId: '8c2e0b38-9e97-4953-aa60-f2851bb70cc8', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
         sh """
             echo "\$docker_password" | docker login --username \$docker_user --password-stdin ${dockerRegistry}
-            docker pull ml-docker-dev.marklogic.com/"marklogic"/marklogic-server-centos:${dockerVersion}
+            docker pull ${dockerRepository}:${dockerVersion}
         """
     }
 }
@@ -163,7 +161,9 @@ pipeline {
     }
     environment {
         timeStamp = sh(returnStdout: true, script: 'date +%Y%m%d').trim()
-        dockerRegistry = 'https://ml-docker-dev.marklogic.com'
+        dockerRegistry = 'ml-docker-dev.marklogic.com'
+        dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
+        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
     }
 
     parameters {
@@ -196,7 +196,10 @@ pipeline {
                 expression { return params.KUBERNETES_TESTS }
             }
             steps {
-                sh "minikube delete --all --purge; make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true jenkins=true"
+                sh """
+                    export MINIKUBE_HOME=/space;
+                    make test dockerImage=${dockerRepository}:${dockerVersion} saveOutput=true
+                """
             }
         }
     }
