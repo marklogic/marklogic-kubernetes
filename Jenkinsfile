@@ -121,7 +121,6 @@ void lint() {
         echo Installing golangci-lint
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.50.0
         make lint saveOutput=true path=./bin/
-        echo helm template lint output: ;cat helm-lint-output.txt ;echo all tests lint output: ;cat test-lint-output.txt
     '''
 
     LINT_OUTPUT = sh(returnStdout: true, script: 'echo helm template lint output: ;cat helm-lint-output.txt ;echo all tests lint output: ;cat test-lint-output.txt').trim()
@@ -197,8 +196,7 @@ pipeline {
                 expression { return params.KUBERNETES_TESTS }
             }
             steps {
-                sh """curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v0.3.1/gotestsum_0.3.1_linux_amd64.tar.gz" | tar -xz -C /usr/local/bin gotestsum
-                      make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true"""
+                sh "minikube delete --all --purge; make test dockerImage=marklogic-centos/marklogic-server-centos:${dockerVersion} saveOutput=true jenkins=true"
             }
         }
     }
@@ -209,6 +207,7 @@ pipeline {
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
+                minikube delete --all --purge
             '''
             publishTestResults()
         }

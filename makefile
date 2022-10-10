@@ -81,8 +81,11 @@ lint:
 ## Options:
 ## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
+## * [jenkins] optional. Jenkins specific enviroment setting, Example: jenkins=true
+
 .PHONY: e2e-test
 e2e-test: prepare
+	$(if $(saveOutput),export MINIKUBE_HOME=./,)
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker -n=1
 
