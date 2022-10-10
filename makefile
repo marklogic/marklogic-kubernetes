@@ -85,7 +85,7 @@ lint:
 
 .PHONY: e2e-test
 e2e-test: prepare
-	$(if $(saveOutput),export MINIKUBE_HOME=./,)
+	$(if $(jenkins),export MINIKUBE_HOME=/space,)
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker -n=1
 
