@@ -2,8 +2,10 @@ package e2e
 
 import (
 	"fmt"
+	"go/printer"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -23,6 +25,20 @@ func TestClusterJoin(t *testing.T) {
 	}
 	username := "admin"
 	password := "admin"
+
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion") 
+	
+	if !repoPres {
+		imageRepo = "marklogic-centos/marklogic-server-centos"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "10-internal"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
 	var resp *http.Response
 	var body []byte
 	var err error
@@ -33,8 +49,8 @@ func TestClusterJoin(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
 			"replicaCount":          "2",
-			"image.repository":      "marklogic-centos/marklogic-server-centos",
-			"image.tag":             "10-internal",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
