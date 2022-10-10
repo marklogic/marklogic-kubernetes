@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"go/printer"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -27,8 +26,8 @@ func TestClusterJoin(t *testing.T) {
 	password := "admin"
 
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion") 
-	
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)

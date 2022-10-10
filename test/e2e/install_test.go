@@ -3,11 +3,11 @@ package e2e
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-	"os"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
@@ -22,8 +22,8 @@ func TestHelmInstall(t *testing.T) {
 		t.Fatalf(e.Error())
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion") 
-	
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
