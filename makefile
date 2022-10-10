@@ -87,7 +87,7 @@ lint:
 e2e-test: prepare
 	$(if $(jenkins),export MINIKUBE_HOME=/space,)
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker -n=1
+	minikube start
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
