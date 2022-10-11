@@ -86,7 +86,7 @@ def getReviewState() {
     }
     def jsonObj = new JsonSlurperClassic().parseText(commitHash.toString().trim())
     def commitId = jsonObj.head.sha
-    println(commit_id)
+    println(commitId)
     def reviewState = getReviewStateOfPR reviewResponse, 2, commitId
     echo reviewState
     return reviewState
