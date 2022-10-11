@@ -3,6 +3,7 @@ package e2e
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,16 +21,29 @@ func TestHelmInstall(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+
+	if !repoPres {
+		imageRepo = "marklogic-centos/marklogic-server-centos"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "10-internal"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
-			"replicaCount":        "1",
-			"image.repository":    "marklogic-centos/marklogic-server-centos",
-			"image.tag":           "10-internal",
-			"logCollection.enabled":    "false",
+			"persistence.enabled":   "false",
+			"replicaCount":          "1",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"logCollection.enabled": "false",
 		},
 	}
 
