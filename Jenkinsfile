@@ -7,7 +7,6 @@ import groovy.json.JsonSlurperClassic
 
 emailList = 'vkorolev@marklogic.com, irosenba@marklogic.com'
 gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
-dockerVersion = ''
 JIRA_ID = ''
 JIRA_ID_PATTERN = /CLD-\d{3,4}/
 LINT_OUTPUT = ''
