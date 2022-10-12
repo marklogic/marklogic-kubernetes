@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,6 +29,19 @@ func TestSeparateEDnode(t *testing.T) {
 	var body []byte
 	var err error
 
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+
+	if !repoPres {
+		imageRepo = "marklogic-centos/marklogic-server-centos"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "10-internal"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
@@ -35,8 +49,8 @@ func TestSeparateEDnode(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
 			"replicaCount":          "1",
-			"image.repository":      "marklogic-centos/marklogic-server-centos",
-			"image.tag":             "10-internal",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "dnode",
@@ -91,8 +105,8 @@ func TestSeparateEDnode(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
 			"replicaCount":          "2",
-			"image.repository":      "marklogic-centos/marklogic-server-centos",
-			"image.tag":             "10-internal",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "enode",
