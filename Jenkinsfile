@@ -155,11 +155,10 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 03 * * * % ML_SERVER_BRANCH=develop-10.0
-                                                        00 04 * * * % ML_SERVER_BRANCH=develop''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * *''' : '')
     }
     environment {
-        timeStamp = sh(returnStdout: true, script: 'date +%Y%m%d').trim()
+        timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
         dockerRegistry = 'ml-docker-dev.marklogic.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
         dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
