@@ -121,7 +121,7 @@ func TestSeparateEDnode(t *testing.T) {
 	enodePodName0 := enodeReleaseName + "-marklogic-0"
 
 	// wait until the first enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
 
 	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, groupEndpoint)
@@ -146,7 +146,7 @@ func TestSeparateEDnode(t *testing.T) {
 	enodePodName1 := enodeReleaseName + "-marklogic-1"
 
 	// wait until the second enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
 
 	enodeEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, enodeEndpoint)
