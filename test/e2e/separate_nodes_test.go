@@ -68,14 +68,14 @@ func TestSeparateEDnode(t *testing.T) {
 	t.Logf("====Installing Helm Chart" + dnodeReleaseName)
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
-	podName := dnodeReleaseName + "-marklogic-0"
+	dnodePodName := dnodeReleaseName + "-marklogic-0"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
 
 	time.Sleep(10 * time.Second)
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
@@ -121,7 +121,7 @@ func TestSeparateEDnode(t *testing.T) {
 	enodePodName0 := enodeReleaseName + "-marklogic-0"
 
 	// wait until the first enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
 
 	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, groupEndpoint)
@@ -146,7 +146,7 @@ func TestSeparateEDnode(t *testing.T) {
 	enodePodName1 := enodeReleaseName + "-marklogic-1"
 
 	// wait until the second enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
 
 	enodeEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, enodeEndpoint)
