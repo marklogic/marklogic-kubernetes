@@ -90,7 +90,7 @@ e2e-test: prepare
 	minikube image load $(dockerImage)
 
 	@echo "=====Running e2e tests"
-	$(if $(saveOutput),gotestsum --junitfile test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 30m, go test -v -count=1 ./test/e2e/...) 
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 30m, go test -v -count=1 ./test/e2e/...) 
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
@@ -103,7 +103,7 @@ e2e-test: prepare
 .PHONY: template-test
 template-test: prepare
 	@echo "=====Running template tests"
-	$(if $(saveOutput),gotestsum --junitfile test_results/testplate-tests.xml ./test/template/... -count=1, go test -v -count=1 ./test/template/...) 
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/testplate-tests.xml ./test/template/... -count=1, go test -v -count=1 ./test/template/...) 
 
 #***************************************************************************
 # test
