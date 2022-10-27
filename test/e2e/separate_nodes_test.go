@@ -95,10 +95,10 @@ func TestSeparateEDnode(t *testing.T) {
 	}
 	t.Logf("Get hosts response:\n" + string(body))
 
-	bootstrapHost := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
-	t.Logf(`BootstrapHost: = %s`, bootstrapHost)
+	bootstrapHostJSON := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
+	t.Logf(`BootstrapHost: = %s`, bootstrapHostJSON)
 	// verify bootstrap host exists on the cluster
-	if bootstrapHost.String() == "" {
+	if bootstrapHostJSON.String() == "" {
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
 
@@ -159,11 +159,11 @@ func TestSeparateEDnode(t *testing.T) {
 	}
 	t.Logf("Get enode group response:\n" + string(body))
 
-	enodeHostCount := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
-	t.Logf(`enodeHostCount: = %s`, enodeHostCount)
+	enodeHostCountJSON := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
+	t.Logf(`enodeHostCount: = %s`, enodeHostCountJSON)
 
 	// verify bootstrap host exists on the cluster
-	if !strings.Contains(enodeHostCount.String(), "2") {
+	if !strings.Contains(enodeHostCountJSON.String(), "2") {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
 }
@@ -283,10 +283,10 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	if resp, err = clusterStatus.Execute(); err != nil {
 		t.Fatalf(err.Error())
 	}
-	totalHostsJson := gjson.Get(string(body), "host-default-list.list-items.list-count.value")
+	totalHostsJSON := gjson.Get(string(body), "host-default-list.list-items.list-count.value")
 	// Total hosts be one as second host should have failed to create
-	if totalHostsJson.Num != 1 {
-		t.Errorf("Wrong number of hosts: %v instead of 1", totalHostsJson.Num)
+	if totalHostsJSON.Num != 1 {
+		t.Errorf("Wrong number of hosts: %v instead of 1", totalHostsJSON.Num)
 	}
 	t.Logf("\nCluster Status Response:\n\n" + string(body))
 
@@ -379,10 +379,10 @@ func TestDefaultGroup(t *testing.T) {
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
-	groupName := gjson.Get(string(body), "group-default-list.list-items.list-item[0].nameref")
-	groupQuantity := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
-	if groupName.Str != "Default" && groupQuantity.Num != 1 {
-		t.Errorf("Only group should exist and it should be the Default group, instead %v groups exist and the first group is named %v", groupQuantity.Num, groupName.Str)
+	groupNameJSON := gjson.Get(string(body), "group-default-list.list-items.list-item[0].nameref")
+	groupQuantityJSON := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
+	if groupNameJSON.Str != "Default" && groupQuantityJSON.Num != 1 {
+		t.Errorf("Only group should exist and it should be the Default group, instead %v groups exist and the first group is named %v", groupQuantityJSON.Num, groupNameJSON.Str)
 	}
 
 	t.Logf("Groups status response:\n" + string(body))
@@ -462,10 +462,10 @@ func TestSingleGroupCreated(t *testing.T) {
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
-	groupQuantity := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
+	groupQuantityJSON := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
 
-	if groupQuantity.Num != 1 {
-		t.Errorf("Only group should exist, instead %v groups exist", groupQuantity.Num)
+	if groupQuantityJSON.Num != 1 {
+		t.Errorf("Only group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
 
 	t.Logf("Groups status response:\n" + string(body))
