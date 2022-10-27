@@ -98,7 +98,7 @@ func TestSeparateEDnode(t *testing.T) {
 	bootstrapHostJSON := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
 	t.Logf(`BootstrapHost: = %s`, bootstrapHostJSON)
 	// verify bootstrap host exists on the cluster
-	if bootstrapHostJSON.String() == "" {
+	if bootstrapHostJSON.Str == "" {
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
 
@@ -112,7 +112,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "enode",
-			"bootstrapHostName":     bootstrapHost.String(),
+			"bootstrapHostName":     bootstrapHostJSON.Str,
 			"logCollection.enabled": "false",
 		},
 	}
@@ -163,7 +163,7 @@ func TestSeparateEDnode(t *testing.T) {
 	t.Logf(`enodeHostCount: = %s`, enodeHostCountJSON)
 
 	// verify bootstrap host exists on the cluster
-	if !strings.Contains(enodeHostCountJSON.String(), "2") {
+	if enodeHostCountJSON.Num != 2 {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
 }
