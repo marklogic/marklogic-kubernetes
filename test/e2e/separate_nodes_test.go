@@ -369,7 +369,7 @@ func TestDefaultGroup(t *testing.T) {
 
 	tunnel.ForwardPort(t)
 
-	// Verify enode group creation failed given incorrect hostname
+	// Verify only single group was created and it is default group
 	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel.Endpoint())
 	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
 	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
@@ -381,9 +381,91 @@ func TestDefaultGroup(t *testing.T) {
 	}
 	groupName := gjson.Get(string(body), "group-default-list.list-items.list-item[0].nameref")
 	groupQuantity := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
-
 	if groupName.Str != "Default" && groupQuantity.Num != 1 {
 		t.Errorf("Only group should exist and it should be the Default group, instead %v groups exist and the first group is named %v", groupQuantity.Num, groupName.Str)
+	}
+
+	t.Logf("Groups status response:\n" + string(body))
+}
+
+func TestSingleGroupCreated(t *testing.T) {
+	var resp *http.Response
+	var body []byte
+	var err error
+
+	username := "admin"
+	password := "admin"
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	releaseName := "test-default-group"
+	podName := releaseName + "-marklogic-0"
+
+	// Path to the helm chart we will test
+	helmChartPath, e := filepath.Abs("../../charts")
+
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+
+	if !repoPres {
+		imageRepo = "marklogic-centos/marklogic-server-centos"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "10-internal"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
+	// Helm options for enode creation
+	noGroupOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"replicaCount":          "3",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
+			"group.name":            "enode",
+		},
+	}
+
+	t.Logf("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+
+	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+
+	t.Logf("====Installing No Group Helm Chart " + releaseName)
+	helm.Install(t, noGroupOptions, helmChartPath, releaseName)
+
+	// wait until the pod is in ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+
+	tunnel := k8s.NewTunnel(
+		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+
+	defer tunnel.Close()
+
+	tunnel.ForwardPort(t)
+
+	// Verify no groups beyond enode were created/modified
+	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel.Endpoint())
+	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
+	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
+	if resp, err = groupStatus.Execute(); err != nil {
+		t.Fatalf(err.Error())
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
+	groupQuantity := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
+
+	if groupQuantity.Num != 1 {
+		t.Errorf("Only group should exist, instead %v groups exist", groupQuantity.Num)
 	}
 
 	t.Logf("Groups status response:\n" + string(body))
