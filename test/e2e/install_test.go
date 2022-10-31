@@ -3,6 +3,8 @@ package e2e
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +15,8 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/tidwall/gjson"
+	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmInstall(t *testing.T) {
@@ -23,6 +27,11 @@ func TestHelmInstall(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	username := "admin"
+	password := "admin"
+	var resp *http.Response
+	var body []byte
+	var err error
 
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
@@ -40,9 +49,11 @@ func TestHelmInstall(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
-			"replicaCount":          "1",
+			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
 	}
@@ -78,4 +89,27 @@ func TestHelmInstall(t *testing.T) {
 			return statusCode == 200
 		},
 	)
+
+	tunnel_8002 := k8s.NewTunnel(
+		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	defer tunnel_8002.Close()
+	tunnel_8002.ForwardPort(t)
+
+	// Verify no groups beyond enode were created/modified
+	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel_8002.Endpoint())
+	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
+	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
+	if resp, err = groupStatus.Execute(); err != nil {
+		t.Fatalf(err.Error())
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
+	groupQuantityJSON := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
+
+	if groupQuantityJSON.Num != 1 {
+		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
+	}
+
+	t.Logf("Groups status response:\n" + string(body))
 }
