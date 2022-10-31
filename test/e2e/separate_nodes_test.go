@@ -305,5 +305,3 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	}
 	t.Logf("Enode group status response:\n" + string(body))
 }
-
- 

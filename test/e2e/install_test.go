@@ -90,13 +90,13 @@ func TestHelmInstall(t *testing.T) {
 		},
 	)
 
-	tunnel_8002 := k8s.NewTunnel(
+	tunnel8002 := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
-	defer tunnel_8002.Close()
-	tunnel_8002.ForwardPort(t)
+	defer tunnel8002.Close()
+	tunnel8002.ForwardPort(t)
 
 	// Verify no groups beyond enode were created/modified
-	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel_8002.Endpoint())
+	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel8002.Endpoint())
 	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
 	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
 	if resp, err = groupStatus.Execute(); err != nil {
