@@ -10,15 +10,16 @@ terminationGracePeriod: 120
 group:
   # the group name of the current Marklogic Helm Deployment
   name: Default
+  # xdqp encryption for intra cluster network traffic
+  enableXdqpSsl: true
 
 # The name of the host to join. If not provided, the deployment is a bootstrap host.
 bootstrapHostName: ""
 
-
 # Marklogic image parameters
 image:
-  repository: marklogicdb/marklogic-db
-  tag: latest
+  repository: marklogic-centos/marklogic-server-centos
+  tag: '20220914'
   pullPolicy: IfNotPresent
 
 # Init container image parameters
