@@ -272,6 +272,23 @@ kubectl logs pod/terminated-host-pod-name
 ```
 
 If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+
+## Deploying a MarkLogic Cluster with Multiple Groups
+
+To deploy a MarkLogic cluster with multiple groups (separate E and D nodes for example) the `bootstrapHostName` and `group.name` must be configured in values.yaml or set the values provided for these configurations using the `--set` flag while installing helm charts.
+For example, if you want to create a MarkLogic cluster with three nodes in a "dnode" group and two nodes in an "enode" group, start with the following helm command:
+
+```
+helm install dnode-group ./charts/ --set group.name=dnode --set replicaCount=3
+```
+Once this deployment is complete, a MarkLogic cluster with three hosts should be running.
+To add the "enode" group and nodes to the cluster, the `bootstrapHostName` must be set to join the existing MarkLogic cluster. The first host in the other group can be used. For this example, set `bootstrapHostName` to `dnode-group-marklogic-0.dnode-group-marklogic-headless.default.svc.cluster.local` with the following command:
+
+```
+helm install enode-group ./charts/ --set group.name=enode --set replicaCount=2 --set bootstrapHostName=dnode-group-marklogic-0.dnode-group-marklogic-headless.default.svc.cluster.local
+```
+Once this deployment is complete, there will be a new "enode" group with two hosts in the MarkLogic cluster.
+
 # Access the MarkLogic Server
 
 ## Service
