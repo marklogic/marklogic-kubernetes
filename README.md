@@ -272,6 +272,14 @@ kubectl logs pod/terminated-host-pod-name
 ```
 
 If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+
+### Enabling SSL over XDQP
+
+To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
+
+Note: To enable other XDQP/SSL settings like `xdqp ssl allow sslv3`, `xdqp ssl allow tls`, `xdqp ssl ciphers`, use MarkLogic REST Management API. See the MarkLogic documentation [here](https://docs.marklogic.com/REST/management).
+
+
 # Access the MarkLogic Server
 
 ## Service
