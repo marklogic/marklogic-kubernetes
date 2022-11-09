@@ -45,7 +45,6 @@ spec:
             fi
             GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
             GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-            log "Info: [initContainer] GROUP_CFG: $GROUP_CFG"
             GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
             if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
               log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
