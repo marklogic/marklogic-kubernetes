@@ -64,10 +64,6 @@ spec:
               [ $i -eq 5 ] && exit 1
             done
         env: 
-        - name: MARKLOGIC_GROUP
-          value: {{ .Values.group.name }}
-        - name: XDQP_SSL_ENABLED
-          value: {{ quote .Values.group.enableXdqpSsl }}
         - name: MARKLOGIC_ADMIN_USERNAME
           valueFrom:
             secretKeyRef:
