@@ -105,6 +105,8 @@ spec:
                     key: password
             - name: MARKLOGIC_GROUP
               value: {{ .Values.group.name }}
+            - name: XDQP_SSL_ENABLED
+              value: {{ quote .Values.group.enableXdqpSsl }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -150,8 +152,8 @@ spec:
                         sleep 5s
                       done
                       
-                      GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
-                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
+                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
                       
                       log "Info: [poststart] Updating Default group on cluster"
                       curl --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
