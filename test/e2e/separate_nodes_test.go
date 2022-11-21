@@ -54,6 +54,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "dnode",
+			"group.enableXdqpSsl":   "true",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -100,6 +101,30 @@ func TestSeparateEDnode(t *testing.T) {
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
 
+	// test to verify XDQPSSL is enabled
+	dnodePropEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/dnode/properties?format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint: %s`, dnodePropEndpoint)
+
+	drDnodeProp := digestAuth.NewRequest(username, password, "GET", dnodePropEndpoint, "")
+
+	if resp, err = drDnodeProp.Execute(); err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
+	t.Logf("Response:\n" + string(body))
+
+	dnodeXdqpSSL := gjson.Get(string(body), `xdqp-ssl-enabled`)
+	t.Logf(`dnodeXdqpSSL: = %s`, dnodeXdqpSSL)
+
+	// verify xdqpssl is enabled on the host
+	if !strings.Contains(dnodeXdqpSSL.String(), "true") {
+		t.Errorf("xdqp-ssl-enabled is disabled on dnode")
+	}
+
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
@@ -110,6 +135,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "enode",
+			"group.enableXdqpSsl":   "true",
 			"bootstrapHostName":     bootstrapHost.String(),
 			"logCollection.enabled": "false",
 		},
@@ -169,5 +195,28 @@ func TestSeparateEDnode(t *testing.T) {
 	// verify bootstrap host exists on the cluster
 	if !strings.Contains(enodeHostCount.String(), "2") {
 		t.Errorf("enode hosts does not exists on cluster")
+
+	// test to verify XDQPSSL is enabled
+	enodePropEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint: %s`, enodePropEndpoint)
+
+	drEnodeProp := digestAuth.NewRequest(username, password, "GET", enodePropEndpoint, "")
+
+	if resp, err = drEnodeProp.Execute(); err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
+	t.Logf("Response:\n" + string(body))
+
+	enodeXdqpSSL := gjson.Get(string(body), `xdqp-ssl-enabled`)
+	t.Logf(`enodeXdqpSSL: = %s`, enodeXdqpSSL)
+
+	// verify xdqpssl is enabled on the host
+	if !strings.Contains(enodeXdqpSSL.String(), "true") {
+		t.Errorf("xdqp-ssl-enabled is disabled on enode")
 	}
 }
