@@ -43,8 +43,8 @@ spec:
               log "Error: [initContainer] Bootstrap host $MARKLOGIC_BOOTSTRAP_HOST not found, exiting Init container."
               exit 1
             fi
-            GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
-            GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+            GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
+            GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
             GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
             if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
               log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
@@ -64,8 +64,6 @@ spec:
               [ $i -eq 5 ] && exit 1
             done
         env: 
-        - name: MARKLOGIC_GROUP
-          value: {{ .Values.group.name }}
         - name: MARKLOGIC_ADMIN_USERNAME
           valueFrom:
             secretKeyRef:
@@ -105,8 +103,6 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
-            - name: MARKLOGIC_GROUP
-              value: {{ .Values.group.name }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -152,8 +148,8 @@ spec:
                         sleep 5s
                       done
                       
-                      GROUP_CFG_TEMPLATE='{"group-name":"%s"}'
-                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP")
+                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
+                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
                       
                       log "Info: [poststart] Updating Default group on cluster"
                       curl --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
