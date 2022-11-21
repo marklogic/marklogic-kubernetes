@@ -103,10 +103,6 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
                     key: password
-            - name: MARKLOGIC_GROUP
-              value: {{ .Values.group.name }}
-            - name: XDQP_SSL_ENABLED
-              value: {{ quote .Values.group.enableXdqpSsl }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
