@@ -195,7 +195,8 @@ func TestSeparateEDnode(t *testing.T) {
 	// verify bootstrap host exists on the cluster
 	if !strings.Contains(enodeHostCount.String(), "2") {
 		t.Errorf("enode hosts does not exists on cluster")
-
+	}
+	
 	// test to verify XDQPSSL is enabled
 	enodePropEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, enodePropEndpoint)
