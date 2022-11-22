@@ -1,27 +1,16 @@
 ---
+# For customization of this file please refer to eksctl config file documentation
+# https://eksctl.io/usage/creating-and-managing-clusters/
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-    name: irosenba
-    region: us-west-2
-    version: "1.23"
-
-vpc:
-  id: "vpc-02ad318f4b6f4fc23"
-  subnets:
-    public:
-      us-west-2a:
-          id: "subnet-0c1a0ee91812a2632"
-      us-west-2b:
-          id: "subnet-0265ee5607a8c5414"
-      us-west-2c:
-          id: "subnet-06473bffc3f882a95"
-      us-west-2d:
-          id: "subnet-011e4a90cc8175485"
+    name: sample-name
+    region: us-west-2 # Default region
+    version: "1.23" # Default version
 
 managedNodeGroups:
-  - name: irosenba-test-ml-ng
+  - name: sample-name-ng
     instanceType: t3.large
     minSize: 2
     desiredCapacity: 4
