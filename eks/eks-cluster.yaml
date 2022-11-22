@@ -1,0 +1,65 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+    name: irosenba
+    region: us-west-2
+    version: "1.23"
+
+vpc:
+  id: "vpc-02ad318f4b6f4fc23"
+  subnets:
+    public:
+      us-west-2a:
+          id: "subnet-0c1a0ee91812a2632"
+      us-west-2b:
+          id: "subnet-0265ee5607a8c5414"
+      us-west-2c:
+          id: "subnet-06473bffc3f882a95"
+      us-west-2d:
+          id: "subnet-011e4a90cc8175485"
+
+managedNodeGroups:
+  - name: irosenba-test-ml-ng
+    instanceType: t3.large
+    minSize: 2
+    desiredCapacity: 4
+    maxSize: 6
+    volumeSize: 60
+    volumeType: gp3
+    updateConfig:
+      maxUnavailable: 3 # or `maxUnavailablePercentage: 75` to specify maxUnavailable as a percentage of total nodes
+    labels: {role: worker}
+    # Note: unmanaged nodegroups (`nodeGroups` field) use a different structure (map[string]string) to express taints
+    tags:
+      nodegroup-role: worker
+      Instance Schedule: "Yes"
+    iam:
+      withAddonPolicies:
+        externalDNS: true
+        certManager: true
+
+iam:
+  withOIDC: true
+
+addons:
+- name: vpc-cni
+  attachPolicyARNs:
+    - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+  version: latest  
+- name: coredns
+  version: latest # auto discovers the latest available
+- name: kube-proxy
+  version: latest
+
+cloudWatch:
+  clusterLogging:
+    # enable specific types of cluster control plane logs
+    enableTypes: ["audit", "authenticator", "controllerManager"]
+    # all supported types: "api", "audit", "authenticator", "controllerManager", "scheduler"
+    # supported special values: "*" and "all"
+
+    # Sets the number of days to retain the logs for (see [CloudWatch docs](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html#API_PutRetentionPolicy_RequestSyntax)).
+    # By default, log data is stored in CloudWatch Logs indefinitely.
+    logRetentionInDays: 30

@@ -72,6 +72,49 @@ lint:
 	@echo "> Linting all tests....."
 	$(if $(path),$(path),)golangci-lint run $(if $(saveOutput),> test-lint-output.txt,)
 
+#***************************************************************************
+# EKS Deploy
+#***************************************************************************
+## Deploy Cluster to EKS
+## EKS Cluster configuration can be changed in eks-cluster.yaml file in eks folder
+## prerequisites
+## AWS CLI must be configured with admin credentials
+## To deploy marklogic via helm charts to the EKS cluster you must
+## Configure kubectl to work with EKS. See documentation to make sure it is setup correctly
+## Example command: aws eks update-kubeconfig --region $(region) --name $(clusterName)
+## https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
+## Once this is complete helm charts can be deployed via the helm install command
+## Options:
+## * [region] required. region to deploy EKS cluster to.
+## * [clusterName] required. Must be the same name as cluster name in eks-cluster.yaml.
+## * [accountNumber] required. Account number to use service account role from.
+.PHONY: eks-deploy
+eks-deploy:
+	eksctl create cluster -f eks/eks-cluster.yaml
+	eksctl utils associate-iam-oidc-provider --region=$(region) --cluster $(clusterName) --approve
+	eksctl create iamserviceaccount --name ebs-csi-controller-sa \
+		--namespace kube-system --cluster $(clusterName) \
+		--attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
+		--approve --role-only --role-name $(clusterName)_sa \
+		--override-existing-serviceaccounts
+	eksctl create addon --name aws-ebs-csi-driver --cluster $(clusterName) --service-account-role-arn arn:aws:iam::$(accountNumber):role/$(clusterName)_sa --force
+
+#***************************************************************************
+# EKS delete
+#***************************************************************************
+## Tear down an EKS Cluster deployed via eks-deploy command. 
+## Options (minus account number) and eks-cluster.yaml file must be exactly the same as those used to deploy EKS cluster initially 
+## AWS CLI must be configured with admin credentials
+## Options:
+## * [region] required. region to remove EKS cluster from.
+## * [clusterName] required. Name of cluster to remove from EKS.
+.PHONY: eks-delete
+eks-delete:
+	eksctl delete addon --name aws-ebs-csi-driver --region=$(region) --cluster $(clusterName)
+	eksctl delete iamserviceaccount --name ebs-csi-controller-sa \
+		--namespace kube-system  --region=$(region) --cluster $(clusterName)
+	eksctl delete cluster  --region=$(region) --name $(clusterName)
+
 ## ---------- Testing Tasks ----------
 
 #***************************************************************************
