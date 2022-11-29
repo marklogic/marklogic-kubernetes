@@ -75,7 +75,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: {{ include "marklogic.fullname" . }}
-              key: password
+              key: marklogic-password
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -104,7 +104,7 @@ spec:
               valueFrom:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}
-                    key: password
+                    key: marklogic-password
             - name: MARKLOGIC_GROUP
               value: {{ .Values.group.name }}
             - name: POD_NAME
