@@ -28,8 +28,6 @@ func TestHelmInstall(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	username := "admin"
-	password := "admin"
 	var resp *http.Response
 	var body []byte
 	var err error
@@ -53,8 +51,6 @@ func TestHelmInstall(t *testing.T) {
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
 	}
