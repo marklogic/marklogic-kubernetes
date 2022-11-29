@@ -89,10 +89,10 @@ func TestHelmInstall(t *testing.T) {
 	// the generated random password should have length of 10
 	assert.Equal(t, 10, len(password))
 
-	tunnel_8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
-	defer tunnel_8002.Close()
-	tunnel_8002.ForwardPort(t)
-	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel_8002.Endpoint())
+	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	defer tunnel8002.Close()
+	tunnel8002.ForwardPort(t)
+	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel8002.Endpoint())
 
 	request := digestAuth.NewRequest(username, password, "GET", endpointManage, "")
 	response, err := request.Execute()
