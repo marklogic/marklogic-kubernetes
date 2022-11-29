@@ -43,6 +43,8 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
+			"auth.adminUsername":    "admin",
+			"auth.adminPassword":    "admin",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -63,6 +65,8 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
+			"auth.adminUsername":    "admin",
+			"auth.adminPassword":    "admin",
 			"logCollection.enabled": "false",
 		},
 	}
