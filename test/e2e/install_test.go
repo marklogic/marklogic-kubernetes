@@ -13,6 +13,8 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/stretchr/testify/assert"
+	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmInstall(t *testing.T) {
@@ -61,16 +63,15 @@ func TestHelmInstall(t *testing.T) {
 	podName := releaseName + "-marklogic-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
+	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
+	defer tunnel7997.Close()
+	tunnel7997.ForwardPort(t)
+	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
 
+	// verify if 7997 health check endpoint returns 200
 	http_helper.HttpGetWithRetryWithCustomValidation(
 		t,
-		endpoint,
+		endpoint7997,
 		&tlsConfig,
 		10,
 		15*time.Second,
@@ -78,4 +79,28 @@ func TestHelmInstall(t *testing.T) {
 			return statusCode == 200
 		},
 	)
+
+	// testing generated Random Password
+	secretName := releaseName + "-marklogic"
+	secret := k8s.GetSecret(t, kubectlOptions, secretName)
+	username := "admin"
+	passwordArr := secret.Data["marklogic-password"]
+	password := string(passwordArr[:])
+	// the generated random password should have length of 10
+	assert.Equal(t, 10, len(password))
+
+	tunnel_8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	defer tunnel_8002.Close()
+	tunnel_8002.ForwardPort(t)
+	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel_8002.Endpoint())
+
+	request := digestAuth.NewRequest(username, password, "GET", endpointManage, "")
+	response, err := request.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer response.Body.Close()
+	// the generated password should be able to access the manage endpoint
+	assert.Equal(t, 200, response.StatusCode)
+
 }
