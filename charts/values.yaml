@@ -50,7 +50,7 @@ fullnameOverride: ""
 # Configure Marklogic Admin Username and Password
 auth:
   adminUsername: admin
-  adminPassword: admin
+  adminPassword: ""
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
@@ -65,7 +65,7 @@ nodeSelector: {}
 # The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
 # If set the enabled to false, it will use EmptyDir volume
 persistence:
-  enabled: true
+  enabled: false
   storageClass: ""
   size: 10Gi
   annotations: {}
