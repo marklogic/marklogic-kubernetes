@@ -136,7 +136,7 @@ startupProbe:
 # Log collection will collect all logs for each file type enabled, parse them, 
 # And export them to a logging backend specified in the outputs section below
 logCollection:
-  enabled: true
+  enabled: false
   image: fluent/fluent-bit:1.9.7
   resources:
     requests:
