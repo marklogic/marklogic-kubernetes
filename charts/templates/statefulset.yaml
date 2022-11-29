@@ -67,10 +67,7 @@ spec:
         - name: MARKLOGIC_GROUP
           value: {{ .Values.group.name }}
         - name: MARKLOGIC_ADMIN_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "marklogic.fullname" . }}
-              key: username
+          value: {{ .Values.auth.adminUsername | quote }}
         - name: MARKLOGIC_ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -96,10 +93,7 @@ spec:
             {{- end }}
           env:
             - name: MARKLOGIC_ADMIN_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "marklogic.fullname" . }}
-                  key: username
+              value: {{ .Values.auth.adminUsername | quote }}
             - name: MARKLOGIC_ADMIN_PASSWORD
               valueFrom:
                   secretKeyRef:
