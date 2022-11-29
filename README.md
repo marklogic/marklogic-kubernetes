@@ -1,5 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
+- [MarkLogic Kubernetes Helm Chart](#marklogic-kubernetes-helm-chart)
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
   - [Set Up the Required Tools](#set-up-the-required-tools)
@@ -17,6 +18,11 @@
   - [Configuration Options](#configuration-options)
     - [--values](#--values)
     - [--set](#--set)
+  - [Setting MarkLogic admin password](#setting-marklogic-admin-password)
+    - [Log Collection](#log-collection)
+  - [Adding and Removing Hosts from Clusters](#adding-and-removing-hosts-from-clusters)
+    - [Adding Hosts](#adding-hosts)
+    - [Removing Hosts](#removing-hosts)
 - [Access the MarkLogic Server](#access-the-marklogic-server)
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
@@ -223,42 +229,20 @@ We recommend that you use the `values.yaml` file for configuring your installati
 
 ## Setting MarkLogic admin password
 
-By default, a randomly generated aphanumeric value will be set for MarkLogic admin password. This value is stored in Kuberenetes secrets. 
-User can also set a custom password by setting a value for adminPassword in the values.yaml file or using the `--set` flag. 
+If the password does not provided when installing the MarkLogic Chart, a randomly generated aphanumeric value will be set for MarkLogic admin password. This value is stored in Kuberenetes secrets. 
+User can also set a custom password by setting auth.adminPassword value during installation.
 To retrieve the randomly generated admin password, use the following commands:
 
-1. List the secrets for helm deployment:
+1. List the secrets for MarkLogic deployment:
 ```
 kubectl get secrets
 ```
-The output will be similar to:
+Identify the name of the secret.
 
-| NAME | TYPE | DATA | AGE |
-| :---         |     :---:      |          ---: |          ---: |
-| dnode-group-marklogic   | kubernetes.io/basic-auth     | 2    | 33s    |
-
-2. Get the encoded value for admin password:
+2. Save the secret name from step 1 to get the admin password using the following script :
 ```
-kubectl get secret dnode-group-marklogic -o jsonpath='{.data}'
+kubectl get secret SECRET_NAME -o jsonpath='{.data}'
 ```
-The output will be similar to:
-```
-{"password":"R0JYaWxzR2c=","username":"YWRtaW4="}
-```
-3. Decode the password secret:
-```
-echo 'R0JYaWxzR2c=' | base64 --decode
-```
-The output will be similar to:
-```
-GBXilsGg
-```
-
-To upgrade the helm charts or deploy new helm charts for multi-node cluster, use the encoded value for admin password from the output of step 2.
-
-To access the MarkLogic cluster use the decode value for admin password from the output of step 3.
-
-
 ### Log Collection
 
 To enable log collection for all Marklogic logs set logCollection.enabled to true. Set each option in logCollection.files to true of false depending on if you want to track each type of Marklogic log file.
