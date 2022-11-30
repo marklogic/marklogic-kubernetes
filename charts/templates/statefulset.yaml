@@ -59,8 +59,8 @@ spec:
                 exit 1
               fi
             log "Info: [initContainer] Group $MARKLOGIC_GROUP has been created, configuring App-server App-Services in group $MARKLOGIC_GROUP on the MarkLogic cluster."
-              res_code2=`curl --retry 10 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
-              if [[ ${res_code2} -eq 201 ]]; then
+              res_code=`curl --retry 10 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
+              if [[ ${res_code} -eq 201 ]]; then
                 log "Info: [initContainer] Successfully configured App-server App-Services into group $MARKLOGIC_GROUP on the MarkLogic cluster."
               else
                 log "Info: [initContainer] Expected response code 201, got $res_code"
