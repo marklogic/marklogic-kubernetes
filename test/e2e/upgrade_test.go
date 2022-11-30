@@ -13,6 +13,7 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHelmUpgrade(t *testing.T) {
@@ -43,8 +44,6 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
-			"auth.adminUsername":    "admin",
-			"auth.adminPassword":    "admin",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -58,6 +57,12 @@ func TestHelmUpgrade(t *testing.T) {
 	releaseName := "test-upgrade"
 	helm.Install(t, options, helmChartPath, releaseName)
 
+	// save the generated password from first installation
+	secretName := releaseName + "-marklogic-admin"
+	secret := k8s.GetSecret(t, kubectlOptions, secretName)
+	passwordArr := secret.Data["password"]
+	passwordAfterInstall := string(passwordArr[:])
+
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
@@ -65,8 +70,6 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
-			"auth.adminUsername":    "admin",
-			"auth.adminPassword":    "admin",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -96,4 +99,10 @@ func TestHelmUpgrade(t *testing.T) {
 			return statusCode == 200
 		},
 	)
+
+	t.Log("====Test password in secret should not change after upgrade====")
+	secret = k8s.GetSecret(t, kubectlOptions, secretName)
+	passwordArr = secret.Data["password"]
+	passwordAfterUpgrade := string(passwordArr[:])
+	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
 }

@@ -67,12 +67,15 @@ spec:
         - name: MARKLOGIC_GROUP
           value: {{ .Values.group.name }}
         - name: MARKLOGIC_ADMIN_USERNAME
-          value: {{ .Values.auth.adminUsername | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "marklogic.fullname" . }}-admin
+              key: username
         - name: MARKLOGIC_ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "marklogic.fullname" . }}
-              key: marklogic-password
+              name: {{ include "marklogic.fullname" . }}-admin
+              key: password
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -93,12 +96,15 @@ spec:
             {{- end }}
           env:
             - name: MARKLOGIC_ADMIN_USERNAME
-              value: {{ .Values.auth.adminUsername | quote }}
+              valueFrom:
+                  secretKeyRef:
+                    name: {{ include "marklogic.fullname" . }}-admin
+                    key: username
             - name: MARKLOGIC_ADMIN_PASSWORD
               valueFrom:
                   secretKeyRef:
-                    name: {{ include "marklogic.fullname" . }}
-                    key: marklogic-password
+                    name: {{ include "marklogic.fullname" . }}-admin
+                    key: password
             - name: MARKLOGIC_GROUP
               value: {{ .Values.group.name }}
             - name: POD_NAME

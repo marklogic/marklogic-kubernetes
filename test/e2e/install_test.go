@@ -86,14 +86,18 @@ func TestHelmInstall(t *testing.T) {
 		},
 	)
 
-	// testing generated Random Password
-	secretName := releaseName + "-marklogic"
+	t.Log("====Testing Generated Random Password====")
+	secretName := releaseName + "-marklogic-admin"
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
-	username := "admin"
-	passwordArr := secret.Data["marklogic-password"]
+	passwordArr := secret.Data["password"]
 	password := string(passwordArr[:])
 	// the generated random password should have length of 10
 	assert.Equal(t, 10, len(password))
+	usernameArr := secret.Data["username"]
+	username := string(usernameArr[:])
+	expectedUsername := "admin"
+	// the username from secret expected to be "admin"
+	assert.Equal(t, expectedUsername, username)
 
 	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel8002.Close()
@@ -109,7 +113,7 @@ func TestHelmInstall(t *testing.T) {
 	// the generated password should be able to access the manage endpoint
 	assert.Equal(t, 200, response.StatusCode)
 
-	// Verify no groups beyond enode were created/modified
+	t.Log("====Verify no groups beyond enode were created/modified====")
 	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel8002.Endpoint())
 	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
 	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
