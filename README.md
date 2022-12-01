@@ -1,5 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
+- [MarkLogic Kubernetes Helm Chart](#marklogic-kubernetes-helm-chart)
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
   - [Set Up the Required Tools](#set-up-the-required-tools)
@@ -17,6 +18,13 @@
   - [Configuration Options](#configuration-options)
     - [--values](#--values)
     - [--set](#--set)
+    - [Setting MarkLogic admin password](#setting-marklogic-admin-password)
+    - [Log Collection](#log-collection)
+  - [Adding and Removing Hosts from Clusters](#adding-and-removing-hosts-from-clusters)
+    - [Adding Hosts](#adding-hosts)
+    - [Removing Hosts](#removing-hosts)
+    - [Enabling SSL over XDQP](#enabling-ssl-over-xdqp)
+- [Deploying a MarkLogic Cluster with Multiple Groups](#deploying-a-marklogic-cluster-with-multiple-groups)
 - [Access the MarkLogic Server](#access-the-marklogic-server)
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
@@ -221,6 +229,22 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
 
 We recommend that you use the `values.yaml` file for configuring your installation.
 
+### Setting MarkLogic admin password
+
+If the password does not provided when installing the MarkLogic Chart, a randomly generated aphanumeric value will be set for MarkLogic admin password. This value is stored in Kuberenetes secrets. 
+User can also set a custom password by setting auth.adminPassword value during installation.
+To retrieve the randomly generated admin password, use the following commands:
+
+1. List the secrets for MarkLogic deployment:
+```
+kubectl get secrets
+```
+Identify the name of the secret.
+
+2. Save the secret name from step 1 and get the admin password using the following script:
+```
+kubectl get secret SECRET_NAME -o jsonpath='{.data.marklogic-password}' | base64 --decode
+```
 ### Log Collection
 
 To enable log collection for all Marklogic logs set logCollection.enabled to true. Set each option in logCollection.files to true of false depending on if you want to track each type of Marklogic log file.
@@ -272,13 +296,27 @@ kubectl logs pod/terminated-host-pod-name
 ```
 
 If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
-
 ### Enabling SSL over XDQP
 
 To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
 
 Note: To enable other XDQP/SSL settings like `xdqp ssl allow sslv3`, `xdqp ssl allow tls`, `xdqp ssl ciphers`, use MarkLogic REST Management API. See the MarkLogic documentation [here](https://docs.marklogic.com/REST/management).
 
+# Deploying a MarkLogic Cluster with Multiple Groups
+
+To deploy a MarkLogic cluster with multiple groups (separate E and D nodes for example) the `bootstrapHostName` and `group.name` must be configured in values.yaml or set the values provided for these configurations using the `--set` flag while installing helm charts.
+For example, if you want to create a MarkLogic cluster with three nodes in a "dnode" group and two nodes in an "enode" group, start with the following helm command:
+
+```
+helm install dnode-group ./charts/ --set group.name=dnode --set replicaCount=3
+```
+Once this deployment is complete, a MarkLogic cluster with three hosts should be running.
+To add the "enode" group and nodes to the cluster, the `bootstrapHostName` must be set to join the existing MarkLogic cluster. The first host in the other group can be used. For this example, set `bootstrapHostName` to `dnode-group-marklogic-0.dnode-group-marklogic-headless.default.svc.cluster.local` with the following command:
+
+```
+helm install enode-group ./charts/ --set group.name=enode --set replicaCount=2 --set bootstrapHostName=dnode-group-marklogic-0.dnode-group-marklogic-headless.default.svc.cluster.local
+```
+Once this deployment is complete, there will be a new "enode" group with two hosts in the MarkLogic cluster.
 
 # Access the MarkLogic Server
 

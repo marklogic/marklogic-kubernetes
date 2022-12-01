@@ -3,6 +3,8 @@ package e2e
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +15,9 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/stretchr/testify/assert"
+	"github.com/tidwall/gjson"
+	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmInstall(t *testing.T) {
@@ -23,6 +28,9 @@ func TestHelmInstall(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	var resp *http.Response
+	var body []byte
+	var err error
 
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
@@ -40,7 +48,7 @@ func TestHelmInstall(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
-			"replicaCount":          "1",
+			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
@@ -61,16 +69,15 @@ func TestHelmInstall(t *testing.T) {
 	podName := releaseName + "-marklogic-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
+	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
+	defer tunnel7997.Close()
+	tunnel7997.ForwardPort(t)
+	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
 
+	// verify if 7997 health check endpoint returns 200
 	http_helper.HttpGetWithRetryWithCustomValidation(
 		t,
-		endpoint,
+		endpoint7997,
 		&tlsConfig,
 		10,
 		15*time.Second,
@@ -78,4 +85,49 @@ func TestHelmInstall(t *testing.T) {
 			return statusCode == 200
 		},
 	)
+
+	t.Log("====Testing Generated Random Password====")
+	secretName := releaseName + "-marklogic-admin"
+	secret := k8s.GetSecret(t, kubectlOptions, secretName)
+	passwordArr := secret.Data["password"]
+	password := string(passwordArr[:])
+	// the generated random password should have length of 10
+	assert.Equal(t, 10, len(password))
+	usernameArr := secret.Data["username"]
+	username := string(usernameArr[:])
+	expectedUsername := "admin"
+	// the username from secret expected to be "admin"
+	assert.Equal(t, expectedUsername, username)
+
+	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	defer tunnel8002.Close()
+	tunnel8002.ForwardPort(t)
+	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel8002.Endpoint())
+
+	request := digestAuth.NewRequest(username, password, "GET", endpointManage, "")
+	response, err := request.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer response.Body.Close()
+	// the generated password should be able to access the manage endpoint
+	assert.Equal(t, 200, response.StatusCode)
+
+	t.Log("====Verify no groups beyond enode were created/modified====")
+	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel8002.Endpoint())
+	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
+	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
+	if resp, err = groupStatus.Execute(); err != nil {
+		t.Fatalf(err.Error())
+	}
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
+	groupQuantityJSON := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
+
+	if groupQuantityJSON.Num != 1 {
+		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
+	}
+
+	t.Logf("Groups status response:\n" + string(body))
 }
