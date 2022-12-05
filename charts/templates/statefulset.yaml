@@ -148,15 +148,15 @@ spec:
                       log "Info: [poststart] This is not a bootstrap host or group specified is Default"
                     else
                       while [ ! -f /var/opt/MarkLogic/ready ]; do
+                        log "[poststart] wait for marklogic server to be ready"
                         sleep 5s
                       done
-                      
+                      sleep 10s
                       GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-                      
-                      log "Info: [poststart] Updating Default group on cluster"
-                      curl --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
-                      sleep 10s
+                      log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
+                      curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
+                      sleep 2s
                     fi
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
