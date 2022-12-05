@@ -82,7 +82,10 @@ lint:
 ## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: e2e-test
-e2e-test: prepare
+ e2e-test: prepare
+	@echo "=====Delete if there are existing minikube cluster"
+	minikube delete
+
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker -n=1 --cpus 2 --memory 10000
 
