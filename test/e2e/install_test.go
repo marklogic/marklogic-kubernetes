@@ -113,7 +113,26 @@ func TestHelmInstall(t *testing.T) {
 	// the generated password should be able to access the manage endpoint
 	assert.Equal(t, 200, response.StatusCode)
 
-	t.Log("====Verify no groups beyond enode were created/modified====")
+	t.Log("====Verify xdqp-ssl-enabled is set to true by default")
+	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/Default/properties?format=json", tunnel8002.Endpoint())
+	t.Logf(`Endpoint for group properties: %s`, endpoint)
+
+	request = digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	resp, err = request.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
+	// verify xdqp-ssl-enabled is set to trues
+	assert.Equal(t, true, xdqpSSLEnabled.Bool(), "xdqp-ssl-enabled should be set to true")
+
+	t.Log("====Verify no groups beyond default were created/modified====")
 	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel8002.Endpoint())
 	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
 	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
@@ -129,5 +148,4 @@ func TestHelmInstall(t *testing.T) {
 		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
 
-	t.Logf("Groups status response:\n" + string(body))
 }
