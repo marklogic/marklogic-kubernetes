@@ -84,7 +84,7 @@ lint:
 .PHONY: e2e-test
 e2e-test: prepare
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker -n=1
+	minikube start --driver=docker -n=1 --cpus 2 --memory 10000
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
