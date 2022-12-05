@@ -144,8 +144,8 @@ spec:
                       echo "${TIMESTAMP}  $@" > /proc/$pid/fd/1
                     }
                     log "Info: [poststart] Begin Poststart Hook Execution"
-                    if [[ $MARKLOGIC_GROUP == "Default" || $POD_NAME != *-0 ]]; then
-                      log "Info: [poststart] This is not a bootstrap host or group specified is Default"
+                    if [[ $POD_NAME != *-0 ]]; then
+                      log "Info: [poststart] Skipping group configuration."
                     else
                       while [ ! -f /var/opt/MarkLogic/ready ]; do
                         log "[poststart] wait for marklogic server to be ready"
