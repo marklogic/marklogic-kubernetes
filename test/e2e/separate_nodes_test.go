@@ -3,7 +3,6 @@ package e2e
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,15 +12,12 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestSeparateEDnode(t *testing.T) {
-	var resp *http.Response
-	var body []byte
-	var err error
-
 	username := "admin"
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
@@ -60,6 +56,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "dnode",
+			"group.enableXdqpSsl":   "true",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -86,14 +83,15 @@ func TestSeparateEDnode(t *testing.T) {
 
 	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
 
-	if resp, err = getHostsDR.Execute(); err != nil {
+	resp, err := getHostsDR.Execute()
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	t.Logf("Get hosts response:\n" + string(body))
 
 	bootstrapHostJSON := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
 	t.Logf(`BootstrapHost: = %s`, bootstrapHostJSON)
@@ -101,6 +99,25 @@ func TestSeparateEDnode(t *testing.T) {
 	if bootstrapHostJSON.Str == "" {
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
+
+	t.Log("====Verify xdqp-ssl-enabled is set to true")
+	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/dnode/properties?format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint for group properties: %s`, endpoint)
+
+	request := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	resp, err = request.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
+	// verify xdqp-ssl-enabled is set to trues
+	assert.Equal(t, true, xdqpSSLEnabled.Bool(), "xdqp-ssl-enabled should be set to true")
 
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -113,6 +130,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminPassword":    password,
 			"group.name":            "enode",
 			"bootstrapHostName":     bootstrapHostJSON.Str,
+			"group.enableXdqpSsl":   "false",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -121,6 +139,25 @@ func TestSeparateEDnode(t *testing.T) {
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
+
+	t.Log("====Verify xdqp-ssl-enabled is set to false on Enode")
+	endpoint = fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint for group properties: %s`, endpoint)
+
+	request = digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	resp, err = request.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	xdqpSSLEnabled = gjson.Get(string(body), `xdqp-ssl-enabled`)
+	// verify xdqp-ssl-enabled is set to false
+	assert.Equal(t, false, xdqpSSLEnabled.Bool())
 
 	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, groupEndpoint)
@@ -134,7 +171,6 @@ func TestSeparateEDnode(t *testing.T) {
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
-	t.Logf("Groups status response:\n" + string(body))
 
 	// verify groups dnode, enode exists on the cluster
 	if !strings.Contains(string(body), "<nameref>dnode</nameref>") && !strings.Contains(string(body), "<nameref>enode</nameref>") {
@@ -149,12 +185,14 @@ func TestSeparateEDnode(t *testing.T) {
 
 	getEnodeDR := digestAuth.NewRequest(username, password, "GET", enodeEndpoint, "")
 
-	if resp, err = getEnodeDR.Execute(); err != nil {
+	resp, err = getEnodeDR.Execute()
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
 
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	t.Logf("Get enode group response:\n" + string(body))
@@ -169,10 +207,6 @@ func TestSeparateEDnode(t *testing.T) {
 }
 
 func TestIncorrectBootsrapHostname(t *testing.T) {
-	var resp *http.Response
-	var body []byte
-	var err error
-
 	username := "admin"
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
@@ -184,7 +218,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	dnodePodName := dnodeReleaseName + "-marklogic-0"
 
 	// Incorrect boostrap hostname for negative test
-	bootstrapHost := "Incorrect Host Name"
+	incorrectBootstrapHost := "Incorrect Host Name"
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -240,19 +274,19 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
 	getHostsRequest := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-
-	if resp, err = getHostsRequest.Execute(); err != nil {
+	resp, err := getHostsRequest.Execute()
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	defer resp.Body.Close()
 
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	t.Logf("Response:\n" + string(body))
-	t.Logf(`BootstrapHost: = %s`, bootstrapHost)
+	t.Logf(`BootstrapHost: = %s`, incorrectBootstrapHost)
 
 	// Helm options for enode creation
 	enodeOptions := &helm.Options{
@@ -265,7 +299,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "enode",
-			"bootstrapHostName":     bootstrapHost,
+			"bootstrapHostName":     incorrectBootstrapHost,
 			"logCollection.enabled": "false",
 		},
 	}
@@ -276,32 +310,34 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	// Give pod time to fail before checking if it did
 	time.Sleep(20 * time.Second)
 
-	// Verify clustering failed given incorrect hostname
-	clusterStatusEndpoint := fmt.Sprintf("http://%s/manage/v2?view=status", tunnel.Endpoint())
-	clusterStatus := digestAuth.NewRequest(username, password, "GET", clusterStatusEndpoint, "")
-	t.Logf(`clusterStatusEndpoint: %s`, clusterStatusEndpoint)
-	if resp, err = clusterStatus.Execute(); err != nil {
-		t.Fatalf(err.Error())
-	}
 	totalHostsJSON := gjson.Get(string(body), "host-default-list.list-items.list-count.value")
+
 	// Total hosts be one as second host should have failed to create
 	if totalHostsJSON.Num != 1 {
 		t.Errorf("Wrong number of hosts: %v instead of 1", totalHostsJSON.Num)
 	}
-	t.Logf("\nCluster Status Response:\n\n" + string(body))
+
+	// Verify clustering failed given incorrect hostname
+	clusterStatusEndpoint := fmt.Sprintf("http://%s/manage/v2?view=status", tunnel.Endpoint())
+	clusterStatus := digestAuth.NewRequest(username, password, "GET", clusterStatusEndpoint, "")
+	t.Logf(`clusterStatusEndpoint: %s`, clusterStatusEndpoint)
+	resp, err = clusterStatus.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
 	// Verify enode group creation failed given incorrect hostname
 	enodeGroupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode", tunnel.Endpoint())
 	groupStatus := digestAuth.NewRequest(username, password, "GET", enodeGroupStatusEndpoint, "")
 	t.Logf(`enodeGroupStatusEndpoint: %s`, enodeGroupStatusEndpoint)
-	if resp, err = groupStatus.Execute(); err != nil {
+	resp, err = groupStatus.Execute()
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		t.Fatalf(err.Error())
-	}
-	if !strings.Contains(string(body), "404") {
-		t.Errorf("Enode group should not exist")
-	}
-	t.Logf("Enode group status response:\n" + string(body))
+	// the request for enode should be 404
+	assert.Equal(t, 404, resp.StatusCode)
 }

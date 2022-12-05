@@ -23,6 +23,8 @@
   - [Adding and Removing Hosts from Clusters](#adding-and-removing-hosts-from-clusters)
     - [Adding Hosts](#adding-hosts)
     - [Removing Hosts](#removing-hosts)
+    - [Enabling SSL over XDQP](#enabling-ssl-over-xdqp)
+- [Deploying a MarkLogic Cluster with Multiple Groups](#deploying-a-marklogic-cluster-with-multiple-groups)
 - [Access the MarkLogic Server](#access-the-marklogic-server)
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
@@ -294,8 +296,13 @@ kubectl logs pod/terminated-host-pod-name
 ```
 
 If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+### Enabling SSL over XDQP
 
-## Deploying a MarkLogic Cluster with Multiple Groups
+To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
+
+Note: To enable other XDQP/SSL settings like `xdqp ssl allow sslv3`, `xdqp ssl allow tls`, `xdqp ssl ciphers`, use MarkLogic REST Management API. See the MarkLogic documentation [here](https://docs.marklogic.com/REST/management).
+
+# Deploying a MarkLogic Cluster with Multiple Groups
 
 To deploy a MarkLogic cluster with multiple groups (separate E and D nodes for example) the `bootstrapHostName` and `group.name` must be configured in values.yaml or set the values provided for these configurations using the `--set` flag while installing helm charts.
 For example, if you want to create a MarkLogic cluster with three nodes in a "dnode" group and two nodes in an "enode" group, start with the following helm command:
@@ -424,7 +431,10 @@ This table describes the list of available parameters for Helm Chart.
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`     
+| `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
+| `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
+| `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
 | `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
 | `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
