@@ -158,7 +158,7 @@ helm repo update
 Use this command to install MarkLogic Chart to the current namespace with default settings:
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1
+helm install my-release marklogic/marklogic --version=1.0.0-ea2
 ```
 
 After you install MarkLogic Chart, the output will look like this:
@@ -171,12 +171,12 @@ STATUS: deployed
 REVISION: 1
 ```
 
-**Note:** --version=1.0.0-ea1 must be provided as part of the name. You can choose a distinctive release name to replace "my-release".
+**Note:** --version=1.0.0-ea2 must be provided as part of the name. You can choose a distinctive release name to replace "my-release".
 
 We strongly recommend that you deploy MarkLogic Chart in an exclusive namespace. Use the `--create-namespace` flag if the namespace has not already been created:
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1 --namespace=marklogic --create-namespace
+helm install my-release marklogic/marklogic --version=1.0.0-ea2 --namespace=marklogic --create-namespace
 ```
 
 Use this command to verify the deployment:
@@ -198,7 +198,7 @@ The `--values` flag points to a YAML file. The values in the file will override 
 Use this command to view the default configurable values:
 
 ```
-helm show values marklogic/marklogic --version=1.0.0-ea1
+helm show values marklogic/marklogic --version=1.0.0-ea2
 ```
 
 To configure a different value for your installation, create a `values.yaml` file.
@@ -215,7 +215,7 @@ imagePullSecret:
 Use the following command to install MarkLogic with the `values.yaml` file you just created.
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1 --values values.yaml
+helm install my-release marklogic/marklogic --version=1.0.0-ea2 --values values.yaml
 ```
 
 ### --set
@@ -223,7 +223,7 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 --values values.
 Use the `--set` flag to make one or more configuration changes directly:
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
+helm install my-release marklogic/marklogic --version=1.0.0-ea2 \
 --set imagePullSecret.registry="https://index.docker.io/v1/" \
 --set imagePullSecret.username=YOUR_USERNAME \
 --set imagePullSecret.password=YOUR_PASSWORD
