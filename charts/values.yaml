@@ -3,10 +3,29 @@
 # Number of Marklogic nodes
 replicaCount: 1
 
+# Termination Grace Period
+terminationGracePeriod: 120
+
+# Group related settings
+group:
+  # the group name of the current Marklogic Helm Deployment
+  name: Default
+  # xdqp encryption for intra cluster network traffic
+  enableXdqpSsl: true
+
+# The name of the host to join. If not provided, the deployment is a bootstrap host.
+bootstrapHostName: ""
+
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: latest
+  tag: 10.0-9.5-centos-1.0.0
+  pullPolicy: IfNotPresent
+
+# Init container image parameters
+initContainerImage:
+  repository: curlimages/curl
+  tag: 7.85.0
   pullPolicy: IfNotPresent
 
 # Configure the imagePullSecret to pull the image from private repository that requires credential
@@ -32,7 +51,7 @@ fullnameOverride: ""
 # Configure Marklogic Admin Username and Password
 auth:
   adminUsername: admin
-  adminPassword: admin
+  adminPassword: ""
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
@@ -114,3 +133,33 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
+# Configure options for log collection
+# Log collection will collect all logs for each file type enabled, parse them, 
+# And export them to a logging backend specified in the outputs section below
+logCollection:
+  enabled: false
+  image: fluent/fluent-bit:1.9.7
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+  files:
+    errorLogs: true
+    accessLogs: true
+    requestLogs: true
+    crashLogs: true
+    auditLogs: true
+  outputs: |-
+      # Example output config for ElasticSearch output
+      # [OUTPUT]
+      #   Name es
+      #   Match *
+      #   Host elasticsearch.default.svc.cluster.local
+      #   Port 9200
+      #   HTTP_User admin
+      #   HTTP_Passwd admin
+      # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
+      # Configure desired output below

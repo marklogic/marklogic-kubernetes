@@ -1,5 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
+- [MarkLogic Kubernetes Helm Chart](#marklogic-kubernetes-helm-chart)
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
   - [Set Up the Required Tools](#set-up-the-required-tools)
@@ -17,6 +18,13 @@
   - [Configuration Options](#configuration-options)
     - [--values](#--values)
     - [--set](#--set)
+    - [Setting MarkLogic admin password](#setting-marklogic-admin-password)
+    - [Log Collection](#log-collection)
+  - [Adding and Removing Hosts from Clusters](#adding-and-removing-hosts-from-clusters)
+    - [Adding Hosts](#adding-hosts)
+    - [Removing Hosts](#removing-hosts)
+    - [Enabling SSL over XDQP](#enabling-ssl-over-xdqp)
+- [Deploying a MarkLogic Cluster with Multiple Groups](#deploying-a-marklogic-cluster-with-multiple-groups)
 - [Access the MarkLogic Server](#access-the-marklogic-server)
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
@@ -148,7 +156,7 @@ helm repo update
 Use this command to install MarkLogic Chart to the current namespace with default settings:
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1
+helm install my-release marklogic/marklogic --version=1.0.0-ea2
 ```
 
 After you install MarkLogic Chart, the output will look like this:
@@ -161,12 +169,12 @@ STATUS: deployed
 REVISION: 1
 ```
 
-**Note:** --version=1.0.0-ea1 must be provided as part of the name. You can choose a distinctive release name to replace "my-release".
+**Note:** --version=1.0.0-ea2 must be provided as part of the name. You can choose a distinctive release name to replace "my-release".
 
 We strongly recommend that you deploy MarkLogic Chart in an exclusive namespace. Use the `--create-namespace` flag if the namespace has not already been created:
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1 --namespace=marklogic --create-namespace
+helm install my-release marklogic/marklogic --version=1.0.0-ea2 --namespace=marklogic --create-namespace
 ```
 
 Use this command to verify the deployment:
@@ -179,7 +187,7 @@ You should see an entry named "my-release" (or the release name you chose) with 
 
 ## Configuration Options
 
-This section describes the configuration options you can use with Helm. 
+This section describes the configuration options you can use with Helm.
 
 ### --values
 
@@ -188,7 +196,7 @@ The `--values` flag points to a YAML file. The values in the file will override 
 Use this command to view the default configurable values:
 
 ```
-helm show values marklogic/marklogic --version=1.0.0-ea1
+helm show values marklogic/marklogic --version=1.0.0-ea2
 ```
 
 To configure a different value for your installation, create a `values.yaml` file.
@@ -205,7 +213,7 @@ imagePullSecret:
 Use the following command to install MarkLogic with the `values.yaml` file you just created.
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1 --values values.yaml
+helm install my-release marklogic/marklogic --version=1.0.0-ea2 --values values.yaml
 ```
 
 ### --set
@@ -213,13 +221,102 @@ helm install my-release marklogic/marklogic --version=1.0.0-ea1 --values values.
 Use the `--set` flag to make one or more configuration changes directly:
 
 ```
-helm install my-release marklogic/marklogic --version=1.0.0-ea1 \
+helm install my-release marklogic/marklogic --version=1.0.0-ea2 \
 --set imagePullSecret.registry="https://index.docker.io/v1/" \
 --set imagePullSecret.username=YOUR_USERNAME \
 --set imagePullSecret.password=YOUR_PASSWORD
 ```
 
 We recommend that you use the `values.yaml` file for configuring your installation.
+
+### Setting MarkLogic admin password
+
+If the password does not provided when installing the MarkLogic Chart, a randomly generated aphanumeric value will be set for MarkLogic admin password. This value is stored in Kuberenetes secrets. 
+User can also set a custom password by setting auth.adminPassword value during installation.
+To retrieve the randomly generated admin password, use the following commands:
+
+1. List the secrets for MarkLogic deployment:
+```
+kubectl get secrets
+```
+Identify the name of the secret.
+
+2. Save the secret name from step 1 and get the admin password using the following script:
+```
+kubectl get secret SECRET_NAME -o jsonpath='{.data.marklogic-password}' | base64 --decode
+```
+### Log Collection
+
+To enable log collection for all Marklogic logs set logCollection.enabled to true. Set each option in logCollection.files to true of false depending on if you want to track each type of Marklogic log file.
+
+In order to use the logs that are colleceted you must define an output in the outputs section of the values file. Fluent Bit will parse and output all the log files from each pod to the output(s) you set.
+
+For documentation on how to configure the Fluent Bit output with your logging backend see Fluent Bit's output documentation here: <https://docs.fluentbit.io/manual/pipeline/outputs>
+
+
+## Adding and Removing Hosts from Clusters
+
+### Adding Hosts
+
+The MarkLogic Helm chart creates one MarkLogic "host" per Kubernetes pod in a StatefulSet.
+To add a new MarkLogic host to an existing cluster, simply increase the number of pods in your StatefulSet.
+For example, if you want to change the host count of an existing MarkLogic cluster from 2 to 3, run the following Helm command:
+
+```
+helm upgrade release-name [chart-path] --namespace name-space --set replicaCount=3
+```
+
+Once this deployment is completed, the new MarkLogic host joins the existing cluster.
+To track deployment status, use “**kubectl get pods**” command. This procedure does not automatically create forests on the new host.
+If the host will be managing forests for a database, create them via MarkLogic's administrative UI or APIs once the pod is up and running.
+
+### Removing Hosts
+
+When scaling a StatefulSet down, Kubernetes will attempt to stop one or more pods in the set to achieve the desired number of pods.
+When doing so, Kubernetes will stop the pod(s), but the storage attached to the pod will remain until you delete the Persistent Volume Claim(s).
+Shutting down a pod from the Kubernetes side does not modify the MarkLogic cluster configuration.
+It only stops the pod, which causes the MarkLogic host to go offline. If there are forests assigned to the stopped host(s), those forests will go offline.
+
+The procedure to scale down the number of MarkLogic hosts in a cluster depends on whether or not forests are assigned to the host(s) to be removed and if the goal is to permanently remove the host(s) from the MarkLogic cluster. If there are forests assigned to the host(s) and you want to remove the host(s) from the cluster, follow MarkLogic administrative procedures to migrate the data from the forests assigned to the host(s) you want to shut down to the forests assigned to the remaining hosts in the cluster (see https://docs.marklogic.com/guide/admin/database-rebalancing#id_23094 and
+https://help.marklogic.com/knowledgebase/article/View/507/0/using-the-rebalancer-to-move-the-content-in-one-forest-to-another-location for details).
+Once the data are safely migrated from the forests on the host(s) to be removed, the host can be removed from the MarkLogic cluster. If there are forests assigned to the host(s) but you just want to temporarily shut down the MarkLogic host/pod, the data do not need to be migrated, but the forests will go offline while the host is shut down.
+
+For example, once you have migrated any forest data from the third MarkLogic host, you can change the host count on an
+existing MarkLogic cluster from 3 to 2 by running the following Helm command:
+
+```
+helm upgrade release-name [chart-path] --namespace name-space --set replicaCount=2
+```
+
+Before Kubernetes stops the pod, it makes a call to the MarkLogic host to tell it to shut down with the "fastFailOver" flag set to TRUE. This tells the remaining hosts in the cluster that this host is shutting down and to trigger failover for any replica forests that may be available for forests on this host. There is a two-minute grace period to allow MarkLogic to shut down cleanly before Kubernetes kills the pod.
+
+In order to track the host shutdown progress, run the following command:
+```
+kubectl logs pod/terminated-host-pod-name
+```
+
+If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+### Enabling SSL over XDQP
+
+To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
+
+Note: To enable other XDQP/SSL settings like `xdqp ssl allow sslv3`, `xdqp ssl allow tls`, `xdqp ssl ciphers`, use MarkLogic REST Management API. See the MarkLogic documentation [here](https://docs.marklogic.com/REST/management).
+
+# Deploying a MarkLogic Cluster with Multiple Groups
+
+To deploy a MarkLogic cluster with multiple groups (separate E and D nodes for example) the `bootstrapHostName` and `group.name` must be configured in values.yaml or set the values provided for these configurations using the `--set` flag while installing helm charts.
+For example, if you want to create a MarkLogic cluster with three nodes in a "dnode" group and two nodes in an "enode" group, start with the following helm command:
+
+```
+helm install dnode-group ./charts/ --set group.name=dnode --set replicaCount=3
+```
+Once this deployment is complete, a MarkLogic cluster with three hosts should be running.
+To add the "enode" group and nodes to the cluster, the `bootstrapHostName` must be set to join the existing MarkLogic cluster. The first host in the other group can be used. For this example, set `bootstrapHostName` to `dnode-group-marklogic-0.dnode-group-marklogic-headless.default.svc.cluster.local` with the following command:
+
+```
+helm install enode-group ./charts/ --set group.name=enode --set replicaCount=2 --set bootstrapHostName=dnode-group-marklogic-0.dnode-group-marklogic-headless.default.svc.cluster.local
+```
+Once this deployment is complete, there will be a new "enode" group with two hosts in the MarkLogic cluster.
 
 # Access the MarkLogic Server
 
@@ -334,7 +431,10 @@ This table describes the list of available parameters for Helm Chart.
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`     
+| `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
+| `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
+| `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
 | `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
 | `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
@@ -369,3 +469,9 @@ This table describes the list of available parameters for Helm Chart.
 | `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
 | `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
 | `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
+| `logCollection.enabled`              | Enable this parameter to enable cluster wide log collection of Marklogic server logs                           | `false`                              |
+| `logCollection.files.errorLogs`      | Enable this parameter to enable collection of Marklogics error logs when clog collection is enabled            | `true`                               |
+| `logCollection.files.accessLogs`     | Enable this parameter to enable collection of Marklogics access logs when log collection is enabled            | `true`                               |
+| `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
+| `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
+| `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |
