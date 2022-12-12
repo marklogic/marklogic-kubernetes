@@ -19,7 +19,7 @@ bootstrapHostName: ""
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: latest
+  tag: 10.0-9.5-centos-1.0.0
   pullPolicy: IfNotPresent
 
 # Init container image parameters
