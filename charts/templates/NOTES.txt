@@ -1,0 +1,29 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+To check the status of the release, try:
+
+  $ helm status {{ .Release.Name }}
+
+To get all resources of the release, try:
+
+   $ helm get all {{ .Release.Name }}
+
+To get the pods in the {{ .Release.Namespace }}, try:
+   
+   $ kubectl get pods --namespace={{ .Release.Namespace }}
+
+To get all services in the {{ .Release.Namespace }}, try:
+
+   $ kubectl get services --namespace=default
+
+To connect to the {{ .Chart.Name }} cluster, use port forwarding:
+
+    To access the whole cluster, forward the port to the service:
+
+    $ kubectl port-forward svc/{{ include "marklogic.fullname" . }} 8001:8001
+
+    To access a pod, forward the port to the pod using:
+
+    $ kubectl port-forward {{ include "marklogic.fullname" . }}-0 8001:8001
