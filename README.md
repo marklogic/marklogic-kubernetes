@@ -249,7 +249,7 @@ Identify the name of the secret.
 
 2. Save the secret name from step 1 and get the admin password using the following script:
 ```
-kubectl get secret SECRET_NAME -o jsonpath='{.data.marklogic-password}' | base64 --decode
+kubectl get secret SECRET_NAME -o jsonpath='{.data.password}' | base64 --decode
 ```
 ### Log Collection
 
