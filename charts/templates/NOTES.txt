@@ -1,10 +1,20 @@
+{{- define "marklogic.fqdn" -}}
+{{- printf "%s-0.%s.%s.svc.cluster.local" (include "marklogic.fullname" .) (include "marklogic.headlessServiceName" .) .Release.Namespace }}
+{{- end}}
+
 Thank you for installing {{ .Chart.Name }}.
 
 Your release is named {{ .Release.Name }}.
 
-To check the status of the release, try:
+FQDN is {{ include "marklogic.fqdn" . }}
 
-    $ helm status {{ .Release.Name }}
+Group {{ .Values.group.name }} is created on the MarkLogic cluster.
+
+{{- if .Values.group.enableXdqpSsl }}
+xdqp-ssl-enabled is turned on for {{ .Values.group.name }} group.
+{{- else }}
+xdqp-ssl-enabled is turned off for {{ .Values.group.name }} group.
+{{- end }}
 
 To get pods in the {{ .Release.Namespace }} namespace, try:
 
@@ -12,17 +22,11 @@ To get pods in the {{ .Release.Namespace }} namespace, try:
 
 To get all services in the {{ .Release.Namespace }} namespace, try:
 
-    $ kubectl get services --namespace=default
+    $ kubectl get services --namespace={{ .Release.Namespace }}
 
-To get admin credentials of the MarkLogic cluster, follow below steps:
+To get admin credentials of the MarkLogic cluster, run:
 
-    First get the name of the secrets, run:
-
-        $ kubectl get secrets
-
-    Copy the secret name from step 1 and run below command to extract admin password
-
-        $ kubectl get secret SECRET_NAME -o jsonpath='{.data.marklogic-password}' | base64 --decode
+    $ kubectl get secret {{ include "marklogic.fullname" . }}-admin -o jsonpath='{.data.password}' | base64 --decode
 
 To connect to the {{ .Chart.Name }} cluster, use port forwarding:
 
@@ -35,7 +39,3 @@ To connect to the {{ .Chart.Name }} cluster, use port forwarding:
         $ kubectl port-forward {{ include "marklogic.fullname" . }}-0 8001:8001
 
     MarkLogic admin UI can be accessed at http://localhost:8001
-
-    To check the groups created in the MarkLogic cluster, go to http://localhost:8002/manage/v2/groups
-
-    To check other properties of the {{ .Values.group.name }} group in the cluster, go to http://localhost:8002/manage/v2/groups/{{ .Values.group.name }}/properties
