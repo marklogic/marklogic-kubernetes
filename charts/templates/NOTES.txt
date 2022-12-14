@@ -4,26 +4,38 @@ Your release is named {{ .Release.Name }}.
 
 To check the status of the release, try:
 
-  $ helm status {{ .Release.Name }}
+    $ helm status {{ .Release.Name }}
 
-To get all resources of the release, try:
+To get pods in the {{ .Release.Namespace }} namespace, try:
 
-   $ helm get all {{ .Release.Name }}
+    $ kubectl get pods --namespace={{ .Release.Namespace }}
 
-To get the pods in the {{ .Release.Namespace }}, try:
-   
-   $ kubectl get pods --namespace={{ .Release.Namespace }}
+To get all services in the {{ .Release.Namespace }} namespace, try:
 
-To get all services in the {{ .Release.Namespace }}, try:
+    $ kubectl get services --namespace=default
 
-   $ kubectl get services --namespace=default
+To get admin credentials of the MarkLogic cluster, follow below steps:
+
+    First get the name of the secrets, run:
+
+        $ kubectl get secrets
+
+    Copy the secret name from step 1 and run below command to extract admin password
+
+        $ kubectl get secret SECRET_NAME -o jsonpath='{.data.marklogic-password}' | base64 --decode
 
 To connect to the {{ .Chart.Name }} cluster, use port forwarding:
 
     To access the whole cluster, forward the port to the service:
 
-    $ kubectl port-forward svc/{{ include "marklogic.fullname" . }} 8001:8001
+        $ kubectl port-forward svc/{{ include "marklogic.fullname" . }} 8001:8001
 
-    To access a pod, forward the port to the pod using:
+    To access first pod, forward the port to the pod using:
 
-    $ kubectl port-forward {{ include "marklogic.fullname" . }}-0 8001:8001
+        $ kubectl port-forward {{ include "marklogic.fullname" . }}-0 8001:8001
+
+    MarkLogic admin UI can be accessed at http://localhost:8001
+
+    To check the groups created in the MarkLogic cluster, go to http://localhost:8002/manage/v2/groups
+
+    To check other properties of the {{ .Values.group.name }} group in the cluster, go to http://localhost:8002/manage/v2/groups/{{ .Values.group.name }}/properties
