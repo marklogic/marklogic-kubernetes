@@ -82,7 +82,7 @@ spec:
       volumes:
         - name: haproxy-config
           configMap:
-            name: {{ include "haproxy.fullname" . }}
+            name: {{ include "haproxy.configMapName"  . }}
         {{- if .Values.includes }}
         - name: includes
           projected:

@@ -22,6 +22,17 @@ Expand the name of the chart.
 {{- end }}
 
 {{/*
+Get the configmap name
+*/}}
+{{- define "haproxy.configMapName" -}}
+{{- if .Values.existingConfigmap -}}
+  {{- printf "%s" .Values.existingConfigmap -}}
+{{- else -}}
+  {{- include "haproxy.fullname" . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Allow the release namespace to be overridden for multi-namespace deployments in combined charts
 */}}
 {{- define "haproxy.namespace" -}}
