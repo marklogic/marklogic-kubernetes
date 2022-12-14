@@ -1,0 +1,86 @@
+{{- if .Values.haproxy.enabled }}
+{{- $replicas := int .Values.replicaCount }}
+{{- $releaseName := .Release.Name }}
+{{- $namespace := .Release.Namespace }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marklogic-haproxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: haproxy
+data:
+  haproxy.cfg: |
+    global
+      log stdout format raw local0
+      maxconn 1024
+
+    defaults
+      log global
+      option forwardfor
+      timeout client 60s
+      timeout connect 60s
+      timeout server 60s
+
+    resolvers dns
+      # add nameserver from /etc/resolv.conf
+      parse-resolv-conf
+      
+      hold valid    10s
+
+      # Maximum size of a DNS answer allowed, in bytes
+      accepted_payload_size 8192
+
+
+      # How long to "hold" a backend server's up/down status depending on the name resolution status.
+      # For example, if an NXDOMAIN response is returned, keep the backend server in its current state (up) for
+      # at least another 30 seconds before marking it as down due to DNS not having a record for it.
+      hold valid    10s
+      hold other    30s
+      hold refused  30s
+      hold nx       30s
+      hold timeout  30s
+      hold obsolete 30s
+
+      # How many times to retry a query
+      resolve_retries 3
+
+      # How long to wait between retries when no valid response has been received
+      timeout retry 5s
+
+      # How long to wait for a successful resolution
+      timeout resolve 5s
+
+    frontend stats
+      mode http
+      bind *:1024
+      stats enable
+      http-request use-service prometheus-exporter if { path /metrics }
+      stats uri /
+      stats refresh 10s
+      stats admin if LOCALHOST
+
+    {{- range $key, $value := .Values.haproxy.routeConfig }}
+    {{- $name := $value.name }}
+
+    frontend {{ $value.name }}
+      mode http
+      bind :{{ $value.port }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend {{ $value.name }}
+
+    backend {{ $value.name }}
+      mode http
+      balance uri
+      option forwardfor
+      cookie HostId prefix nocache
+      {{- range $ke, $va := $value.backends }}
+      {{- range $i := until (int $va.size) }}
+      server ml-{{ $va.name }}-{{ $i }} {{ $va.name }}-{{ $i }}.{{ $va.name }}-headless.{{ $namespace }}.svc.cluster.local:{{ $value.port }} check resolvers dns init-addr none cookie {{ $va.name }}-{{ $i }}-{{ $value.port }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+
+
+{{- end }}

@@ -1,7 +1,7 @@
 # Default values for marklogic server.
 
 # Number of Marklogic nodes
-replicaCount: 1
+replicaCount: 2
 
 # update strategy for MarkLogic and Helm chart upgrades
 # It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
@@ -10,7 +10,7 @@ updateStrategy:
     type: OnDelete
 
 # Termination Grace Period
-terminationGracePeriod: 120
+terminationGracePeriod: 10
 
 # Group related settings
 group:
@@ -85,7 +85,7 @@ nodeSelector: {}
 # The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
 # If set the enabled to false, it will use EmptyDir volume
 persistence:
-  enabled: true
+  enabled: false
   storageClass: ""
   size: 10Gi
   annotations: {}
@@ -275,3 +275,50 @@ logCollection:
       #   HTTP_Passwd admin
       # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
       # Configure desired output below
+
+# configuration for the haproxy load balancer
+haproxy:
+  enabled: false
+
+  existingConfigmap: marklogic-haproxy
+
+  routeConfig:
+  - name: ml-8000
+    port: 8000
+    backends:
+      # - marklogic-0.marklogic-headless.ml.svc.cluster.local
+      # - marklogic-1.marklogic-headless.ml.svc.cluster.local
+      - name: dnode-marklogic
+        size: 1
+      - name: enode-marklogic
+        size: 2
+  - name: ml-8001
+    port: 8001
+    backends:
+      - name: dnode-marklogic
+        size: 1
+      - name: enode-marklogic
+        size: 2
+  - name: ml-8002
+    port: 8002
+    backends:
+      - name: dnode-marklogic
+        size: 1
+      - name: enode-marklogic
+        size: 2
+
+  service:
+    ports:
+      - name: stats
+        protocol: TCP
+        port: 1024
+      - name: query
+        protocol: TCP
+        port: 8000
+      - name: admin
+        protocol: TCP
+        port: 8001
+      - name: manage
+        protocol: TCP
+        port: 8002
+        
