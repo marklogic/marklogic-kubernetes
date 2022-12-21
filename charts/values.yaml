@@ -12,6 +12,9 @@ updateStrategy:
 # Termination Grace Period
 terminationGracePeriod: 10
 
+# Kubernetes cluster domain name
+clusterDomain: cluster.local
+
 # Group related settings
 group:
   # the group name of the current Marklogic Helm Deployment

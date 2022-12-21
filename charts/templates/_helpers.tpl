@@ -42,7 +42,7 @@ Create headless service name for statefulset
 Create URL for headless service 
 */}}
 {{- define "marklogic.headlessURL" -}}
-{{- printf "%s.%s.svc.cluster.local" (include "marklogic.headlessServiceName" .) .Release.Namespace }}
+{{- printf "%s.%s.svc.%s" (include "marklogic.headlessServiceName" .) .Release.Namespace .Values.clusterDomain }}
 {{- end}}
 
 {{/*
