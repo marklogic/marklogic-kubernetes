@@ -1,7 +1,7 @@
 # Default values for marklogic server.
 
 # Number of Marklogic nodes
-replicaCount: 2
+replicaCount: 1
 
 # update strategy for MarkLogic and Helm chart upgrades
 # It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
@@ -284,31 +284,6 @@ haproxy:
   enabled: false
 
   existingConfigmap: marklogic-haproxy
-
-  routeConfig:
-  - name: ml-8000
-    port: 8000
-    backends:
-      # - marklogic-0.marklogic-headless.ml.svc.cluster.local
-      # - marklogic-1.marklogic-headless.ml.svc.cluster.local
-      - name: dnode-marklogic
-        size: 1
-      - name: enode-marklogic
-        size: 2
-  - name: ml-8001
-    port: 8001
-    backends:
-      - name: dnode-marklogic
-        size: 1
-      - name: enode-marklogic
-        size: 2
-  - name: ml-8002
-    port: 8002
-    backends:
-      - name: dnode-marklogic
-        size: 1
-      - name: enode-marklogic
-        size: 2
 
   service:
     ports:

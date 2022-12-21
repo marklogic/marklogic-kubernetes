@@ -2,6 +2,7 @@
 {{- $replicas := int .Values.replicaCount }}
 {{- $releaseName := .Release.Name }}
 {{- $namespace := .Release.Namespace }}
+{{- $clusterDomain := .Values.clusterDomain }}
 
 apiVersion: v1
 kind: ConfigMap
@@ -52,35 +53,36 @@ data:
       # How long to wait for a successful resolution
       timeout resolve 5s
 
-    frontend stats
-      mode http
-      bind *:1024
-      stats enable
-      http-request use-service prometheus-exporter if { path /metrics }
-      stats uri /
-      stats refresh 10s
-      stats admin if LOCALHOST
+    {{- range $ports := .Values.haproxy.service.ports }}
+    {{ $portNumber := printf "%v" $ports.port }}
 
-    {{- range $key, $value := .Values.haproxy.routeConfig }}
-    {{- $name := $value.name }}
+    {{- if eq $portNumber "1024" }}
+      frontend stats
+        mode http
+        bind *:1024
+        stats enable
+        http-request use-service prometheus-exporter if { path /metrics }
+        stats uri /
+        stats refresh 10s
+        stats admin if LOCALHOST
 
-    frontend {{ $value.name }}
+    {{- else }}
+
+    frontend marklogic-{{$portNumber}}
       mode http
-      bind :{{ $value.port }}
+      bind :{{ $portNumber }}
       log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
-      default_backend {{ $value.name }}
+      default_backend marklogic-{{$portNumber}}
 
-    backend {{ $value.name }}
+    backend marklogic-{{$portNumber}}
       mode http
       balance uri
       option forwardfor
       cookie HostId prefix nocache
-      {{- range $ke, $va := $value.backends }}
-      {{- range $i := until (int $va.size) }}
-      server ml-{{ $va.name }}-{{ $i }} {{ $va.name }}-{{ $i }}.{{ $va.name }}-headless.{{ $namespace }}.svc.cluster.local:{{ $value.port }} check resolvers dns init-addr none cookie {{ $va.name }}-{{ $i }}-{{ $value.port }}
-      {{- end }}
+      {{- range $i := until $replicas }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
     {{- end }}
-
+    {{- end }}
 
 {{- end }}
