@@ -161,7 +161,7 @@ pipeline {
         timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
         dockerRegistry = 'ml-docker-dev.marklogic.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
-        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
+        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.1"
     }
 
     parameters {
