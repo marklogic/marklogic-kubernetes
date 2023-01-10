@@ -115,11 +115,7 @@ void resultNotification(message) {
 
 void lint() {
     sh '''
-        # Added to fix 'Context loading failed error'
-        go get ./...
-        echo Installing golangci-lint
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.50.0
-        make lint saveOutput=true path=./bin/
+        make lint saveOutput=true
     '''
 
     LINT_OUTPUT = sh(returnStdout: true, script: 'echo helm template lint output: ;cat helm-lint-output.txt ;echo all tests lint output: ;cat test-lint-output.txt').trim()
@@ -161,7 +157,7 @@ pipeline {
         timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
         dockerRegistry = 'ml-docker-dev.marklogic.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
-        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
+        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.1"
     }
 
     parameters {
