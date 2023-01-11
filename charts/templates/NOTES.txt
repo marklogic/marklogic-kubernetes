@@ -1,0 +1,41 @@
+{{- define "marklogic.fqdn" -}}
+{{- printf "%s-0.%s.%s.svc.cluster.local" (include "marklogic.fullname" .) (include "marklogic.headlessServiceName" .) .Release.Namespace }}
+{{- end}}
+
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+FQDN is {{ include "marklogic.fqdn" . }}
+
+Group {{ .Values.group.name }} is created on the MarkLogic cluster.
+
+{{- if .Values.group.enableXdqpSsl }}
+xdqp-ssl-enabled is turned on for {{ .Values.group.name }} group.
+{{- else }}
+xdqp-ssl-enabled is turned off for {{ .Values.group.name }} group.
+{{- end }}
+
+To get pods in the {{ .Release.Namespace }} namespace, try:
+
+    $ kubectl get pods --namespace={{ .Release.Namespace }}
+
+To get all services in the {{ .Release.Namespace }} namespace, try:
+
+    $ kubectl get services --namespace={{ .Release.Namespace }}
+
+To get admin credentials of the MarkLogic cluster, run:
+
+    $ kubectl get secret {{ include "marklogic.fullname" . }}-admin -o jsonpath='{.data.password}' | base64 --decode
+
+To connect to the {{ .Chart.Name }} cluster, use port forwarding:
+
+    To access the whole cluster, forward the port to the service:
+
+        $ kubectl port-forward svc/{{ include "marklogic.fullname" . }} 8001:8001
+
+    To access first pod, forward the port to the pod using:
+
+        $ kubectl port-forward {{ include "marklogic.fullname" . }}-0 8001:8001
+
+    MarkLogic admin UI can be accessed at http://localhost:8001

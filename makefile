@@ -70,7 +70,7 @@ lint:
 	helm lint --with-subcharts charts/ $(if $(saveOutput),> helm-lint-output.txt,)
 
 	@echo "> Linting all tests....."
-	$(if $(path),$(path),)golangci-lint run $(if $(saveOutput),> test-lint-output.txt,)
+	golangci-lint run --timeout=2m $(if $(saveOutput),> test-lint-output.txt,)
 
 ## ---------- Testing Tasks ----------
 
