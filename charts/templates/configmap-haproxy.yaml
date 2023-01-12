@@ -53,8 +53,8 @@ data:
       # How long to wait for a successful resolution
       timeout resolve 5s
 
-    {{- range $ports := .Values.haproxy.service.ports }}
-    {{ $portNumber := printf "%v" $ports.port }}
+    {{- range $k, $v := .Values.haproxy.containerPorts }}
+    {{ $portNumber := printf "%v" $v }}
 
     {{- if eq $portNumber "1024" }}
       frontend stats
@@ -76,11 +76,12 @@ data:
 
     backend marklogic-{{$portNumber}}
       mode http
-      balance uri
+      balance leastconn
       option forwardfor
-      cookie HostId prefix nocache
+      cookie SessionID prefix nocache
+      default-server check
       {{- range $i := until $replicas }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
     {{- end }}
     {{- end }}
