@@ -115,11 +115,7 @@ void resultNotification(message) {
 
 void lint() {
     sh '''
-        # Added to fix 'Context loading failed error'
-        go get ./...
-        echo Installing golangci-lint
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.50.0
-        make lint saveOutput=true path=./bin/
+        make lint saveOutput=true
     '''
 
     LINT_OUTPUT = sh(returnStdout: true, script: 'echo helm template lint output: ;cat helm-lint-output.txt ;echo all tests lint output: ;cat test-lint-output.txt').trim()
@@ -143,6 +139,17 @@ void pullImage() {
     }
 }
 
+String getVersionDiv(mlVersion) {
+    switch (mlVersion) {
+        case '10.0':
+            return '-'
+        case '9.0':
+            return '-'
+        default:
+            return '.'
+    }
+}
+
 pipeline {
     agent {
         label {
@@ -161,13 +168,15 @@ pipeline {
         timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
         dockerRegistry = 'ml-docker-dev.marklogic.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
-        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.0"
+        dockerVerDivider = getVersionDiv(params.ML_VERSION)
+        dockerVersion = "${ML_VERSION}${dockerVerDivider}${timeStamp}-centos-${dockerReleaseVer}"
     }
 
     parameters {
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
-        choice(name: 'ML_VERSION', choices: '10.0\n11.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
+        choice(name: 'ML_VERSION', choices: '11.0\n12.0\n10.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
+        string(name: 'dockerReleaseVer', defaultValue: '1.0.1', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
     }
 
     stages {
