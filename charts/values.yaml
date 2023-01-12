@@ -100,6 +100,12 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# Below are the security configurations for container, by default security will be enabled
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsNonRoot: false
+  allowPrivilegeEscalation: false
 
 # Below are the advanced configurations, please understand read the reference before you make changes
 

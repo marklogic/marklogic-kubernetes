@@ -206,6 +206,12 @@ spec:
                             sleep 10s
                         fi
                     done
+          {{- if .Values.containerSecurityContext.enabled }}
+          securityContext:
+            runAsUser: {{ .Values.containerSecurityContext.runAsUser }}
+            runAsNonRoot: {{ .Values.containerSecurityContext.runAsNonRoot }}
+            allowPrivilegeEscalation: {{ .Values.containerSecurityContext.allowPrivilegeEscalation }}
+          {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
