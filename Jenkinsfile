@@ -21,8 +21,6 @@ void preBuildCheck() {
     JIRA_ID = extractJiraID()
     echo 'Jira ticket number: ' + JIRA_ID
 
-gitCheckout ".","https://github.com/marklogic/marklogic-kubernetes","develop", gitCredID
-
     if (env.GIT_URL) {
         githubAPIUrl = GIT_URL.replace('.git', '').replace('github.com', 'api.github.com/repos')
         echo 'githubAPIUrl: ' + githubAPIUrl
@@ -141,6 +139,17 @@ void pullImage() {
     }
 }
 
+String getVersionDiv(mlVersion) {
+    switch (mlVersion) {
+        case '10.0':
+            return '-'
+        case '9.0':
+            return '-'
+        default:
+            return '.'
+    }
+}
+
 pipeline {
     agent {
         label {
@@ -159,15 +168,8 @@ pipeline {
         timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
         dockerRegistry = 'ml-docker-dev.marklogic.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
-
-        dockerVersion = "${ML_VERSION}-${timeStamp}-centos-1.0.1"
-
-        if (${ML_VERSION} == "11.0" || ${ML_VERSION} == "12.0") {
-            dockerVersion = "${ML_VERSION}.${timeStamp}-centos-${dockerReleaseVer}"
-        }
-        else {
-            dockerVersion = "${ML_VERSION}-${timeStamp}-centos-${dockerReleaseVer}"
-        }
+        dockerVerDivider = getVersionDiv(params.ML_VERSION)
+        dockerVersion = "${ML_VERSION}${dockerVerDivider}${timeStamp}-centos-${dockerReleaseVer}"
     }
 
     parameters {
