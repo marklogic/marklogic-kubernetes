@@ -90,7 +90,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 
 	// Verify the image matches
 	expectedImage1 := "marklogicdb/marklogic-db:latest"
-	expectedImage2 := "fluent/fluent-bit:1.9.7"
+	expectedImage2 := "fluent/fluent-bit:2.0.6"
 
 	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
 	require.Equal(t, len(statefulSetContainers), 2)
