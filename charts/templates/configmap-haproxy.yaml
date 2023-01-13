@@ -79,6 +79,9 @@ data:
       balance leastconn
       option forwardfor
       cookie SessionID prefix nocache
+      stick-table type string len 32 size 10k expire 60m
+      stick store-response res.cook(HostId)
+      stick match req.cook(HostId)
       default-server check
       {{- range $i := until $replicas }}
       server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
