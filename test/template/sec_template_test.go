@@ -32,10 +32,7 @@ func TestChartTemplateSecurityEnabled(t *testing.T) {
 			"image.repository":      "marklogicdb/marklogic-db",
 			"image.tag":      "latest",
 			"persistence.enabled":   "false",
-			"securityContext.enabled": "true",
-			"securityContext.runAsUser": "1000",
-			"securityContext.runAsNonRoot": "true",
-			"securityContext.allowPrivilegeEscalation": "false",
+			"containerSecurityContext.enabled": "true",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -43,15 +40,55 @@ func TestChartTemplateSecurityEnabled(t *testing.T) {
 	// render the tempate
 	output := helm.RenderTemplate(t, options, helmChartPath, releaseName, []string{"templates/statefulset.yaml"})
 
-	var statefulset appsv1.Deployment
+	var statefulset appsv1.StatefulSet
 	helm.UnmarshalK8SYaml(t, output, &statefulset)
 
 	// Verify the name and namespace matches
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
-	// Verify the image matches	
-	expectedImage :=  "marklogicdb/marklogic-db:latest"
+	// Verify the securityContext values are set for container
+	expectedRunAsUser := 1000
+	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
+	actualRunAsUser := *(statefulSetContainers[0].SecurityContext.RunAsUser)
+	require.Equal(t, len(statefulSetContainers), 1)
+	require.Equal(t, int(actualRunAsUser), expectedRunAsUser)
+}
+
+func TestChartTemplateSecurityDisabled(t *testing.T) {
+	t.Parallel()
+
+	// Path to the helm chart we will test
+	helmChartPath, err := filepath.Abs("../../charts")
+	releaseName := "marklogic-sec-test"
+	t.Log(helmChartPath, releaseName)
+	require.NoError(t, err)
+
+	// Set up the namespace; confirm that the template renders the expected value for the namespace.
+	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	t.Logf("Namespace: %s\n", namespaceName)
+
+	// Setup the args for helm install
+	options := &helm.Options{
+		SetValues: map[string]string{
+			"image.repository":      "marklogicdb/marklogic-db",
+			"image.tag":      "latest",
+			"persistence.enabled":   "false",
+			"containerSecurityContext.enabled": "false",
+		},
+		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+	}
+
+	// render the tempate
+	output := helm.RenderTemplate(t, options, helmChartPath, releaseName, []string{"templates/statefulset.yaml"})
+
+	var statefulset appsv1.StatefulSet
+	helm.UnmarshalK8SYaml(t, output, &statefulset)
+
+	// Verify the name and namespace matches
+	require.Equal(t, namespaceName, statefulset.Namespace)
+
+	// Verify SecurityContext is not set for container
 	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
 	require.Equal(t, len(statefulSetContainers), 1)
-	require.Equal(t, statefulSetContainers[0].Image, expectedImage)
+	require.Nil(t, statefulSetContainers[0].SecurityContext)
 }
