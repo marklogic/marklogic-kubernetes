@@ -100,7 +100,18 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-
+# Configure network options
+networkPolicy:
+  enabled: true
+  customRules: {}
+  ports:
+    - port: 8000
+      protocol: TCP
+    - port: 8001
+      protocol: TCP
+    - port: 8002
+      protocol: TCP
+    
 # Below are the advanced configurations, please understand read the reference before you make changes
 
 # Configure options for liveness probe
