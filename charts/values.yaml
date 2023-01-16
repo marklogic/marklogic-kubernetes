@@ -104,8 +104,8 @@ serviceAccount:
 containerSecurityContext:
   enabled: true
   runAsUser: 1000
-  runAsNonRoot: false
-  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  allowPrivilegeEscalation: true
 
 # Below are the advanced configurations, please understand read the reference before you make changes
 
