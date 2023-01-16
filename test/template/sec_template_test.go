@@ -29,9 +29,9 @@ func TestChartTemplateSecurityEnabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":      "marklogicdb/marklogic-db",
-			"image.tag":      "latest",
-			"persistence.enabled":   "false",
+			"image.repository":                 "marklogicdb/marklogic-db",
+			"image.tag":                        "latest",
+			"persistence.enabled":              "false",
 			"containerSecurityContext.enabled": "true",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
@@ -70,9 +70,9 @@ func TestChartTemplateSecurityDisabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":      "marklogicdb/marklogic-db",
-			"image.tag":      "latest",
-			"persistence.enabled":   "false",
+			"image.repository":                 "marklogicdb/marklogic-db",
+			"image.tag":                        "latest",
+			"persistence.enabled":              "false",
 			"containerSecurityContext.enabled": "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
