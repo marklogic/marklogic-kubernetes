@@ -66,6 +66,14 @@ data:
         stats refresh 10s
         stats admin if LOCALHOST
 
+    {{- else if eq $portNumber "5432"  -}}
+      listen odbc
+        bind :5432
+        mode tcp
+        balance leastconn
+        {{- range $i := until $replicas }}
+        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none
+        {{- end }}
     {{- else }}
 
     frontend marklogic-{{$portNumber}}
