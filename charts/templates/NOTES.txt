@@ -1,12 +1,13 @@
-{{- define "marklogic.fqdn" -}}
-{{- printf "%s-0.%s.%s.svc.cluster.local" (include "marklogic.fullname" .) (include "marklogic.headlessServiceName" .) .Release.Namespace }}
-{{- end}}
-
 Thank you for installing {{ .Chart.Name }}.
 
 Your release is named {{ .Release.Name }}.
 
 FQDN is {{ include "marklogic.fqdn" . }}
+{{- if gt (len (include "marklogic.fqdn" .)) 64 }}
+WARNING:    The hostname is greater than 64 characters
+            There may be issues with certificates
+            The certificates may shorten the name or use SANs for hostnames in the certificates
+{{- end }}
 
 Group {{ .Values.group.name }} is created on the MarkLogic cluster.
 

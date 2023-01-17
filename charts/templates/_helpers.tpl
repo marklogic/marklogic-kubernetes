@@ -75,3 +75,10 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Fully qualified domain name
+*/}}
+{{- define "marklogic.fqdn" -}}
+{{- printf "%s-0.%s.%s.svc.cluster.local" (include "marklogic.fullname" .) (include "marklogic.headlessServiceName" .) .Release.Namespace }}
+{{- end}}
