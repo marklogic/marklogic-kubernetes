@@ -49,4 +49,3 @@ func TestChartTemplateNetworkPolicyEnabled(t *testing.T) {
 	expectedPolicyTypes := "Ingress"
 	require.Equal(t, string(networkPolicies.PolicyTypes[0]), expectedPolicyTypes)
 }
-
