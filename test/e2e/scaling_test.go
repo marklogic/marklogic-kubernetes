@@ -58,7 +58,7 @@ func TestHelmScaleUp(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
-	releaseName := "test-upgrade"
+	releaseName := "test-scale"
 	helm.Install(t, options, helmChartPath, releaseName)
 
 	newOptions := &helm.Options{
