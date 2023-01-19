@@ -35,6 +35,8 @@
   - [Notice](#notice)
 - [Uninstalling the Chart](#uninstalling-thechart)
 - [Parameters](#parameters)
+- [Known Issues and Limitations](#Known-Issues-and-Limitations)
+
 
 # Introduction
 
@@ -475,3 +477,7 @@ This table describes the list of available parameters for Helm Chart.
 | `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
 | `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
 | `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |
+
+# Known Issues and Limitations
+
+1. If the hostname is greater than 64 characters there may be issues with certificates. The certificates may shorten the name or use SANs for hostnames in the certificates.
