@@ -88,7 +88,6 @@ func TestHelmScaleUp(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-
 	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
 
 	resp, err := getHostsDR.Execute()
@@ -184,7 +183,6 @@ func TestHelmScaleDown(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-
 	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
 
 	resp, err := getHostsDR.Execute()
@@ -199,7 +197,7 @@ func TestHelmScaleDown(t *testing.T) {
 	t.Logf(`Body: %s`, string(body))
 
 	totalHostsOffline := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts-offline.value`)
-	
+
 	//verify there is a offline host after scaling down
 	if totalHostsOffline.Num != 1 {
 		t.Errorf("Incorrect number of offline hosts")
