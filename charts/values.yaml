@@ -100,9 +100,10 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# Configure network options
+# Configure options for network policy
+# ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
 networkPolicy:
-  enabled: true
+  enabled: false
   customRules: {}
   ports:
     - port: 8000
