@@ -390,6 +390,17 @@ kubectl port-forward svc/marklogic 8000:8000
 
 This pod can now be accessed via http://localhost:8001.
 
+## Security Context
+
+Security context defines privilege and access control settings for a Pod or Container. By default security context for containers is enabled with runAsUser, runAsNonRoot, allowPrivilegeEscalation settings. To configure these values for containers, set the containerSecurityContext in the values.yaml file or using the `--set` flag. Additional security context settings can be added to containerSecurityContext configuration. Please refer [https://kubernetes.io/docs/tasks/configure-pod-container/security-context/](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+
+## Network Policy
+
+Note: To use network policies, you must be using a networking solution that supports NetworkPolicy. Creating a NetworkPolicy resource without a controller that implements it will have no effect. Please refer [https://kubernetes.io/docs/concepts/services-networking/network-policies/#prerequisites](https://kubernetes.io/docs/concepts/services-networking/network-policies/#prerequisites).
+
+Use NetworkPolicy to control network traffic flow for your applications, it allows you to specify how pods should communicate over the network. By default network policy is disabled in the values.yaml file. Set the networkPolicy.enabled to true to enable the use of network policy resource, default ports are provided in the settings, you can define custom rules for the sources of the traffic to the desired ports.
+
+
 ## Notice
 
 To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie-based session affinity. This function will be supported in a future release.
