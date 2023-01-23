@@ -58,7 +58,7 @@ func TestHelmScaleUp(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
-	releaseName := "test-scale"
+	releaseName := "test-scale-up"
 	helm.Install(t, options, helmChartPath, releaseName)
 
 	newOptions := &helm.Options{
@@ -99,13 +99,11 @@ func TestHelmScaleUp(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-
 	totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
-	t.Logf(`totalHosts: = %s`, totalHosts)
 
 	// verify total number of hosts on the clsuter after scaling up
 	if totalHosts.Num != 2 {
-		t.Errorf("Incorrect number of offline hosts")
+		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
 }
 
@@ -151,7 +149,7 @@ func TestHelmScaleDown(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
-	releaseName := "test-upgrade"
+	releaseName := "test-scale-down"
 	helm.Install(t, options, helmChartPath, releaseName)
 
 	podName := releaseName + "-marklogic-0"
@@ -194,7 +192,6 @@ func TestHelmScaleDown(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	t.Logf(`Body: %s`, string(body))
 
 	totalHostsOffline := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts-offline.value`)
 
