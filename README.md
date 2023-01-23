@@ -487,6 +487,13 @@ This table describes the list of available parameters for Helm Chart.
 | `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
 | `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
 | `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |
+| `containerSecurityContext.enabled`      | Enable this parameter to enable security context for containers             | `true`                               |
+| `containerSecurityContext.runAsUser`      | User ID to run the entrypoint of the container process             | `1000`                               |
+| `containerSecurityContext.runAsNonRoot`      | Indicates that the container must run as a non-root user             | `true`                               |
+| `containerSecurityContext.allowPrivilegeEscalation`      | Controls whether a process can gain more privileges than its parent process             | `true`                               |
+| `networkPolicy.enabled`      | Enable this parameter to enable network policy             | `false`                               |
+| `networkPolicy.customRules`      | Placeholder to specify selectors              | `{}`                               |
+| `networkPolicy.ports`      | Ports to which traffic is allowed              | `[8000, 8001, 8002]`                               |
 
 # Known Issues and Limitations
 
