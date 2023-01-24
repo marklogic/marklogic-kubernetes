@@ -152,10 +152,10 @@ func TestHelmScaleDown(t *testing.T) {
 	releaseName := "test-scale-down"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName1 := releaseName + "-marklogic-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 10, 20*time.Second)
 
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -173,8 +173,10 @@ func TestHelmScaleDown(t *testing.T) {
 
 	time.Sleep(20 * time.Second)
 
+	podName0 := releaseName + "-marklogic-0"
+
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypePod, podName0, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
