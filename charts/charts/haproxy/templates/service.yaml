@@ -46,12 +46,12 @@ spec:
   externalIPs:
   {{- toYaml . | nindent 2 }}
   {{- end }}
-  {{- with .Values.containerPorts }}
+  {{- with .Values.ports }}
   ports:
-  {{- range $key, $port := . }}
-  - name: {{ $key }}
+  {{- range $_, $v := . }}
+  - name: {{ $v.name }}
     protocol: TCP
-    port: {{ $port }}
-    targetPort: {{ $key }}
+    port: {{ $v.port }}
+    targetPort: {{ $v.port }}
   {{- end }}
   {{- end }}
