@@ -53,20 +53,22 @@ data:
       # How long to wait for a successful resolution
       timeout resolve 5s
 
-    {{- range $k, $v := .Values.haproxy.containerPorts }}
-    {{ $portNumber := printf "%v" $v }}
+    {{- range $_, $v := .Values.haproxy.ports }}
+    {{ $portNumber := printf "%v" $v.port }}
+    {{ $portType := upper (printf "%s" $v.type) }}
+    
 
-    {{- if eq $portNumber "1024" }}
+    {{- if eq $portType "STAT" }}
       frontend stats
         mode http
-        bind *:1024
+        bind *:{{ $portNumber }}
         stats enable
         http-request use-service prometheus-exporter if { path /metrics }
         stats uri /
         stats refresh 10s
         stats admin if LOCALHOST
 
-    {{- else if eq $portNumber "5432"  -}}
+    {{- else if eq $portType "TCP"  -}}
       listen odbc
         bind :5432
         mode tcp
@@ -74,7 +76,7 @@ data:
         {{- range $i := until $replicas }}
         server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none
         {{- end }}
-    {{- else }}
+    {{- else if eq $portType "HTTP" }}
 
     frontend marklogic-{{$portNumber}}
       mode http

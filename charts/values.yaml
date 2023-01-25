@@ -173,6 +173,17 @@ service:
   ##   protocol: TCP
   additionalPorts: []
 
+  ports:
+    - protocol: TCP
+      name: query-console
+      port: 8000
+    - protocol: TCP
+      name: admin
+      port: 8001
+    - protocol: TCP
+      name: manage
+      port: 8002
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -285,10 +296,26 @@ haproxy:
 
   existingConfigmap: marklogic-haproxy
 
+  service:
+    # The service type of the Load Balancer Service. Could be ClusterIP or LoadBalancer
+    # Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
+    type: ClusterIP   # Could be LoadBalancer
+
   # ports opened for HAproxy Server
-  containerPorts:   
-    stat: 1024
-    query: 8000
-    admin: 8001
-    manage: 8002
+  ports:
+    - name: stat
+      type: STAT
+      port: 1024
+    - name: query
+      type: HTTP
+      port: 8000
+    - name: admin
+      type: HTTP
+      port: 8001
+    - name: manage
+      type: HTTP
+      port: 8002
+    - name: odbc
+      type: TCP
+      port: 5432
 
