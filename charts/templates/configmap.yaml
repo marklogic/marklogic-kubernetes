@@ -16,6 +16,10 @@ data:
   MARKLOGIC_JOIN_CLUSTER: "true"
   MARKLOGIC_GROUP: {{ .Values.group.name }}
   XDQP_SSL_ENABLED: {{ quote .Values.group.enableXdqpSsl }}
+{{- if and (ne .Values.licenseKey "") (ne .Values.licensee "") }}
+  LICENSE_KEY: {{ quote .Values.licenseKey }}
+  LICENSEE: {{ quote .Values.licensee }}
+{{- end }}
 ---
 {{- if .Values.logCollection.enabled }}
 apiVersion: v1

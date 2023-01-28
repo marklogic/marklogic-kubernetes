@@ -431,10 +431,13 @@ This table describes the list of available parameters for Helm Chart.
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`     
-| `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
-| `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
-| `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
+| `license_key`                        | License key for MarkLogic                                                                                      | `""`                                 |
+| `licensee`                           | Name of licensee provided with the key                                                                         | `""`                                 |
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`                              |
+| `bootstrapHostName`                  | Host name of MarkLogic bootstrap host                                                                          | `""`                                 |
+| `group.name`                         | group name for joining MarkLogic cluster                                                                       | `Default`                            |
+| `group.enableXdqpSsl`                | SSL encryption for XDQP                                                                                        | `true`                               |
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
 | `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
 | `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
