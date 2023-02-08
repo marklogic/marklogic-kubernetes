@@ -29,10 +29,10 @@ func TestChartTemplatePodPriorityClass(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
-			"image.tag":                        "latest",
-			"persistence.enabled":              "false",
-			"priorityClassName":				"high-priority",
+			"image.repository":    "marklogicdb/marklogic-db",
+			"image.tag":           "latest",
+			"persistence.enabled": "false",
+			"priorityClassName":   "high-priority",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
