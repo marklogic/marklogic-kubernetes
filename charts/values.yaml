@@ -138,6 +138,7 @@ additionalContainerPorts: []
 
 
 # Configure the Service to access Marklogic Clusters
+# Could be ClusterIP, NodePort or LoadBalancer
 service:
 
   ## Service annotations
@@ -172,7 +173,6 @@ service:
   ##   targetPort: 8010
   ##   protocol: TCP
   additionalPorts: []
-
   ports:
     - protocol: TCP
       name: query-console
@@ -292,21 +292,21 @@ logCollection:
 
 # configuration for the haproxy load balancer
 haproxy:
-  enabled: true
+  enabled: false
 
   existingConfigmap: marklogic-haproxy
 
   service:
-    # The service type of the Load Balancer Service. Could be ClusterIP or LoadBalancer
+    # The service type of the HAproxy Load Balancer Service. Could be ClusterIP or LoadBalancer
     # Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
-    type: ClusterIP   # Could be LoadBalancer
+    type: ClusterIP   # Could be LoadBalancer or ClusterIP
 
   # ports opened for HAproxy Server
   ports:
     - name: stat
       type: STAT
       port: 1024
-    - name: query
+    - name: app-service
       type: HTTP
       port: 8000
     - name: admin
