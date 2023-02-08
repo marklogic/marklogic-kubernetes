@@ -515,6 +515,7 @@ This table describes the list of available parameters for Helm Chart.
 | `networkPolicy.enabled`      | Enable this parameter to enable network policy             | `false`                               |
 | `networkPolicy.customRules`      | Placeholder to specify selectors              | `{}`                               |
 | `networkPolicy.ports`      | Ports to which traffic is allowed              | `[8000, 8001, 8002]`                               |
+| `priorityClassName`      | Name of a PriortyClass defined to set pod priority        | `""`                               |
 
 # Known Issues and Limitations
 
