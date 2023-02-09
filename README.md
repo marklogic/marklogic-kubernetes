@@ -418,7 +418,7 @@ globalDefault: false
 description: "This high priority class should be used for MarkLogic pods only."
 ```
 
-2. Set priorityClassName parameter in the values.yaml file or using the --set flag while installing the chart. The value of priorityClassName should be set to one of the added PriorityClassName.
+2. Set priorityClassName in the values.yaml file or using the --set flag while installing the chart. The value of priorityClassName should be set to one of the added PriorityClassName.
 
 
 ## Notice
