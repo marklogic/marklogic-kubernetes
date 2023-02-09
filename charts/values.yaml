@@ -1,7 +1,7 @@
 # Default values for marklogic server.
 
 # Number of Marklogic nodes
-replicaCount: 2
+replicaCount: 1
 
 # update strategy for MarkLogic and Helm chart upgrades
 # It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
@@ -295,6 +295,8 @@ haproxy:
   enabled: false
 
   existingConfigmap: marklogic-haproxy
+
+  replicaCount: 1
 
   ## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
   # ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
