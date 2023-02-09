@@ -46,6 +46,9 @@ spec:
 {{ toYaml .Values.podLabels | indent 8 }}
         {{- end }}
       annotations:
+      {{- if .Values.restartWhenUpgrade.enabled }}
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{- end}}
       {{- if .Values.checksumConfigMap.enabled }}
         checksum/environment: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       {{- end }}

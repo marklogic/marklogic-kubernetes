@@ -296,6 +296,11 @@ haproxy:
 
   existingConfigmap: marklogic-haproxy
 
+  ## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
+  # ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+  restartWhenUpgrade:
+    enabled: true
+
   service:
     # The service type of the HAproxy Load Balancer Service. Could be ClusterIP or LoadBalancer
     # Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 

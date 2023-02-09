@@ -45,6 +45,11 @@ ports: []
 checksumConfigMap:
   enabled: true
 
+## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
+# ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+restartWhenUpgrade:
+  enabled: true
+
 ## Share Process Namespace between Containers in a Pod
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/share-process-namespace/
 shareProcessNamespace:
