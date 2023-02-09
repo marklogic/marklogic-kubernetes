@@ -402,11 +402,12 @@ Use NetworkPolicy to control network traffic flow for your applications, it allo
 
 ## Pod Priorty
 
-Pods can be assigned priority that reflects the signifance of a pod compared to other pods. For detailed explanation, please refer [https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/)
+Pods can be assigned priority that reflects the significance of a pod compared to other pods. If a pod cannot be scheduled, the scheduler will attempt to evict lower-priority pods in order to free up resources and allow high-priority pods to be scheduled. Assigning priority to pods is important to make sure high-priority pods are not preempted and get the required resources. It is highly recommended to set a PriorityClass object with the highest possible value for MarkLogic Pods to ensure the availability of the database. 
+For more details on Pod priority and PriorityClass, please refer [https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/)
 
-To add priority for pods, use the following the steps:
+To assign priority for pods, use the following the steps:
 
-1. Add a PriorityClass. Following is an example of PriorityClass:
+1. Add a PriorityClass. Following is an example of PriorityClass with a value of 1 million for MarkLogic pods:
 ```
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -414,11 +415,10 @@ metadata:
   name: high-priority
 value: 1000000
 globalDefault: false
-description: "This high priority class should be used for MarkLogic service pods only."
+description: "This high priority class should be used for MarkLogic pods only."
 ```
-  For more details and examples, refer [https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass)
 
-2. Set priorityClassName in the values.yaml file or using --set flag while installing the chart. Value of priorityClassName should be set to one of the added PriorityClassName.
+2. Set priorityClassName parameter in the values.yaml file or using the --set flag while installing the chart. The value of priorityClassName should be set to one of the added PriorityClassName.
 
 
 ## Notice
