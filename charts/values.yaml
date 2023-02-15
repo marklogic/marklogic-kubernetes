@@ -88,7 +88,7 @@ nodeSelector: {}
 # The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
 # If set the enabled to false, it will use EmptyDir volume
 persistence:
-  enabled: false
+  enabled: true
   storageClass: ""
   size: 10Gi
   annotations: {}
