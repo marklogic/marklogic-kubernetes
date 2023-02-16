@@ -65,7 +65,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 		helm.UnmarshalK8SYaml(t, output, &deployment)
 		// test default setting for rollme annotation
 		require.Contains(t, deployment.Spec.Template.Annotations, "rollme")
-		require.EqualValues(t, *deployment.Spec.Replicas, 1)
+		require.EqualValues(t, *deployment.Spec.Replicas, 2)
 	}
 
 	{
@@ -73,7 +73,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 			SetValues: map[string]string{
 				"haproxy.enabled":                    "true",
 				"haproxy.restartWhenUpgrade.enabled": "false",
-				"haproxy.replicaCount":               "2",
+				"haproxy.replicaCount":               "1",
 			},
 			KubectlOptions: k8s.NewKubectlOptions("", "", ""),
 		}
@@ -89,7 +89,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 		helm.UnmarshalK8SYaml(t, output, &deployment)
 
 		require.NotContains(t, deployment.Spec.Template.Annotations, "rollme")
-		require.EqualValues(t, *deployment.Spec.Replicas, 2)
+		require.EqualValues(t, *deployment.Spec.Replicas, 1)
 	}
 
 }
