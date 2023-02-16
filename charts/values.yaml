@@ -290,25 +290,33 @@ logCollection:
       # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
       # Configure desired output below
 
-# configuration for the haproxy load balancer
+## Configuration for the HAProxy load balancer
+## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
+## It also support multi-statement transaction and ODBC connections.  
 haproxy:
   enabled: false
 
+  ## Name of an existing configmap with configuration for HAProxy
   existingConfigmap: marklogic-haproxy
 
-  replicaCount: 1
+  ## Number of HAProxy Deployment
+  replicaCount: 2
 
   ## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
-  # ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+  ## ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
   restartWhenUpgrade:
     enabled: true
 
   service:
-    # The service type of the HAproxy Load Balancer Service. Could be ClusterIP or LoadBalancer
-    # Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
-    type: ClusterIP   # Could be LoadBalancer or ClusterIP
+    ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
+    ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
+    type: ClusterIP
 
-  # ports opened for HAproxy Server
+  ## ports and load balancing type configuration for HAproxy
+  ## There are three types of backends supported:
+  ## 1. STAT: open the port for HAproxy builtin staticstic page.
+  ## 2. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
+  ## 3. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
   ports:
     - name: stat
       type: STAT
@@ -326,3 +334,20 @@ haproxy:
       type: TCP
       port: 5432
 
+  ## Pod Node assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector: {}
+
+  ## Node Affinity for pod-node scheduling constraints
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  ## Compute Resources
+  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  resources:
+  #  limits:
+  #    cpu: 250m
+  #    memory: 128Mi
+    requests:
+      cpu: 250m
+      memory: 128Mi
