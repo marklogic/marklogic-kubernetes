@@ -33,6 +33,15 @@
   - [Port Forward](#port-forward)
     - [Forward to Pod](#forward-to-pod)
     - [Forward to Service](#forward-to-service)
+  - [HAPorxy Load Balancer](#haporxy-load-balancer)
+    - [Enable HAProxy](#enable-haproxy)
+    - [Configuration](#configuration)
+      - [ConfigMap](#configmap)
+      - [Modify Port Configuration](#modify-port-configuration)
+      - [Automatic Reload Configuration](#automatic-reload-configuration)
+      - [External Access](#external-access)
+    - [Access HAProxy](#access-haproxy)
+- [Security](#security)
   - [Security Context](#security-context)
   - [Network Policy](#network-policy)
   - [Pod Priorty](#pod-priorty)
@@ -411,6 +420,79 @@ kubectl port-forward svc/marklogic 8000:8000
 ```
 
 This pod can now be accessed via http://localhost:8001.
+
+## HAPorxy Load Balancer
+
+HAProxy is provided as a load balancer that is configured to supported cookie-based session affinity and multi-statement transaction that is needed by some of the MarkLogic client application like MLCP. 
+
+### Enable HAProxy
+
+The HAProxy Load Balancer is disabled by default. To enable the HAProxy, provide the config the following in your values file for your Chart installation:
+```
+haproxy:
+  enabled: true
+```
+
+### Configuration
+
+#### ConfigMap
+
+The HAProxy configuation is dynamically generated in ConfigMap with the name of "marklogic-haproxy". You can provide your own configuation by creating a new ConfigMap and set the "existingConfigmap" in values file to the name of the new ConfigMap.
+
+#### Modify Port Configuration 
+
+By default, port 8000, 8001, 8002 are configuered to handle HTTP traffic, port 5432 is configured to handle TCP traffic, and port 1024 is configured for HAProxy statistic page. 
+
+You can modify the default ports selection for the HAProxy by providing your own configuration in values file. Below is the default configuration:
+```
+haproxy:
+  ports:
+    - name: stat
+      type: STAT
+      port: 1024
+    - name: app-service
+      type: HTTP
+      port: 8000
+    - name: admin
+      type: HTTP
+      port: 8001
+    - name: manage
+      type: HTTP
+      port: 8002
+    - name: odbc
+      type: TCP
+      port: 5432
+```
+You can remove/add/modify the entry in ports by providing your own entry. For each entry, you need to specify the name, type and port. There are three type backend supported when configuring the loadbalancer:
+1. STAT: statistic page from HAProxy where it displays the status of the traffic and backends
+2. HTTP: configure the backend as HTTP proxy that handles HTTPC traffic. It also configured to handle Cookie based session affinity and multi-statement trasaction from MarkLogic Client.
+3. TCP: configure the backend as TCP proxy that handles TCP traffic.
+
+#### Automatic Reload Configuration
+
+When any change to the current deployment happens(change the backend ports, number of running MarkLogic nodes), the HAProxy will be restarted to load the new configuration by default. You can change this behavior by change the setting below:
+```
+haproxy:
+  restartWhenUpgrade:
+    enabled: false
+```
+Note: if restartWhenUpgrade.enabled set to false, you have to manually delete the HAProxy deployment to have the lastest configuration if you update the number of MarkLogic node.
+
+#### External Access
+
+By default, the HAProxy is configured to provide access within the Kubernetes cluster. You can configure the HAProxy to provide external access by setting the service type in values file below:
+```
+haproxy:
+  service:
+    type: LoadBalancer
+```
+Warning: By setting the haproxy service type to loadbalancer MarkLogic endpoint is exposed to public Internet. Please set the networkPolicy to limit the sources that can visit MarkLogic.
+
+### Access HAProxy
+
+The HAProxy can be accessed from service with the name of <RELEASE_NAME>-haproxy. For example, if the release name is marklogic, then the name of the service will be marklogic-haproxy. 
+
+# Security
 
 ## Security Context
 
