@@ -400,6 +400,27 @@ Note: To use network policies, you must be using a networking solution that supp
 
 Use NetworkPolicy to control network traffic flow for your applications, it allows you to specify how pods should communicate over the network. By default network policy is disabled in the values.yaml file. Set the networkPolicy.enabled to true to enable the use of network policy resource, default ports are provided in the settings, you can define custom rules for the sources of the traffic to the desired ports.
 
+## Pod Priorty
+
+Pods can be assigned priority that reflects the significance of a pod compared to other pods. If a pod cannot be scheduled, the scheduler will attempt to evict lower-priority pods in order to free up resources and allow high-priority pods to be scheduled. Assigning priority to pods is important to make sure high-priority pods are not preempted and get the required resources. It is highly recommended to set a PriorityClass object with the highest possible value for MarkLogic Pods to ensure the availability of the database. 
+For more details on Pod priority and PriorityClass, please refer [https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/)
+
+To assign priority for pods, use the following the steps:
+
+1. Add a PriorityClass. Following is an example of PriorityClass with a value of 1 million for MarkLogic pods:
+```
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000
+globalDefault: false
+description: "This high priority class should be used for MarkLogic pods only."
+```
+
+2. Set priorityClassName in the values.yaml file or using the --set flag while installing the chart. The value of priorityClassName should be set to one of the added PriorityClassName.
+
+
 ## Notice
 
 To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie-based session affinity. This function will be supported in a future release.
@@ -494,6 +515,7 @@ This table describes the list of available parameters for Helm Chart.
 | `networkPolicy.enabled`      | Enable this parameter to enable network policy             | `false`                               |
 | `networkPolicy.customRules`      | Placeholder to specify selectors              | `{}`                               |
 | `networkPolicy.ports`      | Ports to which traffic is allowed              | `[8000, 8001, 8002]`                               |
+| `priorityClassName`      | Name of a PriortyClass defined to set pod priority        | `""`                               |
 
 # Known Issues and Limitations
 
