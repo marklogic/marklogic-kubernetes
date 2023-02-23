@@ -3,6 +3,10 @@
 # Number of Marklogic nodes
 replicaCount: 1
 
+# update strategy for MarkLogic and Helm chart upgrades
+updateStrategy:  
+    type: RollingUpdate
+
 # Termination Grace Period
 terminationGracePeriod: 120
 
