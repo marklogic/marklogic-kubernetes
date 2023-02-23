@@ -270,9 +270,6 @@ spec:
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8}}
       {{- end }}
-      dnsConfig:
-        searches:
-          - {{ include "marklogic.headlessURL" . }}
       {{- if .Values.imagePullSecret }}
       imagePullSecrets:
         - name: {{ include "marklogic.fullname" . }}-registry
