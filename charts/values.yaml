@@ -5,7 +5,7 @@ replicaCount: 1
 
 # update strategy for MarkLogic and Helm chart upgrades
 updateStrategy:  
-    type: RollingUpdate
+    type: OnDelete
 
 # Termination Grace Period
 terminationGracePeriod: 120
