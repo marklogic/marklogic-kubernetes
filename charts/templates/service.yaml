@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Values.namespace}}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
+  annotations:
+{{- range $key, $value := .Values.service.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
 spec:
   selector:
     {{- include "marklogic.selectorLabels" . | nindent 4 }}
