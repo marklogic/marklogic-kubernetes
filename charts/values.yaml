@@ -50,7 +50,7 @@ fullnameOverride: ""
 
 # Configure Marklogic Admin Username and Password
 auth:
-  adminUsername: admin
+  adminUsername: ""
   adminPassword: ""
 
 # Configure Affinity property for scheduling pods to nodes
@@ -78,19 +78,37 @@ persistence:
 extraVolumes: []
 # specify extra list of volumeMounts
 extraVolumeMounts: []
-# specify extra list of containerPorts
-extraContainerPorts: []
+
+## Container listener port configuration
+## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
+## Warning: Changing port on an existing cluster will lead to pod rolling update.
+## @param additionalContainerPorts. Additional container port 
+## Example:
+## - name: app1
+##   containerPorts: 8010
+##   protocol: TCP
+additionalContainerPorts: []
+
 
 # Configure the Service to access Marklogic Clusters
 service:
   type: ClusterIP
-  ports:
-    - protocol: TCP
-      name: query-console
-      port: 8000
-    - protocol: TCP
-      name: manage
-      port: 8002
+  ## Service listener port configuration
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
+  ## @param service.additionalPorts. Additional service port 
+  ## Example:
+  ## - name: app1
+  ##   port: 8010 
+  ##   targetPort: 8010
+  ##   protocol: TCP
+  additionalPorts:
+    - name: app1
+      port: 8010 
+      targetPort: 8010
+      protocol: TCP
+  # Annotations to add to the service
+  annotations: {}
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -104,14 +122,24 @@ serviceAccount:
 # ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
 networkPolicy:
   enabled: false
+  ## @param networkPolicy.customRules. Additional NetworkPolicy rules
+  ## Note that all rules are OR-ed.
+  ## Example:
+  ## customRules:
+  ##   - matchLabels:
+  ##       - role: frontend
+  ##   - matchExpressions:
+  ##       - key: role
+  ##         operator: In
+  ##         values:
+  ##           - frontend
+  ##
   customRules: {}
+  ## The endPort should be the last port exposed by an App Server
   ports:
     - port: 8000
       protocol: TCP
-    - port: 8001
-      protocol: TCP
-    - port: 8002
-      protocol: TCP
+    - endPort: 8020
     
 # Below are the security configurations for container, by default security will be enabled
 containerSecurityContext:

@@ -114,20 +114,26 @@ spec:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
           ports:
-            - containerPort: 7997
-              name: health-check
-            - containerPort: 7998
-              name: cluster-port
-            - containerPort: 7999
-              name: cluster-port2
-            - containerPort: 8000
-              name: app-services
-            - containerPort: 8001
-              name: admin
-            - containerPort: 8002
-              name: manage
-            {{- if .Values.extraContainerPorts }}
-              {{- toYaml .Values.extraContainerPorts | nindent 12 }}
+            - name: health-check
+              containerPort: 7997
+              protocol: TCP
+            - name: xdqp-port1
+              containerPort: 7998
+              protocol: TCP
+            - name: xdqp-port2
+              containerPort: 7999              
+              protocol: TCP
+            - name: app-services
+              containerPort: 8000
+              protocol: TCP
+            - name: admin
+              containerPort: 8001
+              protocol: TCP
+            - name: manage
+              containerPort: 8002
+              protocol: TCP
+            {{- if .Values.additionalContainerPorts }}
+              {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
             {{- if eq .Values.bootstrapHostName "" }}
