@@ -101,11 +101,7 @@ service:
   ##   port: 8010 
   ##   targetPort: 8010
   ##   protocol: TCP
-  additionalPorts:
-    - name: app1
-      port: 8010 
-      targetPort: 8010
-      protocol: TCP
+  additionalPorts: []
   # Annotations to add to the service
   annotations: {}
 
@@ -121,7 +117,7 @@ serviceAccount:
 # Configure options for network policy
 # ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
 networkPolicy:
-  enabled: false
+  enabled: true
   ## @param networkPolicy.customRules. Additional NetworkPolicy rules
   ## Note that all rules are OR-ed.
   ## Example:
@@ -138,8 +134,8 @@ networkPolicy:
   ## The endPort should be the last port exposed by an App Server
   ports:
     - port: 8000
+      endPort: 8020
       protocol: TCP
-    - endPort: 8020
     
 # Below are the security configurations for container, by default security will be enabled
 containerSecurityContext:
