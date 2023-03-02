@@ -4,7 +4,7 @@
 replicaCount: 1
 
 # update strategy for MarkLogic and Helm chart upgrades
-# It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster.
+# It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
 # and onDelete allows more control over the upgrade and recovery incase of failure.
 updateStrategy:  
     type: OnDelete
@@ -25,7 +25,7 @@ bootstrapHostName: ""
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: latest-10.0
+  tag: latest
   pullPolicy: IfNotPresent
 
 # Init container image parameters
@@ -57,7 +57,7 @@ fullnameOverride: ""
 # Configure Marklogic Admin Username and Password
 auth:
   adminUsername: admin
-  adminPassword: admin
+  adminPassword: ""
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
@@ -72,7 +72,7 @@ nodeSelector: {}
 # The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
 # If set the enabled to false, it will use EmptyDir volume
 persistence:
-  enabled: false
+  enabled: true
   storageClass: ""
   size: 10Gi
   annotations: {}

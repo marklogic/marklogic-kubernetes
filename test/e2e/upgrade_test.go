@@ -161,7 +161,7 @@ func TestMLupgrade(t *testing.T) {
 	t.Logf("====Upgrading Helm Chart")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
-	// delete pods to allow upgrades 
+	// delete pods to allow upgrades
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podName)
 
 	// wait until pod is in Ready status with new configuration
