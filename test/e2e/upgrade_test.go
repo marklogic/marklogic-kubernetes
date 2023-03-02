@@ -126,6 +126,7 @@ func TestMLupgrade(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled": "false",
 			"replicaCount":        "1",
+			"updateStrategy.type": "OnDelete",
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest-10.0",
 			"auth.adminUsername":  username,
@@ -160,10 +161,10 @@ func TestMLupgrade(t *testing.T) {
 	t.Logf("====Upgrading Helm Chart")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
-	// Give time to change status of pod from running to terminate during upgrade
-	time.Sleep(10 * time.Second)
+	// delete pods to allow upgrades 
+	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podName)
 
-	// wait until second pod is in Ready status
+	// wait until pod is in Ready status with new configuration
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
 
 	tunnel := k8s.NewTunnel(
