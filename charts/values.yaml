@@ -50,7 +50,7 @@ fullnameOverride: ""
 
 # Configure Marklogic Admin Username and Password
 auth:
-  adminUsername: ""
+  adminUsername: "admin"
   adminPassword: ""
 
 # Configure Affinity property for scheduling pods to nodes
