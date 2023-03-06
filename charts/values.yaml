@@ -25,7 +25,7 @@ bootstrapHostName: ""
 # Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: latest
+  tag: 10.0-9.5-centos-1.0.0
   pullPolicy: IfNotPresent
 
 # Init container image parameters
@@ -61,7 +61,19 @@ auth:
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-affinity: {}
+# Preferred anti affinity rule to schedule one marklogic pod per worker node
+affinity: 
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - marklogic
+        topologyKey: kubernetes.io/hostname
 
 # Configure NodeSelector property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
