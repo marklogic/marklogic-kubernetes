@@ -33,7 +33,8 @@
     - [Forward to Pod](#forward-to-pod)
     - [Forward to Service](#forward-to-service)
   - [Notice](#notice)
-- [Uninstalling the Chart](#uninstalling-thechart)
+- [Upgrades](#upgrades)
+- [Uninstalling the Chart](#uninstalling-the-chart)
 - [Parameters](#parameters)
 - [Known Issues and Limitations](#Known-Issues-and-Limitations)
 
@@ -420,10 +421,71 @@ description: "This high priority class should be used for MarkLogic pods only."
 
 2. Set priorityClassName in the values.yaml file or using the --set flag while installing the chart. The value of priorityClassName should be set to one of the added PriorityClassName.
 
-
 ## Notice
 
 To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie-based session affinity. This function will be supported in a future release.
+
+# Upgrades
+
+Before you begin, following are some recommendations for upgrade procedures:
+* Make sure to have the latest version of Helm installed on your machine.
+* Avoid using --reuse-values option with helm upgrade to ensure the changes in new values.yaml from updated chart is merged into your release.
+* Always use values.yaml file using `-f` option and avoid using --set option while installing and upgrading chart to ensure your release has all new values.
+* The bootstrap host in the MarkLogic statefulset needs to be upgraded before any other node in the cluster as it has the security and schemas database. So, we suggest using OnDelete upgrade strategy instead of RollingUpgrade that starts upgrading pod from the largest ordinal to the smallest. For more information on upgrade strategies, please refer https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+* It's important to have database backup for recovery in case of upgrade failure. Please refer https://docs.marklogic.com/guide/admin/backup_restore for detailed procedure on backing up and restoring a database.
+
+## Upgrading to the latest MarkLogic Kubernetes Helm Chart Version
+
+The general procedure to upgrade MarkLogic Kubernetes Helm Chart is as follows:
+
+1. Update the chart repository using the below command to get the new version of the chart
+```
+helm repo update
+```
+2. Check the available upgrades of MarkLogic Kuberenetes Helm chart using following command,
+```
+helm search repo <chart-name>
+```
+3. Set the upgrade strategy in values.yaml file to OnDelete. 
+```
+updateStrategy: 
+    type: OnDelete
+```
+4. Update the values.yaml file with new values from the updated chart version.
+5. Run helm upgrade command and specify the name of your release, new chart version using --version option and values.yaml file using `-f` option.
+```
+helm upgrade my-release marklogic/marklogic -f values.yaml --version 2.0.0
+```
+6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. Once the pod is terminated, a new pod will be created with updated helm chart version. 
+7. Repeat termination for all pods in your release and complete the upgrade process.
+
+## Upgrading to the latest MarkLogic Version
+
+Following is the procedure to upgrade MarkLogic version in your release:
+
+1. Update the image.repository and image.tag in the values.yaml file to new version of MarkLogic you want to upgrade to.
+```
+image:
+  repository: marklogicdb/marklogic-db
+  tag: latest-11.0.x
+```
+2. Set the upgrade strategy in values.yaml file to OnDelete. 
+```
+updateStrategy: 
+    type: OnDelete
+```
+3. Upgrade the helm chart using helm upgrade command with release name, chart name and values.yaml.
+```
+helm upgrade <release-name> <chart-name> -f <values.yaml> 
+```
+4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. Once the pod is terminated, new pod will be created with updated MarkLogic version and any new values updated in the values.yaml file.
+
+5. Repeat the termination for all pods in your release to complete the upgrade.
+
+6. After all pods are upgraded, access the Admin Interface on bootstrap host to check there is configuration and/or security database upgrade and/or effective version change. If yes, Admin Interface will prompt you to click OK to upgrade otherwise you are done.
+7. Verify the upgrade, check the version of MarkLogic on Admin console or by accessing server logs or you can run any required tests for your release.
+8. If you've multi group MarkLogic cluster, each release corresponding to a MarkLogic group needs to be upgraded by following above procedure.
+Note: If all the nodes in the groups are not updated to the same MarkLogic version then you will see difference in the version and effective version of the MarkLogic cluster.
 
 # Uninstalling the Chart
 
