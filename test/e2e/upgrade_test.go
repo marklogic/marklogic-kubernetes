@@ -127,8 +127,8 @@ func TestMLupgrade(t *testing.T) {
 			"persistence.enabled": "false",
 			"replicaCount":        "1",
 			"updateStrategy.type": "OnDelete",
-			"image.repository":    "marklogicdb/marklogic-db",
-			"image.tag":           "latest-10.0",
+			"image.repository":    "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos",
+			"image.tag":           "10.0-20230307-centos-1.0.2",
 			"auth.adminUsername":  username,
 			"auth.adminPassword":  password,
 		},
@@ -152,8 +152,8 @@ func TestMLupgrade(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
-			"image.repository":      "marklogicdb/marklogic-db",
-			"image.tag":             "latest-11.0",
+			"image.repository":      "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos",
+			"image.tag":             "11.0.20230307-centos-1.0.2",
 			"logCollection.enabled": "false",
 		},
 	}
