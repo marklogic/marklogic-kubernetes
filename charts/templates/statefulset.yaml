@@ -8,6 +8,8 @@ metadata:
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
   replicas: {{ .Values.replicaCount }}
+  updateStrategy:
+    type: {{ .Values.updateStrategy.type }}
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
