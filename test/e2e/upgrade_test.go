@@ -29,12 +29,12 @@ func TestHelmUpgrade(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "11.0.20230307-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -116,6 +116,23 @@ func TestMLupgrade(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	prevImageTag, prevTagPres := os.LookupEnv("dockerVersion")
+
+	if !repoPres {
+		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+	if !tagPres {
+		imageTag = "11.0.20230307-centos-1.0.2"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+	if !prevTagPres {
+		prevImageTag = "10.0-20230307-centos-1.0.2"
+		t.Logf("No imageTag variable present, setting to default value: " + prevImageTag)
+	}
+
 	username := "admin"
 	password := "admin"
 
@@ -127,8 +144,8 @@ func TestMLupgrade(t *testing.T) {
 			"persistence.enabled": "false",
 			"replicaCount":        "1",
 			"updateStrategy.type": "OnDelete",
-			"image.repository":    "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos",
-			"image.tag":           "10.0-20230307-centos-1.0.2",
+			"image.repository":    imageRepo,
+			"image.tag":           prevImageTag,
 			"auth.adminUsername":  username,
 			"auth.adminPassword":  password,
 		},
@@ -148,12 +165,14 @@ func TestMLupgrade(t *testing.T) {
 	// wait until second pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 20, 20*time.Second)
 
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
+
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
-			"image.repository":      "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos",
-			"image.tag":             "11.0.20230307-centos-1.0.2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
 		},
 	}
@@ -189,6 +208,6 @@ func TestMLupgrade(t *testing.T) {
 	mlVersion := gjson.Get(string(body), `local-cluster-default.version`)
 
 	// verify latest MarkLogic version after upgrade
-	assert.Equal(t, mlVersion.Str, "11.0.0")
+	assert.Equal(t, mlVersion.Str, imageTag)
 
 }
