@@ -206,8 +206,7 @@ func TestMLupgrade(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	mlVersion := gjson.Get(string(body), `local-cluster-default.version`)
-
+	expectedMlVersion := strings.Split(imageTag, "-centos")[0]
 	// verify latest MarkLogic version after upgrade
-	assert.Equal(t, mlVersion.Str, imageTag)
-
+	assert.Equal(t, mlVersion.Str, expectedMlVersion)
 }
