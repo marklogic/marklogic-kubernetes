@@ -171,8 +171,9 @@ pipeline {
         dockerRegistry = 'ml-docker-dev.marklogic.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
         dockerVerDivider = getVersionDiv(params.ML_VERSION)
+        prevDockerVerDivider = getVersionDiv(params.PREV_ML_VERSION)
         dockerVersion = "${ML_VERSION}${dockerVerDivider}${timeStamp}-centos-${dockerReleaseVer}"
-        prevDockerVersion = "${PREV_ML_VERSION}${dockerVerDivider}${timeStamp}-centos-${prevDockerReleaseVer}"
+        prevDockerVersion = "${PREV_ML_VERSION}${prevDockerVerDivider}${timeStamp}-centos-${prevDockerReleaseVer}"
     }
 
     parameters {
