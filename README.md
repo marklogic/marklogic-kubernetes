@@ -427,6 +427,8 @@ To use transactional functionality with MarkLogic, you have to set up Ingress an
 
 # Upgrades
 
+MarkLogic Kubernetes Helm chart will be released in MAJOR, MINOR or PATCH form. Major releases may include breaking changes and new features that require configuration changes in values.yaml file. So it's always recommended to go through the changes in the release and test the upgrade on a non production environment. Minor and Patch release will inlude bug fixes and non-breaking changes. 
+
 Before you begin, following are some recommendations for upgrade procedures:
 * Make sure to have the latest version of Helm installed on your machine.
 * Avoid using --reuse-values option with helm upgrade to ensure the changes in new values.yaml from updated chart is merged into your release.
@@ -434,9 +436,14 @@ Before you begin, following are some recommendations for upgrade procedures:
 * The bootstrap host in the MarkLogic statefulset needs to be upgraded before any other node in the cluster as it has the security and schemas database. So, we suggest using OnDelete upgrade strategy instead of RollingUpgrade that starts upgrading pod from the largest ordinal to the smallest. For more information on upgrade strategies, please refer https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
 * It's important to have database backup for recovery in case of upgrade failure. Please refer https://docs.marklogic.com/guide/admin/backup_restore for detailed procedure on backing up and restoring a database.
 
-## Upgrading to the latest MarkLogic Kubernetes Helm Chart Version
+This section describes three upgrade procedures:
+1. [Upgrading MarkLogic Kubernetes Helm Chart version](#upgrading-markLogic-version-in-your-release)
+2. [Upgrading MarkLogic version in your release](#upgrading-markLogic-version-in-your-release)
+3. [Upgrading MarkLogic version and MarkLogic Kubernetes Helm Chart version at once](#upgrading-markLogic-version-and-markLogic-kubernetes-helm-chart-version-at-once)
 
-The general procedure to upgrade MarkLogic Kubernetes Helm Chart is as follows:
+## Upgrading MarkLogic Kubernetes Helm Chart Version
+
+This upgrade is required whenever there is a requirement at your end or when MarkLogic Kubernetes Helm Chart releases a new version with new features or bug fixes. The general procedure to upgrade MarkLogic Kubernetes Helm Chart is as follows:
 
 1. Update the chart repository using the below command to get the new version of the chart
 ```
@@ -459,7 +466,9 @@ helm upgrade my-release marklogic/marklogic -f values.yaml --version 2.0.0
 6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. Once the pod is terminated, a new pod will be created with updated helm chart version. 
 7. Repeat termination for all pods in your release and complete the upgrade process.
 
-## Upgrading to the latest MarkLogic Version
+## Upgrading MarkLogic Version in your release
+
+MarkLogic release is independent of MarkLogic Kubernetes Helm Chart release. This upgrade may be required when there is a new MarkLogic version available. Note MarkLogic is also released in Major, Minor or Patch form, pleasr refer [MarkLogic Upgrade Support](https://docs.marklogic.com/11.0/guide/release-notes/en/installation-and-upgrade.html#UUID-ae8580bb-c23d-dda7-593c-0610a633c771_section-idm203341859110072)
 
 Following is the procedure to upgrade MarkLogic version in your release:
 
@@ -486,6 +495,16 @@ helm upgrade <release-name> <chart-name> -f <values.yaml>
 7. Verify the upgrade, check the version of MarkLogic on Admin console or by accessing server logs or you can run any required tests for your release.
 8. If you've multi group MarkLogic cluster, each release corresponding to a MarkLogic group needs to be upgraded by following above procedure.
 Note: If all the nodes in the groups are not updated to the same MarkLogic version then you will see difference in the version and effective version of the MarkLogic cluster.
+
+## Upgrading MarkLogic version and MarkLogic Kubernetes Helm Chart version at once
+
+1. If there is a requirement to upgrade MarkLogic version and MarkLogic Kubernetes Helm Chart version both at once, we recommend following upgrade Steps 1 to 5 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release) and Steps 1 to 3 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release).
+
+2. Once the `helm upgrade` command is executed for both, initiate terminating pods. As recommended, delete the pod-0 i.e. running MarkLogic Bootstrap host first followed by other pods. 
+
+3. You can monitor the pod status by running `kubectl get pods --nampespace=<your-namespace> -w`
+
+4. As soon as all pods are back in running status, Verify the upgrade by checking version or running required tests.
 
 # Uninstalling the Chart
 
