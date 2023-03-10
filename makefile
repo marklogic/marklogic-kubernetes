@@ -1,5 +1,5 @@
-dockerImage?=marklogic-centos/marklogic-server-centos:10-internal
-
+dockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:11.0.20230307-centos-1.0.2
+prevDockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:10.0-20230307-centos-1.0.2
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
@@ -80,6 +80,7 @@ lint:
 ## Run all end to end tests
 ## Options:
 ## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [prevDockerImage] optional. used for marklogic upgrade tests 
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: e2e-test
  e2e-test: prepare
@@ -91,6 +92,9 @@ lint:
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
+
+	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
+	minikube image load $(prevDockerImage)
 
 	@echo "=====Running e2e tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 30m, go test -v -count=1 -timeout 30m ./test/e2e/...) 
