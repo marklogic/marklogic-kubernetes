@@ -3,6 +3,12 @@
 # Number of Marklogic nodes
 replicaCount: 1
 
+# update strategy for MarkLogic and Helm chart upgrades
+# It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
+# and OnDelete allows more control over the upgrade and recovery in case of failure.
+updateStrategy:  
+    type: OnDelete
+
 # Termination Grace Period
 terminationGracePeriod: 120
 
@@ -100,6 +106,9 @@ service:
     - protocol: TCP
       name: query-console
       port: 8000
+    - protocol: TCP
+      name: admin
+      port: 8001
     - protocol: TCP
       name: manage
       port: 8002
