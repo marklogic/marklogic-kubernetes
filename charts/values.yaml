@@ -117,7 +117,7 @@ serviceAccount:
 # Configure options for network policy
 # ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
 networkPolicy:
-  enabled: true
+  enabled: false
   ## @param networkPolicy.customRules. Additional NetworkPolicy rules
   ## Note that all rules are OR-ed.
   ## Example:
