@@ -40,6 +40,9 @@ func TestMlAdminSecrets(t *testing.T) {
 			"replicaCount":        "1",
 			"image.repository":    imageRepo,
 			"image.tag":           imageTag,
+			"auth.adminUsername":  "admin",
+			"auth.adminPassword":  "admin",
+			"auth.walletPassword": "admin",
 		},
 	}
 
@@ -61,6 +64,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	pod := k8s.GetPod(t, kubectlOptions, podName)
 
 	// get pod logs to verify wallet password is set as docker secret
+	t.Logf("====Getting pod logs")
 	podLogs := k8s.GetPodLogs(t, kubectlOptions, pod, "")
 
 	// verify logs if wallet password is set as secret
