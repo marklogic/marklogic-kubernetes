@@ -54,7 +54,7 @@ data:
       timeout resolve 5s
 
     {{- range $_, $v := .Values.haproxy.ports }}
-    {{ $portNumber := printf "%v" $v.port }}
+    {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
     {{ $portType := upper (printf "%s" $v.type) }}
     
 

@@ -55,6 +55,8 @@ spec:
   - name: {{ $v.name }}
     protocol: TCP
     port: {{ $v.port }}
-    targetPort: {{ $v.port }}
+    {{- if $v.targetPort }}
+    targetPort: {{ $v.targetPort }}
+    {{- end }}
   {{- end }}
   {{- end }}

@@ -324,15 +324,18 @@ haproxy:
     - name: app-service
       type: HTTP
       port: 8000
+      targetPort: 8000
     - name: admin
       type: HTTP
       port: 8001
+      targetPort: 8001
     - name: manage
       type: HTTP
       port: 8002
-    - name: odbc
-      type: TCP
-      port: 5432
+      targetPort: 8002
+    # - name: odbc
+    #   type: TCP
+    #   port: 5432
 
   ## Pod Node assignment
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
