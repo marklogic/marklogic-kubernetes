@@ -307,6 +307,15 @@ haproxy:
   restartWhenUpgrade:
     enabled: true
 
+  # Statistic page for HAproxy
+  stats:
+    enabled: false
+    port: 1024
+    auth:
+      enabled: false
+      username: ''
+      password: ''
+
   service:
     ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
     ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
@@ -314,13 +323,9 @@ haproxy:
 
   ## ports and load balancing type configuration for HAproxy
   ## There are three types of backends supported:
-  ## 1. STAT: open the port for HAproxy builtin staticstic page.
-  ## 2. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
-  ## 3. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
+  ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
+  ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
   ports:
-    - name: stat
-      type: STAT
-      port: 1024
     - name: app-service
       type: HTTP
       port: 8000

@@ -40,6 +40,15 @@ image:
 ## when exising configmap is provided, the config will be overrided.
 existingConfigmap: ""
 
+# Statistic page for HAProxy
+stats:
+  enabled: false
+  port: 1024
+  auth:
+    enabled: false
+    username: ''
+    password: ''
+
 ## open the port for LB and service
 ports: []
 

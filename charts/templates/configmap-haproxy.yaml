@@ -53,22 +53,25 @@ data:
       # How long to wait for a successful resolution
       timeout resolve 5s
 
+    {{- if .Values.haproxy.stats.enabled }}
+    frontend stats
+      mode http
+      bind *:{{ .Values.haproxy.stats.port }}
+      stats enable
+      http-request use-service prometheus-exporter if { path /metrics }
+      stats uri /
+      {{- if .Values.haproxy.stats.auth.enabled }}
+      stats auth {{ .Values.haproxy.stats.auth.username }}:{{ .Values.haproxy.stats.auth.password }}
+      {{- end }}
+      stats refresh 10s
+      stats admin if LOCALHOST
+    {{- end }}
+
     {{- range $_, $v := .Values.haproxy.ports }}
     {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
     {{ $portType := upper (printf "%s" $v.type) }}
-    
 
-    {{- if eq $portType "STAT" }}
-      frontend stats
-        mode http
-        bind *:{{ $portNumber }}
-        stats enable
-        http-request use-service prometheus-exporter if { path /metrics }
-        stats uri /
-        stats refresh 10s
-        stats admin if LOCALHOST
-
-    {{- else if eq $portType "TCP"  -}}
+    {{- if eq $portType "TCP"  -}}
       listen odbc
         bind :{{ $portNumber }}
         mode tcp
