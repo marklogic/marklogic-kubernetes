@@ -29,6 +29,7 @@
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
     - [Using the Service DNS Record to Access MarkLogic](#using-the-service-dns-record-to-access-marklogic)
+    - [Additional Ports](#additional-ports)
   - [Port Forward](#port-forward)
     - [Forward to Pod](#forward-to-pod)
     - [Forward to Service](#forward-to-service)
@@ -497,9 +498,10 @@ This table describes the list of available parameters for Helm Chart.
 | `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
 | `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
 | `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
-| `extraVolumes`                       | Extra list of additional volumes for MarkLogic statefulset                                                     | `[]`                                 |
-| `extraVolumeMounts`                  | Extra list of additional volumeMounts for MarkLogic container                                                  | `[]`                                 |
 | `additionalContainerPorts`                | List of ports in addition to the defaults exposed at the container level (Note: This does not typically need to be updated. Use `service.additionalPorts` to expose app server ports.)                                                | `[]`                                 |
+| `persistence.mountPath`              | The path for the mounted persistence data volume                                                               | `/var/opt/MarkLogic`                 |
+| `additionalVolumes`                  | Additional list of additional volumes for MarkLogic statefulset                                                | `[]`                                 |
+| `AdditionalVolumeMounts`             | Additional list of additional volumeMounts for MarkLogic container                                             | `[]`                                 |
 | `service.type`                       | type of the default service                                                                                    | `ClusterIP`                          |
 | `service.additionalPorts`                      | List of ports in addition to the defaults exposed at the service level.                                                                                    | `[]`                       |
 | `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                          | `true`                               |

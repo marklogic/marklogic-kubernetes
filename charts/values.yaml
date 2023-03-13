@@ -103,11 +103,11 @@ additionalVolumeClaimTemplates: []
 #       requests:
 #         storage: 10Gi
 
-## specify extra list of volumes
-extraVolumes: []
+## specify additional list of volumes
+additionalVolumes: []
 
-## specify extra list of volumeMounts
-extraVolumeMounts: []
+## specify additional list of volumeMounts
+additionalVolumeMounts: []
 # - name: "logsdir"
 #   mountPath: "/var/opt/MarkLogic/Logs"
 
