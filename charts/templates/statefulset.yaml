@@ -113,7 +113,7 @@ spec:
                     key: password
             {{- if .Values.auth.walletPassword }}
             - name: MARKLOGIC_WALLET_PASSWORD_FILE
-              value: /ml-secrets/wallet-password
+              value: ml-secrets/wallet-password
             {{- end }}
             - name: POD_NAME
               valueFrom:
