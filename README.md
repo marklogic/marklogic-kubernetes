@@ -465,7 +465,7 @@ helm upgrade my-release marklogic/marklogic -f values.yaml --version 2.0.0
 ```
 6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. 
 ```
-kubectl delete dnode-group-marklogic-0
+kubectl delete pod dnode-group-marklogic-0
 ```
 
 Once the pod is terminated, a new pod will be created with updated helm chart version. 
@@ -494,7 +494,7 @@ helm upgrade <release-name> <chart-name> -f <values.yaml>
 ```
 4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. 
 ```
-kubectl delete dnode-group-marklogic-0
+kubectl delete pod dnode-group-marklogic-0
 ```
 Once the pod is terminated, new pod will be created with updated MarkLogic version and any new values updated in the values.yaml file.
 
@@ -511,7 +511,7 @@ Note: If all the nodes in the groups are not updated to the same MarkLogic versi
 
 2. Once the `helm upgrade` command is executed for both, initiate terminating pods. As recommended, delete the pod-0 i.e. running MarkLogic Bootstrap host first followed by other pods. 
 ```
-kubectl delete dnode-group-marklogic-0
+kubectl delete pod dnode-group-marklogic-0
 ```
 
 3. You can monitor the pod status by running `kubectl get pods --nampespace=<your-namespace> -w`
