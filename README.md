@@ -463,7 +463,12 @@ updateStrategy:
 ```
 helm upgrade my-release marklogic/marklogic -f values.yaml --version 2.0.0
 ```
-6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. Once the pod is terminated, a new pod will be created with updated helm chart version. 
+6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. 
+```
+kubectl delete dnode-group-marklogic-0
+```
+
+Once the pod is terminated, a new pod will be created with updated helm chart version. 
 7. Repeat termination for all pods in your release and complete the upgrade process.
 
 ## Upgrading MarkLogic Version in your release
@@ -487,7 +492,11 @@ updateStrategy:
 ```
 helm upgrade <release-name> <chart-name> -f <values.yaml> 
 ```
-4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. Once the pod is terminated, new pod will be created with updated MarkLogic version and any new values updated in the values.yaml file.
+4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. 
+```
+kubectl delete dnode-group-marklogic-0
+```
+Once the pod is terminated, new pod will be created with updated MarkLogic version and any new values updated in the values.yaml file.
 
 5. Repeat the termination for all pods in your release to complete the upgrade.
 
@@ -501,6 +510,9 @@ Note: If all the nodes in the groups are not updated to the same MarkLogic versi
 1. If there is a requirement to upgrade MarkLogic version and MarkLogic Kubernetes Helm Chart version both at once, we recommend following upgrade Steps 1 to 5 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release) and Steps 1 to 3 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release).
 
 2. Once the `helm upgrade` command is executed for both, initiate terminating pods. As recommended, delete the pod-0 i.e. running MarkLogic Bootstrap host first followed by other pods. 
+```
+kubectl delete dnode-group-marklogic-0
+```
 
 3. You can monitor the pod status by running `kubectl get pods --nampespace=<your-namespace> -w`
 
