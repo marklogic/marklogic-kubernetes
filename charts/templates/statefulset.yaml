@@ -8,6 +8,8 @@ metadata:
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
   replicas: {{ .Values.replicaCount }}
+  updateStrategy:
+    type: {{ .Values.updateStrategy.type }}
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
@@ -137,11 +139,15 @@ spec:
                   - bash
                   - '-c'
                   - |
-                    pid=$(ps aux | grep -i '/bin/bas[h] /usr' | awk {'print $2'})
+                    pid=$(pgrep start.marklogic)
 
                     log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      echo "${TIMESTAMP}  $@" > /proc/$pid/fd/1
+                      # Check to make sure pod doesn't terminate if PID value is empty for any reason
+                      # If PID value is empty postStart hook logs are not recorded
+                      if [ -n "$pid" ]; then
+                          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+                      fi
                     }
                     log "Info: [poststart] Begin Poststart Hook Execution"
                     if [[ $POD_NAME != *-0 ]]; then
@@ -168,10 +174,14 @@ spec:
                   - |
                     log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+                      # Check to make sure pod doesn't terminate if PID value is empty for any reason
+                      # If PID value is empty preStart hook logs are not recorded
+                      if [ -n "$pid" ]; then
+                          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+                      fi
                     }
 
-                    pid=$(ps aux | grep -i '/bin/bas[h] /usr' | awk {'print $2'})
+                    pid=$(pgrep start.marklogic)
                     log "Info: [prestop] Prestop Hook Execution"
 
                     my_host=$(hostname -f)
