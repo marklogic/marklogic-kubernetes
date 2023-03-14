@@ -105,6 +105,8 @@ additionalVolumeClaimTemplates: []
 
 ## specify additional list of volumes
 additionalVolumes: []
+# - name: additional-vol
+#   emptyDir: {}
 
 ## specify additional list of volumeMounts
 additionalVolumeMounts: []
