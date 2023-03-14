@@ -97,6 +97,9 @@ spec:
             {{- if .Values.extraVolumeMounts }}
               {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
+            - name: mladmin-secrets
+              mountPath: /run/secrets/ml-secrets
+              readOnly: true
           env:
             - name: MARKLOGIC_ADMIN_USERNAME
               valueFrom:
@@ -108,6 +111,10 @@ spec:
                   secretKeyRef:
                     name: {{ include "marklogic.fullname" . }}-admin
                     key: password
+            {{- if .Values.auth.walletPassword }}
+            - name: MARKLOGIC_WALLET_PASSWORD_FILE
+              value: ml-secrets/wallet-password
+            {{- end }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -285,6 +292,14 @@ spec:
         - name: {{ include "marklogic.fullname" . }}-registry
       {{- end }}
       volumes:
+        - name: mladmin-secrets
+          secret:
+            secretName: {{ include "marklogic.fullname" . }}-admin
+            items:
+              {{- if .Values.auth.walletPassword }}
+              - key: wallet-password
+                path: wallet-password
+              {{- end }}
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:

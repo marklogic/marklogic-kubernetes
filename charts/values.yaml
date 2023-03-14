@@ -58,6 +58,7 @@ fullnameOverride: ""
 auth:
   adminUsername: admin
   adminPassword: ""
+  walletPassword: ""
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity

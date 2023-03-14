@@ -464,7 +464,8 @@ This table describes the list of available parameters for Helm Chart.
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`     
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | ``    
+| `auth.walletPassword`                 | Password for wallet                                                                    | `` 
 | `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
 | `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
 | `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
