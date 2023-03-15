@@ -119,6 +119,12 @@ spec:
               valueFrom:
                 fieldRef:
                     fieldPath: metadata.name
+            - name: INSTALL_CONVERTERS
+              value: {{ quote .Values.installConverters }}
+            - name: LICENSE_KEY
+              value: {{ quote .Values.licenseKey }}
+            - name: LICENSEE
+              value: {{ quote .Values.licensee }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}

@@ -60,6 +60,13 @@ auth:
   adminPassword: ""
   walletPassword: ""
 
+# Optionally install converters package on MarkLogic
+installConverters: false
+
+# Supply license information for MarkLogic server
+licenseKey: ""
+licensee: ""
+
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
 # Preferred anti affinity rule to schedule one marklogic pod per worker node
