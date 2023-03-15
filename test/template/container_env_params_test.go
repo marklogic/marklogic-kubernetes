@@ -29,10 +29,10 @@ func TestChartTemplateInstallConvertersEnabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
-			"image.tag":                        "latest",
-			"persistence.enabled":              "false",
-			"installConverters":                "true",
+			"image.repository":    "marklogicdb/marklogic-db",
+			"image.tag":           "latest",
+			"persistence.enabled": "false",
+			"installConverters":   "true",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -68,10 +68,10 @@ func TestChartTemplateInstallConvertersDisabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
-			"image.tag":                        "latest",
-			"persistence.enabled":              "false",
-			"installConverters":                "false",
+			"image.repository":    "marklogicdb/marklogic-db",
+			"image.tag":           "latest",
+			"persistence.enabled": "false",
+			"installConverters":   "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -108,11 +108,11 @@ func TestChartTemplateLicenseValues(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
-			"image.tag":                        "latest",
-			"persistence.enabled":              "false",
-			"licenseKey":                       "Test License Key",
-			"licensee":                         "Test Licensee",
+			"image.repository":    "marklogicdb/marklogic-db",
+			"image.tag":           "latest",
+			"persistence.enabled": "false",
+			"licenseKey":          "Test License Key",
+			"licensee":            "Test Licensee",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
