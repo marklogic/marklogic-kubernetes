@@ -17,7 +17,7 @@ import (
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
-func TestInstallConvertersAndLicense(t *testing.T) {
+func TestEnableConvertersAndLicense(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -54,9 +54,9 @@ func TestInstallConvertersAndLicense(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
-			"installConverters":     "true",
-			"licenseKey":            "Test license key",
-			"licensee":              "Test licensee",
+			"enableConverters":      "true",
+			"license.key":           "Test license key",
+			"license.licensee":      "Test licensee",
 		},
 	}
 

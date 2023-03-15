@@ -13,7 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 )
 
-func TestChartTemplateInstallConvertersEnabled(t *testing.T) {
+func TestChartTemplateEnableConvertersEnabled(t *testing.T) {
 	t.Parallel()
 
 	// Path to the helm chart we will test
@@ -32,7 +32,7 @@ func TestChartTemplateInstallConvertersEnabled(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"installConverters":   "true",
+			"enableConverters":    "true",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -46,13 +46,13 @@ func TestChartTemplateInstallConvertersEnabled(t *testing.T) {
 	// Verify the name and namespace matches
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
-	// Verify the value of installConverters parameter
-	expectedInstallConverters := "true"
-	actualInstallConverters := statefulset.Spec.Template.Spec.Containers[0].Env[3].Value
-	require.Equal(t, expectedInstallConverters, actualInstallConverters)
+	// Verify the value of enableConverters parameter
+	expectedEnableConverters := "true"
+	actualEnableConverters := statefulset.Spec.Template.Spec.Containers[0].Env[3].Value
+	require.Equal(t, expectedEnableConverters, actualEnableConverters)
 }
 
-func TestChartTemplateInstallConvertersDisabled(t *testing.T) {
+func TestChartTemplateEnableConvertersDisabled(t *testing.T) {
 	t.Parallel()
 
 	// Path to the helm chart we will test
@@ -71,7 +71,7 @@ func TestChartTemplateInstallConvertersDisabled(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"installConverters":   "false",
+			"enableConverters":    "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -85,10 +85,10 @@ func TestChartTemplateInstallConvertersDisabled(t *testing.T) {
 	// Verify the name and namespace matches
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
-	// Verify the value of installConverters parameter
-	expectedInstallConverters := "false"
-	actualInstallConverters := statefulset.Spec.Template.Spec.Containers[0].Env[3].Value
-	require.Equal(t, actualInstallConverters, expectedInstallConverters)
+	// Verify the value of enableConverters parameter
+	expectedEnableConverters := "false"
+	actualEnableConverters := statefulset.Spec.Template.Spec.Containers[0].Env[3].Value
+	require.Equal(t, actualEnableConverters, expectedEnableConverters)
 
 }
 
@@ -111,8 +111,8 @@ func TestChartTemplateLicenseValues(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"licenseKey":          "Test License Key",
-			"licensee":            "Test Licensee",
+			"license.key":         "Test License Key",
+			"license.licensee":    "Test Licensee",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
