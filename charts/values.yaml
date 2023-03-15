@@ -158,8 +158,6 @@ service:
   ##   targetPort: 8010
   ##   protocol: TCP
   additionalPorts: []
-  # Annotations to add to the service
-  annotations: {}
 
 serviceAccount:
   # Specifies whether a service account should be created
