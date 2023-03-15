@@ -451,9 +451,9 @@ helm repo update
 ```
 2. Check the available upgrades of MarkLogic Kuberenetes Helm chart using following command,
 ```
-helm search repo <chart-name>
+helm search repo marklogic/marklogic
 ```
-3. Set the upgrade strategy in values.yaml file to OnDelete. 
+3. Make sure the upgrade strategy in values.yaml file is set to OnDelete. 
 ```
 updateStrategy: 
     type: OnDelete
@@ -461,11 +461,12 @@ updateStrategy:
 4. Update the values.yaml file with new values from the updated chart version.
 5. Run helm upgrade command and specify the name of your release, new chart version using --version option and values.yaml file using `-f` option.
 ```
-helm upgrade my-release marklogic/marklogic -f values.yaml --version 2.0.0
+helm upgrade <your-release> marklogic/marklogic -f values.yaml --version <new version>
 ```
 6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. 
 ```
-kubectl delete pod dnode-group-marklogic-0
+kubectl delete pod <pod-name>
+e.g: kubectl delete pod dnode-group-marklogic-0
 ```
 
 Once the pod is terminated, a new pod will be created with updated helm chart version. 
@@ -481,9 +482,9 @@ Following is the procedure to upgrade MarkLogic version in your release:
 ```
 image:
   repository: marklogicdb/marklogic-db
-  tag: latest-11.0.x
+  tag: <new tag>
 ```
-2. Set the upgrade strategy in values.yaml file to OnDelete. 
+2. Make sure the upgrade strategy in values.yaml file is set to OnDelete. 
 ```
 updateStrategy: 
     type: OnDelete
@@ -494,7 +495,8 @@ helm upgrade <release-name> <chart-name> -f <values.yaml>
 ```
 4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. 
 ```
-kubectl delete pod dnode-group-marklogic-0
+kubectl delete pod <pod-name>
+e.g: kubectl delete pod dnode-group-marklogic-0
 ```
 Once the pod is terminated, new pod will be created with updated MarkLogic version and any new values updated in the values.yaml file.
 
@@ -502,7 +504,7 @@ Once the pod is terminated, new pod will be created with updated MarkLogic versi
 
 6. After all pods are upgraded, access the Admin Interface on bootstrap host to check there is configuration and/or security database upgrade and/or effective version change. If yes, Admin Interface will prompt you to click OK to upgrade otherwise you are done.
 7. Verify the upgrade, check the version of MarkLogic on Admin console or by accessing server logs or you can run any required tests for your release.
-8. If you've multi group MarkLogic cluster, each release corresponding to a MarkLogic group needs to be upgraded by following above procedure.
+8. If upgrading a multi-group MarkLogic cluster, each release corresponding to a MarkLogic group needs to be upgraded by following above procedure.
 Note: If all the nodes in the groups are not updated to the same MarkLogic version then you will see difference in the version and effective version of the MarkLogic cluster.
 
 ## Upgrading MarkLogic version and MarkLogic Kubernetes Helm Chart version at once
@@ -511,9 +513,9 @@ Note: If all the nodes in the groups are not updated to the same MarkLogic versi
 
 2. Once the `helm upgrade` command is executed for both, initiate terminating pods. As recommended, delete the pod-0 i.e. running MarkLogic Bootstrap host first followed by other pods. 
 ```
-kubectl delete pod dnode-group-marklogic-0
+kubectl delete pod <pod-name>
+e.g: kubectl delete pod dnode-group-marklogic-0
 ```
-
 3. You can monitor the pod status by running `kubectl get pods --nampespace=<your-namespace> -w`
 
 4. As soon as all pods are back in running status, Verify the upgrade by checking version or running required tests.
