@@ -39,7 +39,7 @@ data:
       {{- if .Values.logCollection.files.errorLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/*ErrorLog.txt
+        Path /var/opt/MarkLogic/Logs/*ErrorLog.txt
         Read_from_head true
         Tag kube.marklogic.logs.error
         Path_Key path
@@ -50,7 +50,7 @@ data:
       {{- if .Values.logCollection.files.accessLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/*AccessLog.txt
+        Path /var/opt/MarkLogic/Logs/*AccessLog.txt
         Read_from_head true
         tag kube.marklogic.logs.access
         Path_Key path
@@ -61,7 +61,7 @@ data:
       {{- if .Values.logCollection.files.requestLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/*RequestLog.txt
+        Path /var/opt/MarkLogic/Logs/*RequestLog.txt
         Read_from_head true
         tag kube.marklogic.logs.request
         Path_Key path
@@ -72,7 +72,7 @@ data:
       {{- if .Values.logCollection.files.crashLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/CrashLog.txt
+        Path /var/opt/MarkLogic/Logs/CrashLog.txt
         Read_from_head true
         tag kube.marklogic.logs.crash
         Path_Key path
@@ -82,7 +82,7 @@ data:
       {{- if .Values.logCollection.files.auditLogs }}
       [INPUT]
         Name tail
-        Path {{ .Values.persistence.mountPath }}/Logs/AuditLog.txt
+        Path /var/opt/MarkLogic/Logs/AuditLog.txt
         Read_from_head true
         tag kube.marklogic.logs.audit
         Path_Key path

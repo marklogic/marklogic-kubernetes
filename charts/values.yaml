@@ -91,7 +91,6 @@ persistence:
   annotations: {}
   accessModes:
     - ReadWriteOnce
-  mountPath: /var/opt/MarkLogic
 
 # specify extra list of volumes
 extraVolumes: []
