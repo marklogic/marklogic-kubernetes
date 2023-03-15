@@ -64,8 +64,9 @@ auth:
 installConverters: false
 
 # Supply license information for MarkLogic server
-licenseKey: ""
-licensee: ""
+license:
+  key: ""
+  licensee: ""
 
 # Configure Affinity property for scheduling pods to nodes
 # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
