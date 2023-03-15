@@ -92,10 +92,26 @@ persistence:
   accessModes:
     - ReadWriteOnce
 
-# specify extra list of volumes
-extraVolumes: []
-# specify extra list of volumeMounts
-extraVolumeMounts: []
+## Specify additional list of persistent volume claims
+additionalVolumeClaimTemplates: []
+# - metadata:
+#     name: "logsdir"
+#   spec:
+#     accessModes:
+#       - ReadWriteOnce
+#     resources:
+#       requests:
+#         storage: 10Gi
+
+## specify additional list of volumes
+additionalVolumes: []
+# - name: additional-vol
+#   emptyDir: {}
+
+## specify additional list of volumeMounts
+additionalVolumeMounts: []
+# - name: "logsdir"
+#   mountPath: "/var/opt/MarkLogic/Logs"
 
 ## Container listener port configuration
 ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
@@ -142,8 +158,6 @@ service:
   ##   targetPort: 8010
   ##   protocol: TCP
   additionalPorts: []
-  # Annotations to add to the service
-  annotations: {}
 
 serviceAccount:
   # Specifies whether a service account should be created
