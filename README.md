@@ -472,6 +472,9 @@ This table describes the list of available parameters for Helm Chart.
 | `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
 | `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
 | `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
+| `licenseKey`                 | 	set MarkLogic license key installed                       | `""`
+| `licensee`                 | set MarkLogic licensee information                       | `""`
+| `installConverters`                 | Installs converters for the client if they are not already installed                       | `false`
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
 | `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
 | `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
