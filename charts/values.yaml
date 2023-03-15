@@ -81,8 +81,18 @@ extraVolumeMounts: []
 
 ## Container listener port configuration
 ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
-## Warning: Changing port on an existing cluster will lead to pod rolling update.
-## @param additionalContainerPorts. Additional container port 
+
+#########################################################################################
+## WARNING: Changing additionalContainerPorts on an existing cluster requires a pod    ##
+## restart to take effect. This setting does not need to be changed under normal       ##
+## circumsatances though. To expose new ports for MarkLogic app servers, use           ##
+## service.additionalPorts. When the updateStrategy is set to OnDelete (the default),  ##
+## this must be done manually. If the updateStrategy is changed to RollingUpdate (not  ##
+## recommented), changing the additionalContainerPorts will trigger a rolling update   ##
+## of the StatefulSet.                                                                 ##
+#########################################################################################
+
+## @param additionalContainerPorts. Additional container ports 
 ## Example:
 ## - name: app1
 ##   containerPorts: 8010
@@ -95,7 +105,14 @@ service:
   type: ClusterIP
   ## Service listener port configuration
   ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
-  ## @param service.additionalPorts. Additional service port 
+
+  #######################################################################################
+  ## NOTE : When adding new app servers to MarkLogic, the new app server ports must    ##
+  ## also be added to the additionalPorts parameter to expose the ports via the        ##
+  ## kubernetes service.                                                               ##
+  #######################################################################################
+
+  ## @param service.additionalPorts. Additional service ports 
   ## Example:
   ## - name: app1
   ##   port: 8010 
