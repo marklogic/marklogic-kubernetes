@@ -101,6 +101,11 @@ extraContainerPorts: []
 
 # Configure the Service to access Marklogic Clusters
 service:
+
+  ## Service annotations
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  annotations: {}
+
   type: ClusterIP
   ports:
     - protocol: TCP
