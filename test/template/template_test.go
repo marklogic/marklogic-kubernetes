@@ -14,7 +14,6 @@ import (
 )
 
 func TestChartTemplateNoLogCollection(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
@@ -54,7 +53,6 @@ func TestChartTemplateNoLogCollection(t *testing.T) {
 }
 
 func TestChartTemplateLogCollection(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
@@ -96,7 +94,6 @@ func TestChartTemplateLogCollection(t *testing.T) {
 }
 
 func TestTemplatePersistence(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")

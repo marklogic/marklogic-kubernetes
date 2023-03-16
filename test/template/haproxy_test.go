@@ -14,8 +14,6 @@ import (
 )
 
 func TestTemplateTestHAproxyDisabled(t *testing.T) {
-	t.Parallel()
-
 	helmChartPath, err := filepath.Abs("../../charts")
 	releaseName := "marklogic-haproxy-test"
 	require.NoError(t, err)
@@ -39,7 +37,6 @@ func TestTemplateTestHAproxyDisabled(t *testing.T) {
 }
 
 func TestTemplateTestHAproxyDeployment(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
@@ -95,7 +92,6 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 }
 
 func TestTemplateTestHAproxyService(t *testing.T) {
-	t.Parallel()
 
 	helmChartPath, err := filepath.Abs("../../charts")
 	releaseName := "marklogic-haproxy-test"
@@ -147,7 +143,6 @@ func TestTemplateTestHAproxyService(t *testing.T) {
 }
 
 func TestTemplateTestHAproxyConfigmap(t *testing.T) {
-	t.Parallel()
 
 	helmChartPath, err := filepath.Abs("../../charts")
 	releaseName := "marklogic-haproxy-test"
