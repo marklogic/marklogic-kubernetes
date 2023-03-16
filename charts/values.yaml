@@ -173,16 +173,6 @@ service:
   ##   targetPort: 8010
   ##   protocol: TCP
   additionalPorts: []
-  ports:
-    - protocol: TCP
-      name: query-console
-      port: 8000
-    - protocol: TCP
-      name: admin
-      port: 8001
-    - protocol: TCP
-      name: manage
-      port: 8002
 
 serviceAccount:
   # Specifies whether a service account should be created
