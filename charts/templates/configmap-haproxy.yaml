@@ -3,6 +3,8 @@
 {{- $releaseName := .Release.Name }}
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
+{{- $tlsEnabled := .Values.haproxy.tls.enabled }}
+{{- $certFileName := .Values.haproxy.tls.certFileName }}
 
 apiVersion: v1
 kind: ConfigMap
@@ -83,7 +85,11 @@ data:
 
     frontend marklogic-{{$portNumber}}
       mode http
+      {{- if $tlsEnabled }}
+      bind :{{ $portNumber }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
       bind :{{ $portNumber }}
+      {{- end }}
       log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
       default_backend marklogic-{{$portNumber}}
 

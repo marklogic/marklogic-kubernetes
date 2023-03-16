@@ -96,6 +96,11 @@ spec:
             - configMap:
                 name: includes
         {{- end }}
+        {{- if .Values.tls.enabled }}
+        - name: ssl-certificate
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+        {{- end }}
         {{- range $mountedSecret := .Values.mountedSecrets }}
         - name: {{ $mountedSecret.volumeName }}
           secret:
@@ -165,6 +170,10 @@ spec:
             {{- end }}
             {{- with.Values.extraVolumeMounts }}
               {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.tls.enabled }}
+            - name: ssl-certificate
+              mountPath: /usr/local/etc/ssl/
             {{- end }}
             {{- range $mountedSecret := .Values.mountedSecrets }}
             - name: {{ $mountedSecret.volumeName }}
