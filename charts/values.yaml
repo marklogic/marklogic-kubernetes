@@ -10,7 +10,7 @@ updateStrategy:
     type: OnDelete
 
 # Termination Grace Period
-terminationGracePeriod: 10
+terminationGracePeriod: 120
 
 # Kubernetes cluster domain name
 clusterDomain: cluster.local
@@ -338,7 +338,7 @@ haproxy:
   ## To generate the secret in Kubernetes: kubectl create secret generic tls-cert --from-file=mycert.pem
   ## The certFileName field is the name of the certificate file in the secret.
   tls:
-    enabled: true
+    enabled: false
     secretName: "" # tls-cert
     certFileName: "" # mycert.pem
 
