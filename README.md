@@ -492,7 +492,7 @@ This table describes the list of available parameters for Helm Chart.
 | `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
 | `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
 | `license.key`                 | 	set MarkLogic license key installed                       | `""`
-| `licensee`                 | set MarkLogic licensee information                       | `""`
+| `license.licensee`                 | set MarkLogic licensee information                       | `""`
 | `enableConverters`                 | Installs converters for the client if they are not already installed                       | `false`
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
 | `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
