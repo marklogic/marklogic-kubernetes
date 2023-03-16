@@ -61,7 +61,7 @@ auth:
   walletPassword: ""
 
 # Optionally install converters package on MarkLogic
-installConverters: false
+enableConverters: false
 
 # Supply license information for MarkLogic server
 license:
