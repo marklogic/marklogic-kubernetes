@@ -29,6 +29,7 @@
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
     - [Using the Service DNS Record to Access MarkLogic](#using-the-service-dns-record-to-access-marklogic)
+    - [Additional Ports](#additional-ports)
   - [Port Forward](#port-forward)
     - [Forward to Pod](#forward-to-pod)
     - [Forward to Service](#forward-to-service)
@@ -358,6 +359,24 @@ For each Kubernetes service, a DNS with the following format is created:
 
 For example, if the service-name is "marklogic" and namespace-name is "default", the DNS URL to access the MarkLogic cluster is "marklogic.default.svc.cluster.local".
 
+### Additional Ports
+
+When creating a new app server on Marklogic, the new app server port must also be added to the additionalPorts in the service configuration:
+
+```yaml
+  ## @param service.additionalPorts. Additional ports exposed at the service level.
+  ## Example:
+  ## - name: app1
+  ##   port: 8010 
+  ##   targetPort: 8010
+  ##   protocol: TCP
+  additionalPorts:
+    - name: app-server1
+      port: 8010
+      targetPort: 8010
+      protocol: TCP
+```
+
 ## Port Forward
 
 The `kubectl port-forward` command can help you access MarkLogic outside of the Kubernetes cluster. Use the service to access a specific pod, or the whole cluster.
@@ -482,11 +501,11 @@ This table describes the list of available parameters for Helm Chart.
 | `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
 | `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
 | `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
-| `extraVolumes`                       | Extra list of additional volumes for MarkLogic statefulset                                                     | `[]`                                 |
-| `extraVolumeMounts`                  | Extra list of additional volumeMounts for MarkLogic container                                                  | `[]`                                 |
-| `extraContainerPorts`                | Extra list of additional containerPorts for MarkLogic container                                                | `[]`                                 |
+| `additionalContainerPorts`                | List of ports in addition to the defaults exposed at the container level (Note: This does not typically need to be updated. Use `service.additionalPorts` to expose app server ports.)                                                | `[]`                                 |
+| `additionalVolumes`                  | List of additional volumes to add to the MarkLogic containers                                                  | `[]`                                 |
+| `additionalVolumeMounts`             | List of mount points for the additional volumes to add to the MarkLogic containers                             | `[]`                                 |
 | `service.type`                       | type of the default service                                                                                    | `ClusterIP`                          |
-| `service.ports`                      | ports of the default service                                                                                   | `[8000, 8002]`                       |
+| `service.additionalPorts`                      | List of ports in addition to the defaults exposed at the service level.                                                                                    | `[]`                       |
 | `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                          | `true`                               |
 | `serviceAccount.annotations`         | Annotations for MarkLogic service account                                                                      | `{}`                                 |
 | `serviceAccount.name`                | Name of the serviceAccount                                                                                     | `""`                                 |
