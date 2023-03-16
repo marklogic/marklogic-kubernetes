@@ -441,15 +441,12 @@ The HAProxy configuation is dynamically generated in ConfigMap with the name of 
 
 #### Modify Port Configuration 
 
-By default, port 8000, 8001, 8002 are configuered to handle HTTP traffic, port 5432 is configured to handle TCP traffic, and port 1024 is configured for HAProxy statistic page. 
+By default, port 8000, 8001, 8002 are configuered to handle HTTP traffic.
 
 You can modify the default ports selection for the HAProxy by providing your own configuration in values file. Below is the default configuration:
 ```
 haproxy:
   ports:
-    - name: stat
-      type: STAT
-      port: 1024
     - name: app-service
       type: HTTP
       port: 8000
@@ -464,9 +461,8 @@ haproxy:
       port: 5432
 ```
 You can remove/add/modify the entry in ports by providing your own entry. For each entry, you need to specify the name, type and port. There are three type backend supported when configuring the loadbalancer:
-1. STAT: statistic page from HAProxy where it displays the status of the traffic and backends
-2. HTTP: configure the backend as HTTP proxy that handles HTTPC traffic. It also configured to handle Cookie based session affinity and multi-statement trasaction from MarkLogic Client.
-3. TCP: configure the backend as TCP proxy that handles TCP traffic.
+1. HTTP: configure the backend as HTTP proxy that handles HTTPC traffic. It also configured to handle Cookie based session affinity and multi-statement trasaction from MarkLogic Client.
+2. TCP: configure the backend as TCP proxy that handles TCP traffic.
 
 #### Automatic Reload Configuration
 
