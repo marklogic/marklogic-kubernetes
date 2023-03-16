@@ -304,11 +304,6 @@ spec:
         - name: mladmin-secrets
           secret:
             secretName: {{ include "marklogic.fullname" . }}-admin
-            items:
-              {{- if .Values.auth.walletPassword }}
-              - key: wallet-password
-                path: wallet-password
-              {{- end }}
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:

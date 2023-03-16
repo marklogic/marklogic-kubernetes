@@ -36,7 +36,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "true",
+			"persistence.enabled": "false",
 			"replicaCount":        "1",
 			"image.repository":    imageRepo,
 			"image.tag":           imageTag,
