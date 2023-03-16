@@ -92,9 +92,6 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy}}
           volumeMounts:
-            - name: mladmin-secrets
-              mountPath: "/run/secrets/ml-secrets"
-              readOnly: false
             - name: datadir
               mountPath: /var/opt/MarkLogic
             {{- if .Values.extraVolumeMounts }}
