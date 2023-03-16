@@ -427,7 +427,7 @@ HAProxy is provided as a load balancer that is configured to supported cookie-ba
 
 ### Enable HAProxy
 
-The HAProxy Load Balancer is disabled by default. To enable the HAProxy, provide the config the following in your values file for your Chart installation:
+The HAProxy Load Balancer is disabled by default. To enable the HAProxy, provide the following config in your values file for your Chart installation:
 ```
 haproxy:
   enabled: true
