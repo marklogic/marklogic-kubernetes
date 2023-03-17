@@ -451,7 +451,7 @@ helm repo update
 ```
 2. Check the available upgrades of MarkLogic Kuberenetes Helm chart using following command,
 ```
-helm search repo marklogic/marklogic
+helm search repo marklogic
 ```
 3. Make sure the upgrade strategy in values.yaml file is set to OnDelete. 
 ```
@@ -491,7 +491,7 @@ updateStrategy:
 ```
 3. Upgrade the helm chart using helm upgrade command with release name, chart name and values.yaml.
 ```
-helm upgrade <release-name> <chart-name> -f <values.yaml> 
+helm upgrade <release-name> <chart-name> -f <values.yaml> --version <chart-version>
 ```
 4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. 
 ```
@@ -509,7 +509,7 @@ Note: If all the nodes in the groups are not updated to the same MarkLogic versi
 
 ## Upgrading MarkLogic version and MarkLogic Kubernetes Helm Chart version at once
 
-1. If there is a requirement to upgrade MarkLogic version and MarkLogic Kubernetes Helm Chart version both at once, we recommend following upgrade Steps 1 to 5 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release) and Steps 1 to 3 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release).
+1. If there is a requirement to upgrade MarkLogic version and MarkLogic Kubernetes Helm Chart version both at once, we recommend following upgrade Steps 1 to 5 from [Upgrading MarkLogic Kubernetes Helm Chart Version](#upgrading-markLogic-kubernetes-helm-chart-version) and Steps 1 to 3 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release).
 
 2. Once the `helm upgrade` command is executed for both, initiate terminating pods. As recommended, delete the pod-0 i.e. running MarkLogic Bootstrap host first followed by other pods. 
 ```
