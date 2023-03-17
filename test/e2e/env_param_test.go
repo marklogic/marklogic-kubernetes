@@ -33,7 +33,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	var err error
 
 	if !repoPres {
-		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
+		imageRepo = "marklogic-centos/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
