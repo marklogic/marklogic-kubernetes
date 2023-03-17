@@ -35,8 +35,8 @@ spec:
           - sh
           - '-c'
           - |
-            MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
-            MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
+            MARKLOGIC_ADMIN_USERNAME=`cat /run/secrets/ml-secrets/username`
+            MARKLOGIC_ADMIN_PASSWORD=`cat /run/secrets/ml-secrets/password`
             log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
                       echo "${TIMESTAMP}  $@"
