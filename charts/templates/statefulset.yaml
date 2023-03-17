@@ -94,8 +94,8 @@ spec:
           volumeMounts:
             - name: datadir
               mountPath: /var/opt/MarkLogic
-            {{- if .Values.extraVolumeMounts }}
-              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- if .Values.additionalVolumeMounts }}
+              {{- toYaml .Values.additionalVolumeMounts | nindent 12 }}
             {{- end }}
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
@@ -113,6 +113,12 @@ spec:
               valueFrom:
                 fieldRef:
                     fieldPath: metadata.name
+            - name: INSTALL_CONVERTERS
+              value: {{ .Values.enableConverters | quote }}
+            - name: LICENSE_KEY
+              value: {{ .Values.license.key | quote }}
+            - name: LICENSEE
+              value: {{ .Values.license.licensee | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
@@ -275,8 +281,8 @@ spec:
           volumeMounts:
             - name: datadir
               mountPath: /var/opt/MarkLogic
-            {{- if .Values.extraVolumeMounts }}
-              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- if .Values.additionalVolumeMounts }}
+              {{- toYaml .Values.additionalVolumeMounts | nindent 12 }}
             {{- end }}
             - name: {{ include "marklogic.fullname" . }}-fb-config-map
               mountPath: /fluent-bit/etc/
