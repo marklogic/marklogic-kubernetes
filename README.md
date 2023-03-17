@@ -316,7 +316,6 @@ To delete the Persistent Volume Claims run the below command:
 kubectl delete pvc datadir-{terminated-host-pod-name}
 ```
 
-
 ### Enabling SSL over XDQP
 
 To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
