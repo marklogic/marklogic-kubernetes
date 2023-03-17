@@ -301,7 +301,21 @@ In order to track the host shutdown progress, run the following command:
 kubectl logs pod/terminated-host-pod-name
 ```
 
-If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow the section "Recovery - Step 3: Remove dead host configuration" in [MarkLogic KB article](https://help.marklogic.com/Knowledgebase/Article/View/607/15/replacing-a-failed-marklogic-node-in-a-cluster-a-step-by-step-walkthrough). Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again. 
+
+In order to delete the Persistent Volumes and Persistent Volume Claims of the terminated host first run the below command to get the Persistent Volume Claims:
+```
+kubectl get pvc datadir-<terminated-host-pod-name>
+```
+To delete the Persistent Volume run the below command:
+```
+kubectl delete pv <volume name from get pvc command>
+```
+To delete the Persistent Volume Claims run the below command:
+```
+kubectl delete pvc datadir-<terminated-host-pod-name>
+```
+
 ### Enabling SSL over XDQP
 
 To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
