@@ -1,9 +1,14 @@
 annotations:
   category: Database
 apiVersion: v2
+dependencies:
+  - condition: haproxy.enabled
+    name: haproxy
+    repository: "file://./charts/haproxy"
+    version: "1.18.0"
 name: marklogic
 description: MarkLogic Server is a multi-model database that has both NoSQL and trusted enterprise data management capabilities.
-appVersion: "10.0-9.5"
+appVersion: "11.0.0"
 type: application
 keywords:
   - marklogic
@@ -12,4 +17,4 @@ keywords:
 sources:
   - https://github.com/marklogic/marklogic-kubernetes
   - https://www.marklogic.com/
-version: 1.0.0-ea2
+version: 1.0.0

@@ -12,6 +12,9 @@ updateStrategy:
 # Termination Grace Period
 terminationGracePeriod: 120
 
+# Kubernetes cluster domain name
+clusterDomain: cluster.local
+
 # Group related settings
 group:
   # the group name of the current Marklogic Helm Deployment
@@ -135,6 +138,7 @@ additionalContainerPorts: []
 
 
 # Configure the Service to access Marklogic Clusters
+# Could be ClusterIP, NodePort or LoadBalancer
 service:
 
   ## Service annotations
@@ -275,3 +279,83 @@ logCollection:
       #   HTTP_Passwd admin
       # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
       # Configure desired output below
+
+## Configuration for the HAProxy load balancer
+## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
+## It also support multi-statement transaction and ODBC connections.  
+haproxy:
+  enabled: false
+
+  ## Name of an existing configmap with configuration for HAProxy
+  existingConfigmap: marklogic-haproxy
+
+  ## Number of HAProxy Deployment
+  replicaCount: 2
+
+  ## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
+  ## ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+  restartWhenUpgrade:
+    enabled: true
+
+  # Statistic page for HAproxy
+  stats:
+    enabled: false
+    port: 1024
+    auth:
+      enabled: false
+      username: ''
+      password: ''
+
+  service:
+    ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
+    ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
+    type: ClusterIP
+
+  ## ports and load balancing type configuration for HAproxy
+  ## There are three types of backends supported:
+  ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
+  ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
+  ports:
+    - name: app-service
+      type: HTTP
+      port: 8000
+      targetPort: 8000
+    - name: admin
+      type: HTTP
+      port: 8001
+      targetPort: 8001
+    - name: manage
+      type: HTTP
+      port: 8002
+      targetPort: 8002
+    # - name: odbc
+    #   type: TCP
+    #   port: 5432
+
+  ## Configure TLS for HAProxy
+  ## You need to put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
+  ## The PEM-formatted SSL certificate should contain the private key and the certificate. For example: cat certificate.pem private-key.pem > mycert.pem
+  ## To generate the secret in Kubernetes: kubectl create secret generic tls-cert --from-file=mycert.pem
+  ## The certFileName field is the name of the certificate file in the secret.
+  tls:
+    enabled: false
+    secretName: "" # tls-cert
+    certFileName: "" # mycert.pem
+
+  ## Pod Node assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector: {}
+
+  ## Node Affinity for pod-node scheduling constraints
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  ## Compute Resources
+  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  resources:
+  #  limits:
+  #    cpu: 250m
+  #    memory: 128Mi
+    requests:
+      cpu: 250m
+      memory: 128Mi

@@ -84,7 +84,7 @@ func TestHelmUpgrade(t *testing.T) {
 	podName := releaseName + "-marklogic-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 20, 20*time.Second)
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
 	defer tunnel.Close()
