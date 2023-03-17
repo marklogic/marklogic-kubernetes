@@ -55,8 +55,8 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 			"enableConverters":      "true",
-			"license.key":           "Test license key",
-			"license.licensee":      "Test licensee",
+			"license.key":           "3981-CE27-75BB-9D3C-B81C-E067-1B39-DDFE-0875-C37E-D3F0-A76C-34E5-2F86-76BB-ADDD-E677-CB3F-D5FE-4773-C3CD-5EE8-87BC-36E5-3F71-0C15",
+			"license.licensee":      "MarkLogic - Version 9 QA Test License",
 		},
 	}
 
