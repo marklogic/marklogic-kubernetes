@@ -14,7 +14,6 @@ import (
 )
 
 func TestChartTemplateEnableConvertersEnabled(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
@@ -53,7 +52,6 @@ func TestChartTemplateEnableConvertersEnabled(t *testing.T) {
 }
 
 func TestChartTemplateEnableConvertersDisabled(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
@@ -93,7 +91,6 @@ func TestChartTemplateEnableConvertersDisabled(t *testing.T) {
 }
 
 func TestChartTemplateLicenseValues(t *testing.T) {
-	t.Parallel()
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
