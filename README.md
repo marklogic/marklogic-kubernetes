@@ -1,6 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
-This repository enables you to install MarkLogic on a Kubernetes cluster using Helm package manager. 
+This repository enables you to install MarkLogic on a Kubernetes cluster using the Helm package manager. 
 
 ## Getting Started
 
@@ -8,14 +8,14 @@ This repository enables you to install MarkLogic on a Kubernetes cluster using H
 
 To install this chart, you need to install [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/).
 
-To set up a Kubernetes Cluster for Production Workload, we recomend using EKS platform on AWS. To bring up a kubernetes cluster on EKS, you can install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) tool. Please refer to [Using eksctl to Provision MarkLogic Kubernetes Cluster on EKS](README.md/) for detailed steps.
+To set up a Kubernetes Cluster for Production Workload, we recommend using EKS platform on AWS. To bring up a Kubernetes cluster on EKS, you can install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) tool. Please refer to [Using eksctl to Provision MarkLogic Kubernetes Cluster on EKS](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster/installing-amazon-web-services-elastic-kubernetes-service--for-production-.html) for detailed steps.
 
 
-For non-production deployments, please see [MiniKube Setup Guide](docs/Local_Development_Tutorial.md) to create kubernetes cluster locally.
+For non-production deployments, please see [MiniKube Setup Guide](docs/Local_Development_Tutorial.md) to create the Kubernetes cluster locally.
  
 ### Installing MarkLogic Helm Chart
 
-Following below steps will install a single node MarkLogic cluster with default group
+Following the below steps will install a single node MarkLogic cluster with a default group
 
 1. Add MarkLogic Repo to Helm using this command:
 
@@ -32,7 +32,7 @@ To configure other settings, use `values.yaml` file with `-f` option. See [Param
 
 ## Parameters
 
-Following table lists the parameters supported by latest MarkLogic Helm chart:
+Following table lists all the parameters supported by the latest MarkLogic Helm chart:
 
 | Name                                 | Description                                                                                                    | Default Value                        |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
