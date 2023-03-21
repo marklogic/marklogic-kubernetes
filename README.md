@@ -29,12 +29,28 @@
   - [Service](#service)
     - [Get the ClusterIP Service Name](#get-the-clusterip-service-name)
     - [Using the Service DNS Record to Access MarkLogic](#using-the-service-dns-record-to-access-marklogic)
+    - [Additional Ports](#additional-ports)
   - [Port Forward](#port-forward)
     - [Forward to Pod](#forward-to-pod)
     - [Forward to Service](#forward-to-service)
+  - [HAPorxy Load Balancer](#haporxy-load-balancer)
+    - [Enable HAProxy](#enable-haproxy)
+    - [Configuration](#configuration)
+      - [ConfigMap](#configmap)
+      - [Modify Port Configuration](#modify-port-configuration)
+      - [Automatic Reload Configuration](#automatic-reload-configuration)
+      - [External Access](#external-access)
+    - [Access HAProxy](#access-haproxy)
+- [Security](#security)
+  - [Security Context](#security-context)
+  - [Network Policy](#network-policy)
+  - [Pod Priorty](#pod-priorty)
   - [Notice](#notice)
-- [Uninstalling the Chart](#uninstalling-thechart)
+- [Upgrades](#upgrades)
+- [Uninstalling the Chart](#uninstalling-the-chart)
 - [Parameters](#parameters)
+- [Known Issues and Limitations](#known-issues-and-limitations)
+
 
 # Introduction
 
@@ -295,7 +311,21 @@ In order to track the host shutdown progress, run the following command:
 kubectl logs pod/terminated-host-pod-name
 ```
 
-If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow standard MarkLogic administrative procedures using the administrative UI or APIs to remove the MarkLogic host from the cluster. Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again.
+If you are permanently removing the host from the MarkLogic cluster, once the pod is terminated, follow the section "Recovery - Step 3: Remove dead host configuration" in [MarkLogic KB article](https://help.marklogic.com/Knowledgebase/Article/View/607/15/replacing-a-failed-marklogic-node-in-a-cluster-a-step-by-step-walkthrough). Also, because Kubernetes keeps the Persistent Volume Claims and Persistent Volumes around until they are explicitly deleted, you must manually delete them using the Kubernetes APIs before attempting to scale the hosts in the StatefulSet back up again. 
+
+In order to delete the Persistent Volumes and Persistent Volume Claims of the terminated host first run the below command to get the Persistent Volume Claims:
+```
+kubectl get pvc datadir-<terminated-host-pod-name>
+```
+To delete the Persistent Volume run the below command:
+```
+kubectl delete pv <volume name from get pvc command>
+```
+To delete the Persistent Volume Claims run the below command:
+```
+kubectl delete pvc datadir-<terminated-host-pod-name>
+```
+
 ### Enabling SSL over XDQP
 
 To enable SSL over XDQP, set the `enableXdqpSsl` to true either in the values.yaml file or using the `--set` flag. All communications to and from hosts in the cluster will be secured. When this setting is on, default SSL certificates will be used for XDQP encryption.
@@ -353,6 +383,24 @@ For each Kubernetes service, a DNS with the following format is created:
 
 For example, if the service-name is "marklogic" and namespace-name is "default", the DNS URL to access the MarkLogic cluster is "marklogic.default.svc.cluster.local".
 
+### Additional Ports
+
+When creating a new app server on Marklogic, the new app server port must also be added to the additionalPorts in the service configuration:
+
+```yaml
+  ## @param service.additionalPorts. Additional ports exposed at the service level.
+  ## Example:
+  ## - name: app1
+  ##   port: 8010 
+  ##   targetPort: 8010
+  ##   protocol: TCP
+  additionalPorts:
+    - name: app-server1
+      port: 8010
+      targetPort: 8010
+      protocol: TCP
+```
+
 ## Port Forward
 
 The `kubectl port-forward` command can help you access MarkLogic outside of the Kubernetes cluster. Use the service to access a specific pod, or the whole cluster.
@@ -388,9 +436,203 @@ kubectl port-forward svc/marklogic 8000:8000
 
 This pod can now be accessed via http://localhost:8001.
 
+## HAPorxy Load Balancer
+
+HAProxy is provided as a load balancer that is configured to supported cookie-based session affinity and multi-statement transaction that is needed by some of the MarkLogic client application like MLCP. 
+
+### Enable HAProxy
+
+The HAProxy Load Balancer is disabled by default. To enable the HAProxy, provide the following config in your values file for your Chart installation:
+```
+haproxy:
+  enabled: true
+```
+
+### Configuration
+
+#### ConfigMap
+
+The HAProxy configuation is dynamically generated in ConfigMap with the name of "marklogic-haproxy". You can provide your own configuation by creating a new ConfigMap and set the "existingConfigmap" in values file to the name of the new ConfigMap.
+
+#### Modify Port Configuration 
+
+By default, port 8000, 8001, 8002 are configuered to handle HTTP traffic.
+
+You can modify the default ports selection for the HAProxy by providing your own configuration in values file. Below is the default configuration:
+```
+haproxy:
+  ports:
+    - name: app-service
+      type: HTTP
+      port: 8000
+    - name: admin
+      type: HTTP
+      port: 8001
+    - name: manage
+      type: HTTP
+      port: 8002
+    - name: odbc
+      type: TCP
+      port: 5432
+```
+You can remove/add/modify the entry in ports by providing your own entry. For each entry, you need to specify the name, type and port. There are three type backend supported when configuring the loadbalancer:
+1. HTTP: configure the backend as HTTP proxy that handles HTTPC traffic. It also configured to handle Cookie based session affinity and multi-statement trasaction from MarkLogic Client.
+2. TCP: configure the backend as TCP proxy that handles TCP traffic.
+
+#### Automatic Reload Configuration
+
+When any change to the current deployment happens(change the backend ports, number of running MarkLogic nodes), the HAProxy will be restarted to load the new configuration by default. You can change this behavior by change the setting below:
+```
+haproxy:
+  restartWhenUpgrade:
+    enabled: false
+```
+Note: if restartWhenUpgrade.enabled set to false, you have to manually delete the HAProxy deployment to have the lastest configuration if you update the number of MarkLogic node.
+
+#### External Access
+
+By default, the HAProxy is configured to provide access within the Kubernetes cluster. You can configure the HAProxy to provide external access by setting the service type in values file below:
+```
+haproxy:
+  service:
+    type: LoadBalancer
+```
+Warning: By setting the haproxy service type to loadbalancer MarkLogic endpoint is exposed to public Internet. Please set the networkPolicy to limit the sources that can visit MarkLogic.
+
+### Access HAProxy
+
+The HAProxy can be accessed from service with the name of <RELEASE_NAME>-haproxy. For example, if the release name is marklogic, then the name of the service will be marklogic-haproxy. 
+
+# Security
+
+## Security Context
+
+Security context defines privilege and access control settings for a Pod or Container. By default security context for containers is enabled with runAsUser, runAsNonRoot, allowPrivilegeEscalation settings. To configure these values for containers, set the containerSecurityContext in the values.yaml file or using the `--set` flag. Additional security context settings can be added to containerSecurityContext configuration. Please refer [https://kubernetes.io/docs/tasks/configure-pod-container/security-context/](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+
+## Network Policy
+
+Note: To use network policies, you must be using a networking solution that supports NetworkPolicy. Creating a NetworkPolicy resource without a controller that implements it will have no effect. Please refer [https://kubernetes.io/docs/concepts/services-networking/network-policies/#prerequisites](https://kubernetes.io/docs/concepts/services-networking/network-policies/#prerequisites).
+
+Use NetworkPolicy to control network traffic flow for your applications, it allows you to specify how pods should communicate over the network. By default network policy is disabled in the values.yaml file. Set the networkPolicy.enabled to true to enable the use of network policy resource, default ports are provided in the settings, you can define custom rules for the sources of the traffic to the desired ports.
+
+## Pod Priorty
+
+Pods can be assigned priority that reflects the significance of a pod compared to other pods. If a pod cannot be scheduled, the scheduler will attempt to evict lower-priority pods in order to free up resources and allow high-priority pods to be scheduled. Assigning priority to pods is important to make sure high-priority pods are not preempted and get the required resources. It is highly recommended to set a PriorityClass object with the highest possible value for MarkLogic Pods to ensure the availability of the database. 
+For more details on Pod priority and PriorityClass, please refer [https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/)
+
+To assign priority for pods, use the following the steps:
+
+1. Add a PriorityClass. Following is an example of PriorityClass with a value of 1 million for MarkLogic pods:
+```
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000
+globalDefault: false
+description: "This high priority class should be used for MarkLogic pods only."
+```
+
+2. Set priorityClassName in the values.yaml file or using the --set flag while installing the chart. The value of priorityClassName should be set to one of the added PriorityClassName.
+
 ## Notice
 
 To use transactional functionality with MarkLogic, you have to set up Ingress and configure cookie-based session affinity. This function will be supported in a future release.
+
+# Upgrades
+
+MarkLogic Kubernetes Helm chart will be released in MAJOR, MINOR or PATCH form. Major releases may include breaking changes and new features that require configuration changes in values.yaml file. So it's always recommended to go through the changes in the release and test the upgrade on a non production environment. Minor and Patch release will inlude bug fixes and non-breaking changes. 
+
+Before you begin, following are some recommendations for upgrade procedures:
+* Make sure to have the latest version of Helm installed on your machine.
+* Avoid using --reuse-values option with helm upgrade to ensure the changes in new values.yaml from updated chart is merged into your release.
+* Always use values.yaml file using `-f` option and avoid using --set option while installing and upgrading chart to ensure your release has all new values.
+* The bootstrap host in the MarkLogic statefulset needs to be upgraded before any other node in the cluster as it has the security and schemas database. So, we suggest using OnDelete upgrade strategy instead of RollingUpgrade that starts upgrading pod from the largest ordinal to the smallest. For more information on upgrade strategies, please refer https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+* It's important to have database backup for recovery in case of upgrade failure. Please refer https://docs.marklogic.com/guide/admin/backup_restore for detailed procedure on backing up and restoring a database.
+
+This section describes three upgrade procedures:
+1. [Upgrading MarkLogic Kubernetes Helm Chart version](#upgrading-markLogic-version-in-your-release)
+2. [Upgrading MarkLogic version in your release](#upgrading-markLogic-version-in-your-release)
+3. [Upgrading MarkLogic version and MarkLogic Kubernetes Helm Chart version at once](#upgrading-markLogic-version-and-markLogic-kubernetes-helm-chart-version-at-once)
+
+## Upgrading MarkLogic Kubernetes Helm Chart Version
+
+This upgrade is required whenever there is a requirement at your end or when MarkLogic Kubernetes Helm Chart releases a new version with new features or bug fixes. The general procedure to upgrade MarkLogic Kubernetes Helm Chart is as follows:
+
+1. Update the chart repository using the below command to get the new version of the chart
+```
+helm repo update
+```
+2. Check the available upgrades of MarkLogic Kuberenetes Helm chart using following command,
+```
+helm search repo marklogic
+```
+3. Make sure the upgrade strategy in values.yaml file is set to OnDelete. 
+```
+updateStrategy: 
+    type: OnDelete
+```
+4. Update the values.yaml file with new values from the updated chart version.
+5. Run helm upgrade command and specify the name of your release, new chart version using --version option and values.yaml file using `-f` option.
+```
+helm upgrade <your-release> marklogic/marklogic -f values.yaml --version <new version>
+```
+6. Terminate the pod with smallest ordinal that is running bootstrap node to start the upgrade. 
+```
+kubectl delete pod <pod-name>
+e.g: kubectl delete pod dnode-group-marklogic-0
+```
+
+Once the pod is terminated, a new pod will be created with updated helm chart version. 
+7. Repeat termination for all pods in your release and complete the upgrade process.
+
+## Upgrading MarkLogic Version in your release
+
+MarkLogic release is independent of MarkLogic Kubernetes Helm Chart release. This upgrade may be required when there is a new MarkLogic version available. Note MarkLogic is also released in Major, Minor or Patch form, pleasr refer [MarkLogic Upgrade Support](https://docs.marklogic.com/11.0/guide/release-notes/en/installation-and-upgrade.html#UUID-ae8580bb-c23d-dda7-593c-0610a633c771_section-idm203341859110072)
+
+Following is the procedure to upgrade MarkLogic version in your release:
+
+1. Update the image.repository and image.tag in the values.yaml file to new version of MarkLogic you want to upgrade to.
+```
+image:
+  repository: marklogicdb/marklogic-db
+  tag: <new tag>
+```
+2. Make sure the upgrade strategy in values.yaml file is set to OnDelete. 
+```
+updateStrategy: 
+    type: OnDelete
+```
+3. Upgrade the helm chart using helm upgrade command with release name, chart name and values.yaml.
+```
+helm upgrade <release-name> <chart-name> -f <values.yaml> --version <chart-version>
+```
+4. To start upgrade, delete the pod with smallest ordinal that is a MarkLogic bootstrap host. 
+```
+kubectl delete pod <pod-name>
+e.g: kubectl delete pod dnode-group-marklogic-0
+```
+Once the pod is terminated, new pod will be created with updated MarkLogic version and any new values updated in the values.yaml file.
+
+5. Repeat the termination for all pods in your release to complete the upgrade.
+
+6. After all pods are upgraded, access the Admin Interface on bootstrap host to check there is configuration and/or security database upgrade and/or effective version change. If yes, Admin Interface will prompt you to click OK to upgrade otherwise you are done.
+7. Verify the upgrade, check the version of MarkLogic on Admin console or by accessing server logs or you can run any required tests for your release.
+8. If upgrading a multi-group MarkLogic cluster, each release corresponding to a MarkLogic group needs to be upgraded by following above procedure.
+Note: If all the nodes in the groups are not updated to the same MarkLogic version then you will see difference in the version and effective version of the MarkLogic cluster.
+
+## Upgrading MarkLogic version and MarkLogic Kubernetes Helm Chart version at once
+
+1. If there is a requirement to upgrade MarkLogic version and MarkLogic Kubernetes Helm Chart version both at once, we recommend following upgrade Steps 1 to 5 from [Upgrading MarkLogic Kubernetes Helm Chart Version](#upgrading-markLogic-kubernetes-helm-chart-version) and Steps 1 to 3 from [Upgrading MarkLogic Version in your release](#upgrading-markLogic-version-in-your-release).
+
+2. Once the `helm upgrade` command is executed for both, initiate terminating pods. As recommended, delete the pod-0 i.e. running MarkLogic Bootstrap host first followed by other pods. 
+```
+kubectl delete pod <pod-name>
+e.g: kubectl delete pod dnode-group-marklogic-0
+```
+3. You can monitor the pod status by running `kubectl get pods --nampespace=<your-namespace> -w`
+
+4. As soon as all pods are back in running status, Verify the upgrade by checking version or running required tests.
 
 # Uninstalling the Chart
 
@@ -431,10 +673,14 @@ This table describes the list of available parameters for Helm Chart.
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | `admin`     
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | ``    
+| `auth.walletPassword`                 | Password for wallet                                                                    | `` 
 | `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
 | `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
 | `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
+| `license.key`                       | 	set MarkLogic license key installed                       | `""` |
+| `license.licensee`                 | set MarkLogic licensee information                       | `""` |
+| `enableConverters`                 | Installs converters for the client if they are not already installed                       | `false` |
 | `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
 | `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
 | `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
@@ -442,12 +688,11 @@ This table describes the list of available parameters for Helm Chart.
 | `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
 | `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
 | `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
-| `persistence.mountPath`              | The path for the mounted persistence data volume                                                               | `/var/opt/MarkLogic`                 |
-| `extraVolumes`                       | Extra list of additional volumes for MarkLogic statefulset                                                     | `[]`                                 |
-| `extraVolumeMounts`                  | Extra list of additional volumeMounts for MarkLogic container                                                  | `[]`                                 |
-| `extraContainerPorts`                | Extra list of additional containerPorts for MarkLogic container                                                | `[]`                                 |
+| `additionalContainerPorts`                | List of ports in addition to the defaults exposed at the container level (Note: This does not typically need to be updated. Use `service.additionalPorts` to expose app server ports.)                                                | `[]`                                 |
+| `additionalVolumes`                  | List of additional volumes to add to the MarkLogic containers                                                  | `[]`                                 |
+| `additionalVolumeMounts`             | List of mount points for the additional volumes to add to the MarkLogic containers                             | `[]`                                 |
 | `service.type`                       | type of the default service                                                                                    | `ClusterIP`                          |
-| `service.ports`                      | ports of the default service                                                                                   | `[8000, 8002]`                       |
+| `service.additionalPorts`                      | List of ports in addition to the defaults exposed at the service level.                                                                                    | `[]`                       |
 | `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                          | `true`                               |
 | `serviceAccount.annotations`         | Annotations for MarkLogic service account                                                                      | `{}`                                 |
 | `serviceAccount.name`                | Name of the serviceAccount                                                                                     | `""`                                 |
@@ -475,3 +720,16 @@ This table describes the list of available parameters for Helm Chart.
 | `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
 | `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
 | `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |
+| `containerSecurityContext.enabled`      | Enable this parameter to enable security context for containers             | `true`                               |
+| `containerSecurityContext.runAsUser`      | User ID to run the entrypoint of the container process             | `1000`                               |
+| `containerSecurityContext.runAsNonRoot`      | Indicates that the container must run as a non-root user             | `true`                               |
+| `containerSecurityContext.allowPrivilegeEscalation`      | Controls whether a process can gain more privileges than its parent process             | `true`                               |
+| `networkPolicy.enabled`      | Enable this parameter to enable network policy             | `false`                               |
+| `networkPolicy.customRules`      | Placeholder to specify selectors              | `{}`                               |
+| `networkPolicy.ports`      | Ports to which traffic is allowed              | `[8000, 8001, 8002]`                               |
+| `priorityClassName`      | Name of a PriortyClass defined to set pod priority        | `""`                               |
+| `updateStrategy`      | Update strategy for helm chart and app version updates        | `OnDelete`                               |
+
+# Known Issues and Limitations
+
+1. If the hostname is greater than 64 characters there may be issues with certificates. The certificates may shorten the name or use SANs for hostnames in the certificates.

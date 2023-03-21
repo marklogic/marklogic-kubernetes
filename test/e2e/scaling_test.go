@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,15 +10,13 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
-func TestHelmUpgrade(t *testing.T) {
+func TestHelmScaleUp(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -27,14 +24,16 @@ func TestHelmUpgrade(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	username := "admin"
+	password := "admin"
 
 	if !repoPres {
-		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "11.0.20230307-centos-1.0.2"
+		imageTag = "latest"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -47,6 +46,8 @@ func TestHelmUpgrade(t *testing.T) {
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
 	}
@@ -57,14 +58,8 @@ func TestHelmUpgrade(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
-	releaseName := "test-upgrade"
+	releaseName := "test-scale-up"
 	helm.Install(t, options, helmChartPath, releaseName)
-
-	// save the generated password from first installation
-	secretName := releaseName + "-marklogic-admin"
-	secret := k8s.GetSecret(t, kubectlOptions, secretName)
-	passwordArr := secret.Data["password"]
-	passwordAfterInstall := string(passwordArr[:])
 
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -80,37 +75,39 @@ func TestHelmUpgrade(t *testing.T) {
 	t.Logf("====Upgrading Helm Chart")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
-	tlsConfig := tls.Config{}
 	podName := releaseName + "-marklogic-1"
 
-	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 20, 20*time.Second)
+	// wait until second pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
+		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
 
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	t.Log("====Test password in secret should not change after upgrade====")
-	secret = k8s.GetSecret(t, kubectlOptions, secretName)
-	passwordArr = secret.Data["password"]
-	passwordAfterUpgrade := string(passwordArr[:])
-	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
+	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
+
+	resp, err := getHostsDR.Execute()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
+
+	// verify total number of hosts on the clsuter after scaling up
+	if totalHosts.Num != 2 {
+		t.Errorf("Incorrect number of MarkLogic hosts")
+	}
 }
 
-func TestMLupgrade(t *testing.T) {
+func TestHelmScaleDown(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -118,36 +115,31 @@ func TestMLupgrade(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	prevImageTag, prevTagPres := os.LookupEnv("dockerVersion")
-
-	if !repoPres {
-		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
-	}
-	if !tagPres {
-		imageTag = "11.0.20230307-centos-1.0.2"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
-	}
-	if !prevTagPres {
-		prevImageTag = "10.0-20230307-centos-1.0.2"
-		t.Logf("No imageTag variable present, setting to default value: " + prevImageTag)
-	}
-
 	username := "admin"
 	password := "admin"
+
+	if !repoPres {
+		imageRepo = "marklogicdb/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "latest"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
 
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
-			"replicaCount":        "1",
-			"updateStrategy.type": "OnDelete",
-			"image.repository":    imageRepo,
-			"image.tag":           prevImageTag,
-			"auth.adminUsername":  username,
-			"auth.adminPassword":  password,
+			"persistence.enabled":   "false",
+			"replicaCount":          "2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
 		},
 	}
 
@@ -157,20 +149,19 @@ func TestMLupgrade(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
-	releaseName := "test-ml-upgrade"
+	releaseName := "test-scale-down"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName1 := releaseName + "-marklogic-1"
 
-	// wait until second pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 20, 20*time.Second)
-
-	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
+	// wait until the pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 10, 20*time.Second)
 
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "false",
+			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
@@ -180,23 +171,21 @@ func TestMLupgrade(t *testing.T) {
 	t.Logf("====Upgrading Helm Chart")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
-	// delete pods to allow upgrades
-	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podName)
+	time.Sleep(20 * time.Second)
 
-	// wait until pod is in Ready status with new configuration
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
+	podName0 := releaseName + "-marklogic-0"
 
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypePod, podName0, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
-	clusterEndpoint := fmt.Sprintf("http://%s/manage/v2?format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, clusterEndpoint)
+	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel.Endpoint())
+	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	getMLversion := digestAuth.NewRequest(username, password, "GET", clusterEndpoint, "")
+	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
 
-	resp, err := getMLversion.Execute()
+	resp, err := getHostsDR.Execute()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -205,8 +194,11 @@ func TestMLupgrade(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	mlVersion := gjson.Get(string(body), `local-cluster-default.version`)
-	expectedMlVersion := strings.Split(imageTag, "-centos")[0]
-	// verify latest MarkLogic version after upgrade
-	assert.Equal(t, mlVersion.Str, expectedMlVersion)
+
+	totalHostsOffline := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts-offline.value`)
+
+	//verify there is a offline host after scaling down
+	if totalHostsOffline.Num != 1 {
+		t.Errorf("Incorrect number of offline hosts")
+	}
 }

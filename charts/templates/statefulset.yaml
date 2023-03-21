@@ -8,6 +8,8 @@ metadata:
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
   replicas: {{ .Values.replicaCount }}
+  updateStrategy:
+    type: {{ .Values.updateStrategy.type }}
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
@@ -25,10 +27,16 @@ spec:
       initContainers: 
       - name: configure-group
         image: "{{ .Values.initContainerImage.repository }}:{{ .Values.initContainerImage.tag }}"
+        volumeMounts:
+            - name: mladmin-secrets
+              mountPath: /run/secrets/ml-secrets
+              readOnly: true
         command:
           - sh
           - '-c'
           - |
+            MARKLOGIC_ADMIN_USERNAME=`cat /run/secrets/ml-secrets/username`
+            MARKLOGIC_ADMIN_PASSWORD=`cat /run/secrets/ml-secrets/password`
             log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
                       echo "${TIMESTAMP}  $@"
@@ -67,16 +75,10 @@ spec:
               exit 1
             fi                      
         env: 
-        - name: MARKLOGIC_ADMIN_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "marklogic.fullname" . }}-admin
-              key: username
-        - name: MARKLOGIC_ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "marklogic.fullname" . }}-admin
-              key: password
+        - name: MARKLOGIC_ADMIN_USERNAME_FILE
+          value: "ml-secrets/username"
+        - name: MARKLOGIC_ADMIN_PASSWORD_FILE
+          value: "ml-secrets/password"
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -91,43 +93,56 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy}}
           volumeMounts:
             - name: datadir
-              mountPath: {{ .Values.persistence.mountPath }}
-            {{- if .Values.extraVolumeMounts }}
-              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+              mountPath: /var/opt/MarkLogic
+            {{- if .Values.additionalVolumeMounts }}
+              {{- toYaml .Values.additionalVolumeMounts | nindent 12 }}
             {{- end }}
+            - name: mladmin-secrets
+              mountPath: /run/secrets/ml-secrets
+              readOnly: true
           env:
-            - name: MARKLOGIC_ADMIN_USERNAME
-              valueFrom:
-                  secretKeyRef:
-                    name: {{ include "marklogic.fullname" . }}-admin
-                    key: username
-            - name: MARKLOGIC_ADMIN_PASSWORD
-              valueFrom:
-                  secretKeyRef:
-                    name: {{ include "marklogic.fullname" . }}-admin
-                    key: password
+            - name: MARKLOGIC_ADMIN_USERNAME_FILE
+              value: "ml-secrets/username"
+            - name: MARKLOGIC_ADMIN_PASSWORD_FILE
+              value: "ml-secrets/password"
+            {{- if .Values.auth.walletPassword }}
+            - name: MARKLOGIC_WALLET_PASSWORD_FILE
+              value: ml-secrets/wallet-password
+            {{- end }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                     fieldPath: metadata.name
+            - name: INSTALL_CONVERTERS
+              value: {{ .Values.enableConverters | quote }}
+            - name: LICENSE_KEY
+              value: {{ .Values.license.key | quote }}
+            - name: LICENSEE
+              value: {{ .Values.license.licensee | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
           ports:
-            - containerPort: 7997
-              name: health-check
-            - containerPort: 7998
-              name: cluster-port
-            - containerPort: 7999
-              name: cluster-port2
-            - containerPort: 8000
-              name: app-services
-            - containerPort: 8001
-              name: admin
-            - containerPort: 8002
-              name: manage
-            {{- if .Values.extraContainerPorts }}
-              {{- toYaml .Values.extraContainerPorts | nindent 12 }}
+            - name: health-check
+              containerPort: 7997
+              protocol: TCP
+            - name: xdqp-port1
+              containerPort: 7998
+              protocol: TCP
+            - name: xdqp-port2
+              containerPort: 7999              
+              protocol: TCP
+            - name: app-services
+              containerPort: 8000
+              protocol: TCP
+            - name: admin
+              containerPort: 8001
+              protocol: TCP
+            - name: manage
+              containerPort: 8002
+              protocol: TCP
+            {{- if .Values.additionalContainerPorts }}
+              {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
             {{- if eq .Values.bootstrapHostName "" }}
@@ -137,11 +152,18 @@ spec:
                   - bash
                   - '-c'
                   - |
-                    pid=$(ps aux | grep -i '/bin/bas[h] /usr' | awk {'print $2'})
+                    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
+                    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
+                    
+                    pid=$(pgrep start.marklogic)
 
                     log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      echo "${TIMESTAMP}  $@" > /proc/$pid/fd/1
+                      # Check to make sure pod doesn't terminate if PID value is empty for any reason
+                      # If PID value is empty postStart hook logs are not recorded
+                      if [ -n "$pid" ]; then
+                          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+                      fi
                     }
                     log "Info: [poststart] Begin Poststart Hook Execution"
                     if [[ $POD_NAME != *-0 ]]; then
@@ -166,12 +188,19 @@ spec:
                   - bash
                   - '-c'
                   - |
+                    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
+                    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
+
                     log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+                      # Check to make sure pod doesn't terminate if PID value is empty for any reason
+                      # If PID value is empty preStart hook logs are not recorded
+                      if [ -n "$pid" ]; then
+                          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+                      fi
                     }
 
-                    pid=$(ps aux | grep -i '/bin/bas[h] /usr' | awk {'print $2'})
+                    pid=$(pgrep start.marklogic)
                     log "Info: [prestop] Prestop Hook Execution"
 
                     my_host=$(hostname -f)
@@ -190,14 +219,14 @@ spec:
 
                             while (true)
                             do
-                               ml_status=$(service MarkLogic status)
-                               log "Info: [prestop] MarkLogic Status: "$ml_status
-                               if [[ "$ml_status" =~ "running" ]]; then
+                              ml_status=$(service MarkLogic status)
+                              log "Info: [prestop] MarkLogic Status: "$ml_status
+                              if [[ "$ml_status" =~ "running" ]]; then
                                   sleep 5s
                                   continue
-                               else
+                              else
                                   break
-                               fi
+                              fi
                             done
                             break
                         else
@@ -206,6 +235,9 @@ spec:
                             sleep 10s
                         fi
                     done
+          {{- if .Values.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
@@ -248,9 +280,9 @@ spec:
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: datadir
-              mountPath: {{ .Values.persistence.mountPath }}
-            {{- if .Values.extraVolumeMounts }}
-              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+              mountPath: /var/opt/MarkLogic
+            {{- if .Values.additionalVolumeMounts }}
+              {{- toYaml .Values.additionalVolumeMounts | nindent 12 }}
             {{- end }}
             - name: {{ include "marklogic.fullname" . }}-fb-config-map
               mountPath: /fluent-bit/etc/
@@ -261,32 +293,36 @@ spec:
                   fieldPath: metadata.name
           resources: {{- toYaml .Values.logCollection.resources | nindent 12 }}
         {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8}}
       {{- end }}
-      dnsConfig:
-        searches:
-          - {{ include "marklogic.headlessURL" . }}
       {{- if .Values.imagePullSecret }}
       imagePullSecrets:
         - name: {{ include "marklogic.fullname" . }}-registry
       {{- end }}
+      dnsConfig:
+        searches:
+          - {{ include "marklogic.headlessURL" . }}
       volumes:
+        - name: mladmin-secrets
+          secret:
+            secretName: {{ include "marklogic.fullname" . }}-admin
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:
             name: {{ include "marklogic.fullname" . }}-fb-config-map
         {{- end }}
-      {{- if or (not .Values.persistence.enabled) (.Values.extraVolumes) }}
         {{- if not .Values.persistence.enabled }}
         - name: datadir
           emptyDir: {}
         {{- end }}
-        {{- if .Values.extraVolumes }}
-        {{- toYaml .Values.extraVolumes | nindent 8 }}
+        {{- if .Values.additionalVolumes }}
+        {{- toYaml .Values.additionalVolumes | nindent 8 }}
         {{- end }}
-      {{- end }}
-  {{- if .Values.persistence.enabled }}
+  {{- if or .Values.persistence.enabled .Values.additionalVolumeClaimTemplates }}
   volumeClaimTemplates:
     - metadata:
         name: datadir
@@ -307,4 +343,7 @@ spec:
         resources:
           requests:
             storage: {{ .Values.persistence.size }}
+    {{- if .Values.additionalVolumeClaimTemplates }}
+    {{- toYaml .Values.additionalVolumeClaimTemplates | nindent 4 }}
+    {{- end }}
   {{- end }}

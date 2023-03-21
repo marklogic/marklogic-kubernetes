@@ -5,8 +5,36 @@ metadata:
   namespace: {{ .Values.namespace}}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
+  annotations: {{- toYaml .Values.service.annotations | nindent 4 }}
 spec:
   selector:
     {{- include "marklogic.selectorLabels" . | nindent 4 }}
   type: {{ .Values.service.type }}
-  ports: {{- toYaml .Values.service.ports | nindent 4 }}
+  ports:
+    - name: health-check
+      port: 7997
+      targetPort: 7997
+      protocol: TCP
+    - name: xdqp-port1
+      port: 7998
+      targetPort: 7998
+      protocol: TCP
+    - name: xdqp-port2
+      port: 7999
+      targetPort: 7999              
+      protocol: TCP
+    - name: app-services
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+    - name: admin
+      port: 8001
+      targetPort: 8001
+      protocol: TCP
+    - name: manage
+      port: 8002
+      targetPort: 8002
+      protocol: TCP
+    {{- if .Values.service.additionalPorts }}
+      {{- toYaml .Values.service.additionalPorts | nindent 4 }}
+    {{- end }}
