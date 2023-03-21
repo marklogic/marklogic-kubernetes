@@ -13,11 +13,11 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 )
 
-func TestChartTemplatePodPriorityClass(t *testing.T) {
+func TestChartTemplatePodAntiAffinityClass(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-pod-priority-test"
+	releaseName := "marklogic-pod-antiaffinity-test"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
@@ -31,7 +31,6 @@ func TestChartTemplatePodPriorityClass(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"priorityClassName":   "high-priority",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -45,8 +44,16 @@ func TestChartTemplatePodPriorityClass(t *testing.T) {
 	// Verify the name and namespace matches
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
-	// Verify the priortyClass is set for pods
-	expectedPriorityClass := "high-priority"
-	statefulSetPods := statefulset.Spec.Template.Spec
-	require.Equal(t, statefulSetPods.PriorityClassName, expectedPriorityClass)
+	// Verify the pod anti affinity rule is set
+	expectedLabelSelectorKey := "app.kubernetes.io/name"
+	expectedLabelSelectorValue := "marklogic"
+	expectedTopologyKey := "kubernetes.io/hostname"
+	statefulSetAffinityRule := statefulset.Spec.Template.Spec.Affinity.PodAntiAffinity
+	affinityPreferredRule := statefulSetAffinityRule.PreferredDuringSchedulingIgnoredDuringExecution
+	actualLabelSelectorKey := affinityPreferredRule[0].PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
+	actualLabelSelectorValue := affinityPreferredRule[0].PodAffinityTerm.LabelSelector.MatchExpressions[0].Values[0]
+	actualTopologyKey := affinityPreferredRule[0].PodAffinityTerm.TopologyKey
+	require.Equal(t, actualLabelSelectorKey, expectedLabelSelectorKey)
+	require.Equal(t, actualLabelSelectorValue, expectedLabelSelectorValue)
+	require.Equal(t, actualTopologyKey, expectedTopologyKey)
 }

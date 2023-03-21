@@ -13,11 +13,11 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 )
 
-func TestChartTemplatePodPriorityClass(t *testing.T) {
+func TestChartTemplateUpgradeStrategy(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-pod-priority-test"
+	releaseName := "marklogic-upgrade-test"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
@@ -31,7 +31,7 @@ func TestChartTemplatePodPriorityClass(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"priorityClassName":   "high-priority",
+			"updateStrategy.type": "RollingUpdate",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -45,8 +45,8 @@ func TestChartTemplatePodPriorityClass(t *testing.T) {
 	// Verify the name and namespace matches
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
-	// Verify the priortyClass is set for pods
-	expectedPriorityClass := "high-priority"
-	statefulSetPods := statefulset.Spec.Template.Spec
-	require.Equal(t, statefulSetPods.PriorityClassName, expectedPriorityClass)
+	// Verify the updateStrategy type set for upgrade
+	expectedUpgradeStrategy := "RollingUpdate"
+	actualUpgradeStrategy := statefulset.Spec.UpdateStrategy.Type
+	require.Equal(t, string(actualUpgradeStrategy), expectedUpgradeStrategy)
 }
