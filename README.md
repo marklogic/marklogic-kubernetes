@@ -1,6 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
-This repository enables you to install MarkLogic on a Kubernetes cluster using the Helm package manager. 
+This repository contains a Helm Chart that allows you to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/marklogic-server-on-kubernetes.html) for detailed documentation about running this.
 
 ## Getting Started
 
@@ -15,18 +15,18 @@ For non-production deployments, please see [MiniKube Setup Guide](docs/Local_Dev
  
 ### Installing MarkLogic Helm Chart
 
-Following the below steps will install a single node MarkLogic cluster with a default group
-
 1. Add MarkLogic Repo to Helm using this command:
 
 ```
 helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
 ```
-2. Install MarkLogic Chart to the current namespace with default settings:
+2. Install MarkLogic Helm Chart to the current namespace with default settings:
 
 ```
 helm install my-release marklogic/marklogic --version=1.0.0
 ```
+
+This helm chart installation will create a single node MarkLogic cluster with a Default group and a persistent volume of 10Gi attached to the pod created.
 
 To configure other settings, use `values.yaml` file with `-f` option. See [Parameters](#parameters) section for more information about these settings.
 
