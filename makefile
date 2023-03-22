@@ -1,5 +1,6 @@
 dockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:11.0.20230307-centos-1.0.2
 prevDockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:10.0-20230307-centos-1.0.2
+kubernetesVersion?=v1.25.8
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
@@ -80,7 +81,8 @@ lint:
 ## Run all end to end tests
 ## Options:
 ## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
-## * [prevDockerImage] optional. used for marklogic upgrade tests 
+## * [prevDockerImage] optional. used for marklogic upgrade tests
+## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: e2e-test
  e2e-test: prepare
@@ -88,7 +90,7 @@ lint:
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker -n=1 --cpus 2 --memory 10000
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
@@ -118,6 +120,7 @@ template-test: prepare
 ## Run all tests
 ## Options:
 ## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
 test: template-test e2e-test
