@@ -183,6 +183,7 @@ pipeline {
         string(name: 'dockerReleaseVer', defaultValue: '1.0.2', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
         choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
         string(name: 'prevDockerReleaseVer', defaultValue: '1.0.2', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
+        choice(name: 'K8_VERSION', choices: 'v1.25.8\nv1.26.3\nv1.24.12\nv1.23.17', description: 'Test Kubernetes version. (e.g. v1.25.8)')
     }
 
     stages {
@@ -211,7 +212,7 @@ pipeline {
             steps {
                 sh """
                     export MINIKUBE_HOME=/space;
-                    make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} saveOutput=true
+                    make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true
                 """
             }
         }
