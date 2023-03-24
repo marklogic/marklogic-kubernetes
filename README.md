@@ -111,7 +111,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 
 ## Known Issues and Limitations
 
-1. If the hostname is greater than 64 characters there may be issues with certificates. The certificates may shorten the name or use SANs for hostnames in the certificates.
+1. If the hostname is greater than 64 characters there will be issues with certificates. It is highly recommended to use hostname shorter than 64 characters or use SANs for hostnames in the certificates.
 2. The MarkLogic Docker image must be run in privileged mode. At the moment if the image isn't run as privileged many calls that use sudo during the startup script will fail due to lack of required permissions as the image will not be able to create a user with the required permissions.
 3. The latest released version of CentOS 7 has known security vulnerabilities with respect to glib2 CVE-2016-3191, CVE-2015-8385, CVE-2015-8387, CVE-2015-8390, CVE-2015-8394, CVE-2016-3191, glibc CVE-2019-1010022, pcre CVE-2015-8380, CVE-2015-8387, CVE-2015-8390, CVE-2015-8393, CVE-2015-8394, SQLite CVE-2019-5827. These libraries are included in the CentOS base image but, to-date, no fixes have been made available. Even though these libraries may be present in the base image that is used by MarkLogic Server, they are not used by MarkLogic Server itself, hence there is no impact or mitigation required.
 4. TLS/SSL cannot be turned on at the MarkLogic level for the Admin (port 8001) and Manage (port 8002) app servers.
