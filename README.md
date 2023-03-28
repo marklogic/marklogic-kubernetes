@@ -38,9 +38,9 @@ By default, MarkLogic admin username will be set to `admin` and the password wil
 ``` 
 kubectl get secrets 
 ```
-2. Use the secret name from step 1 to get MarkLogic admin password 
+2. Use the secret name from step 1 to get MarkLogic admin password. Secret name will be in the format  `RELEASE_NAME-marklogic-admin`, in this example `my-release-marklogic-admin`
 ``` 
-kubectl get secret SECRET_NAME -o jsonpath='{.data.password}' | base64 --decode 
+kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.password}' | base64 --decode 
 ``` 
 
 To configure other settings, use `values.yaml` file with `-f` option. See [Parameters](#parameters) section for more information about these settings.
