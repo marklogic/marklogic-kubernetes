@@ -14,7 +14,7 @@ For non-production deployments, please see [MiniKube Setup Guide](docs/Local_Dev
  
 ### Installing MarkLogic Helm Chart
 
-This helm chart installation will create a single-node MarkLogic cluster with a Default group. The cluster will be allocated with a persistent volume of 10Gi, 100m CPU, and RAM of 128Mi. By default, MarkLogic admin username will be set to `admin` and password will be set to a 10 character long random alphanumeric value. Please see the steps on how to retrieve MarkLogic admin password [here](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/creating-a-marklogic-cluster/retrieving-the-marklogic-admin-password.html).
+This helm chart installation will create a single-node MarkLogic cluster with a Default group. The cluster will be allocated with a persistent volume of 10Gi, 100m CPU, and RAM of 128Mi.
 
 1. Add MarkLogic Repo to Helm using this command:
 
@@ -31,6 +31,17 @@ Once the installation is complete and the pod is in a running state, MarkLogic a
 kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001
 ```
 Please refer [Documentation](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/creating-a-marklogic-cluster/accessing-marklogic-server-in-a-kubernetes-cluster.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
+
+By default, MarkLogic admin username will be set to `admin` and the password will be set to a 10-character long random alphanumeric value. Use the following steps to extract the admin password:
+
+1. Run the below command to fetch the secret name for MarkLogic deployment
+``` 
+kubectl get secrets 
+```
+2. Use the secret name from step 1 to get MarkLogic admin password 
+``` 
+kubectl get secret SECRET_NAME -o jsonpath='{.data.password}' | base64 --decode 
+``` 
 
 To configure other settings, use `values.yaml` file with `-f` option. See [Parameters](#parameters) section for more information about these settings.
 
