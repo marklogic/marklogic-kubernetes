@@ -14,17 +14,23 @@ For non-production deployments, please see [MiniKube Setup Guide](docs/Local_Dev
  
 ### Installing MarkLogic Helm Chart
 
-This helm chart installation will create a single-node MarkLogic cluster with a Default group. The cluster will be allocated with a persistent volume of 10Gi, 100m CPU, and RAM of 128Mi.
+This helm chart installation will create a single-node MarkLogic cluster with a Default group. The cluster will be allocated with a persistent volume of 10GB, 2 vCPUs, and 4 GB RAM.
 
 1. Add MarkLogic Repo to Helm using this command:
-
 ```
 helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
 ```
-2. Install MarkLogic Helm Chart to the current namespace with default settings:
-
+2. Set below parameters in the values.yaml to allocate compute resources
 ```
-helm install my-release marklogic/marklogic --version=1.0.0
+# Compute Resources
+resources:
+  requests:      
+    cpu: 2000m      
+    memory: 4000Mi
+```
+2. Install MarkLogic Helm Chart to the current namespace with default settings:
+```
+helm install my-release marklogic/marklogic --version=1.0.0 --values values.yaml
 ```
 Once the installation is complete and the pod is in a running state, MarkLogic admin UI can be accessed using the port-forwarding command as below:
 ```
@@ -43,7 +49,7 @@ kubectl get secrets
 kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.password}' | base64 --decode 
 ``` 
 
-To configure other settings, use `values.yaml` file with `-f` option. See [Parameters](#parameters) section for more information about these settings.
+To configure other settings, use `values.yaml` file with `-f` or `--values` option. See [Parameters](#parameters) section for more information about these settings.
 
 ## Parameters
 
