@@ -37,12 +37,10 @@ initContainerImage:
   tag: 7.87.0
   pullPolicy: IfNotPresent
 
-# Configure the imagePullSecret to pull the image from private repository that requires credential
-imagePullSecret: {}
-## docker hub registry: https://index.docker.io/v1/
-# registry: "https://index.docker.io/v1/"
-# username: "your username"
-# password: "your password"
+# Configure the imagePullSecrets to pull the image from private repository that requires credential
+imagePullSecrets: []
+# - name: "your-secret-name-1"
+# - name: "your-secret-name-2"
 
 # Marklogic pods' resource requests and limits
 # ref: https://kubernetes.io/docs/user-guide/compute-resources/
