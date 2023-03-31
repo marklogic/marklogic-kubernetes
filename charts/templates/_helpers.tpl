@@ -77,6 +77,25 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+Get the name for secret that is used for auth and managed by the Chart.
+*/}}
+{{- define "marklogic.authSecretName" -}}
+{{- printf "%s-admin" (include "marklogic.fullname" .) }}
+{{- end }}
+
+{{/*
+Get the secret name to mount to statefulSet.
+Use the auth.secretName value if set, otherwise use the name from marklogic.authSecretName.
+*/}}
+{{- define "marklogic.authSecretNameToMount" -}}
+{{- if .Values.auth.secretName }}
+{{- .Values.auth.secretName }}
+{{- else }}
+{{- include "marklogic.authSecretName" . }}
+{{- end }}
+{{- end }}
+
+{{/*
 Fully qualified domain name
 */}}
 {{- define "marklogic.fqdn" -}}

@@ -308,7 +308,7 @@ spec:
       volumes:
         - name: mladmin-secrets
           secret:
-            secretName: {{ include "marklogic.fullname" . }}-admin
+            secretName: {{ include "marklogic.authSecretNameToMount" . }}
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:

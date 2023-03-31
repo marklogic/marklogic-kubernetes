@@ -57,6 +57,7 @@ fullnameOverride: ""
 
 # Configure Marklogic Admin Username and Password
 auth:
+  secretName: ""
   adminUsername: "admin"
   adminPassword: ""
   walletPassword: ""
