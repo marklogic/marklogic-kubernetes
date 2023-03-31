@@ -55,12 +55,19 @@ resources: {}
 nameOverride: ""
 fullnameOverride: ""
 
-# Configure Marklogic Admin Username and Password
+# Configure Marklogic Admin Username and Password. Create a secret and specify the name via "secretName"
+# with the following keys:
+#   * username
+#   * password
+#   * wallet-password
+# 
+# If no secret is specified and the admin credentials are not provided, a secret will be automatically
+# generated with random admin and wallet passwords.
 auth:
   secretName: ""
-  adminUsername: "admin"
-  adminPassword: ""
-  walletPassword: ""
+#  adminUsername: "admin"
+#  adminPassword: ""
+#  walletPassword: ""
 
 # Optionally install converters package on MarkLogic
 enableConverters: false
