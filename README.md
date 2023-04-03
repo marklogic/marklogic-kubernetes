@@ -20,15 +20,30 @@ This helm chart installation will create a single-node MarkLogic cluster with a 
 ```
 helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
 ```
-2. Set below parameters in the values.yaml to allocate compute resources
+
+2. Create a secret to store MarkLogic admin credentials that includes username, password and wallet-password:
+Substitute your choice of values for admin credentials in the below command:
 ```
+kubectl create secret generic ml-admin-secrets \
+    --from-literal=adminUsername='' \
+    --from-literal=adminPassword='' \
+    --from-literal=walletPassword=''
+```
+Please refer Kubernetes official documentation for detailed steps on how to [create a secret](https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/#create-a-secret)
+
+3. Set below parameters in the values.yaml to allocate compute resources and the secret created for admin credentiials
+```
+# If no secret is specified and the admin credentials are not provided, a secret will be automatically
+# generated with random admin and wallet passwords.
+auth:
+  secretName: "ml-admin-secrets"
 # Compute Resources
 resources:
   requests:      
     cpu: 2000m      
     memory: 4000Mi
 ```
-2. Install MarkLogic Helm Chart to the current namespace with default settings:
+4. Install MarkLogic Helm Chart to the current namespace with default settings:
 ```
 helm install my-release marklogic/marklogic --version=1.0.0 --values values.yaml
 ```
@@ -38,15 +53,15 @@ kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001
 ```
 Please refer [Documentation](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/creating-a-marklogic-cluster/accessing-marklogic-server-in-a-kubernetes-cluster.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
 
-By default, MarkLogic admin username will be set to `admin` and the password will be set to a 10-character long random alphanumeric value. Use the following steps to extract the admin password:
+By default, MarkLogic admin credentials will be set to random alphanumeric value. Use the following steps to extract the admin username, password and wallet-password from a secret:
 
 1. Run the below command to fetch the secret name for MarkLogic deployment
 ``` 
 kubectl get secrets 
 ```
-2. Use the secret name from step 1 to get MarkLogic admin password. Secret name will be in the format  `RELEASE_NAME-marklogic-admin`, in this example `my-release-marklogic-admin`
+2. Use the secret name from step 1 to get MarkLogic admin credentials. For randomly generated credentials, secret name will be in the format  `RELEASE_NAME-marklogic-admin`. Otherwise please use the secret created in step 2 of [Installing MarkLogic Helm Chart](#installing-markLogic-helm-chart) in this example `ml-admin-secrets`
 ``` 
-kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.password}' | base64 --decode 
+kubectl get secret ml-admin-secrets -o jsonpath='{.data}' | base64 --decode 
 ``` 
 
 To configure other settings, use `values.yaml` file with `-f` or `--values` option. See [Parameters](#parameters) section for more information about these settings.
