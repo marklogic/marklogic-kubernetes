@@ -20,18 +20,22 @@ This helm chart installation will create a single-node MarkLogic cluster with a 
 ```
 helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
 ```
-
-2. Create a secret to store MarkLogic admin credentials that includes username, password and wallet-password:
+2. Create a Kubernetes namespace using below command:
+```
+kubectl create namespace marklogic
+```
+3. Create a secret to store MarkLogic admin credentials that includes username, password and wallet-password:
 Substitute your choice of values for admin credentials in the below command:
 ```
 kubectl create secret generic ml-admin-secrets \
     --from-literal=adminUsername='' \
     --from-literal=adminPassword='' \
-    --from-literal=walletPassword=''
+    --from-literal=walletPassword='' \
+    --namespace=marklogic
 ```
 Please refer Kubernetes official documentation for detailed steps on how to [create a secret](https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/#create-a-secret)
 
-3. Set below parameters in the values.yaml to allocate compute resources and the secret created for admin credentiials
+4. Set below parameters in the values.yaml to allocate compute resources and the secret created for admin credentiials
 ```
 # If no secret is specified and the admin credentials are not provided, a secret will be automatically
 # generated with random admin and wallet passwords.
@@ -43,9 +47,9 @@ resources:
     cpu: 2000m      
     memory: 4000Mi
 ```
-4. Install MarkLogic Helm Chart to the current namespace with default settings:
+5. Install MarkLogic Helm Chart with above custom settings and rest set to default in the values.yaml:
 ```
-helm install my-release marklogic/marklogic --version=1.0.0 --values values.yaml
+helm install my-release marklogic/marklogic --version=1.0.0 --values values.yaml --namespace=marklogic
 ```
 Once the installation is complete and the pod is in a running state, MarkLogic admin UI can be accessed using the port-forwarding command as below:
 ```
