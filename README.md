@@ -28,9 +28,9 @@ kubectl create namespace marklogic
 Substitute your choice of values for admin credentials in the below command:
 ```
 kubectl create secret generic ml-admin-secrets \
-    --from-literal=adminUsername='' \
-    --from-literal=adminPassword='' \
-    --from-literal=walletPassword='' \
+    --from-literal=username='' \
+    --from-literal=password='' \
+    --from-literal=wallet-password='' \
     --namespace=marklogic
 ```
 Please refer Kubernetes official documentation for detailed steps on how to [create a secret](https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/#create-a-secret)
@@ -88,8 +88,9 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
 | `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | ``    
+| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | ``     
 | `auth.walletPassword`                 | Password for wallet                                                                    | `` 
+| `auth.secretName`                    | Kubernetes Secret name for MarkLogic Admin credentials                                                                  | ``  
 | `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
 | `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
 | `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
