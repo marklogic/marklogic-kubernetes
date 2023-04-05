@@ -95,9 +95,8 @@ func TestHelmInstall(t *testing.T) {
 	assert.Equal(t, 10, len(password))
 	usernameArr := secret.Data["username"]
 	username := string(usernameArr[:])
-	expectedUsername := "admin"
-	// the username from secret expected to be "admin"
-	assert.Equal(t, expectedUsername, username)
+	// the random generated username should have length of 11"
+	assert.Equal(t, 11, len(username))
 
 	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel8002.Close()
