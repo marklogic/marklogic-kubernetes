@@ -299,9 +299,8 @@ spec:
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8}}
       {{- end }}
-      {{- if .Values.imagePullSecret }}
-      imagePullSecrets:
-        - name: {{ include "marklogic.fullname" . }}-registry
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       dnsConfig:
         searches:
@@ -309,7 +308,7 @@ spec:
       volumes:
         - name: mladmin-secrets
           secret:
-            secretName: {{ include "marklogic.fullname" . }}-admin
+            secretName: {{ include "marklogic.authSecretNameToMount" . }}
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:
