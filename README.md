@@ -65,8 +65,9 @@ kubectl get secrets
 ```
 2. Use the secret name from step 1 to get MarkLogic admin credentials. For randomly generated credentials, secret name will be in the format  `RELEASE_NAME-marklogic-admin`. Otherwise please use the secret created in step 2 of [Installing MarkLogic Helm Chart](#installing-markLogic-helm-chart) in this example `ml-admin-secrets`
 ``` 
-kubectl get secret ml-admin-secrets -o jsonpath='{.data}' | base64 --decode 
+kubectl get secret ml-admin-secrets -o jsonpath='{.data.password}' | base64 --decode 
 ``` 
+Replace `password` with `username` and `wallet-password` in the above command to extract admin username and wallet password. 
 
 To configure other settings, use `values.yaml` file with `-f` or `--values` option. See [Parameters](#parameters) section for more information about these settings.
 
