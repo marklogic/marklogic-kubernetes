@@ -1,6 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
-This repository contains a Helm Chart that allows you to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/marklogic-server-on-kubernetes.html) for detailed documentation about running this.
+This repository contains a Helm Chart that allows you to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/?lang=en) for detailed documentation about running this.
 
 ## Getting Started
 
@@ -8,9 +8,9 @@ This repository contains a Helm Chart that allows you to deploy MarkLogic on a K
 
 To install this chart, you need to install [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/).
 
-To set up a Kubernetes Cluster for Production Workload, we recommend using EKS platform on AWS. To bring up a Kubernetes cluster on EKS, you can install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) tool. Please refer to [Using eksctl to Provision MarkLogic Kubernetes Cluster on EKS](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster/installing-amazon-web-services-elastic-kubernetes-service--for-production-.html) for detailed steps.
+To set up a Kubernetes Cluster for Production Workload, we recommend using EKS platform on AWS. To bring up a Kubernetes cluster on EKS, you can install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) tool. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
 
-For non-production deployments, please see [MiniKube Setup Guide](docs/Local_Development_Tutorial.md) to create the Kubernetes cluster locally.
+For non-production deployments, please see [MiniKube Setup Guide](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4480543593867233593415017144) to create the Kubernetes cluster locally.
  
 ### Installing MarkLogic Helm Chart
 
@@ -55,7 +55,7 @@ Once the installation is complete and the pod is in a running state, MarkLogic a
 ```
 kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001
 ```
-Please refer [Documentation](http://cms-ml-docs-stage.marklogic.com/11.0/guide/kubernetes-guide/en/creating-a-marklogic-cluster/accessing-marklogic-server-in-a-kubernetes-cluster.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
+Please refer [Official Documentation](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/accessing-marklogic-server-in-a-kubernetes-cluster.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
 
 By default, MarkLogic admin credentials will be set to random alphanumeric value. Use the following steps to extract the admin username, password and wallet-password from a secret:
 
