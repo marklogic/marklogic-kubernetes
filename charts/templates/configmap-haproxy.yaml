@@ -1,6 +1,6 @@
 {{- if .Values.haproxy.enabled }}
 {{- $replicas := int .Values.replicaCount }}
-{{- $releaseName := .Release.Name }}
+{{- $releaseName := include "marklogic.fullname" . }}
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
 {{- $tlsEnabled := .Values.haproxy.tls.enabled }}
