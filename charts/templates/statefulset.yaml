@@ -119,6 +119,8 @@ spec:
               value: {{ .Values.license.key | quote }}
             - name: LICENSEE
               value: {{ .Values.license.licensee | quote }}
+            - name: REALM
+              value: {{ .Values.auth.realm  | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
