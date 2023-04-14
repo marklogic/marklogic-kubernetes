@@ -96,7 +96,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
 | `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | ``     
 | `auth.walletPassword`                 | Password for wallet                                                                    | `` 
-| `auth.realm`                 | Realm of the security database                                                                  | `` 
+| `realm`                              | Realm of the security database                                                                  | `` 
 | `auth.secretName`                    | Kubernetes Secret name for MarkLogic Admin credentials                                                                  | ``  
 | `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
 | `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |

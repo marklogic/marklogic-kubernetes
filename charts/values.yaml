@@ -68,7 +68,9 @@ auth:
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
-  realm: ""
+
+# Configure realm of the MarkLogic security database    
+realm: ""
 
 # Optionally install converters package on MarkLogic
 enableConverters: false
