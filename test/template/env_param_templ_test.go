@@ -151,7 +151,7 @@ func TestChartTemplateAuthRealmValue(t *testing.T) {
 			"image.repository":    "marklogicdb/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
-			"auth.realm":          "public",
+			"realm":               "public",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
