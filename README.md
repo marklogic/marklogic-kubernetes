@@ -1,20 +1,20 @@
 # MarkLogic Kubernetes Helm Chart
 
-This repository contains a Helm Chart that allows you to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/?lang=en) for detailed documentation about running this.
+This repository contains a Helm Chart that can be used to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/?lang=en) for detailed documentation about running this.
 
 ## Getting Started
 
 ### Prerequisites
 
-To install this chart, you need to install [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/).
+[Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/)  must be installed locally in order to use this chart.
 
-To set up a Kubernetes Cluster for Production Workload, we recommend using EKS platform on AWS. To bring up a Kubernetes cluster on EKS, you can install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) tool. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
+For production environments, it is recommend to use a managed Kubenetes service such as AWS EKS. The [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) command line tool can be used to bring up a Kubernetes cluster on EKS. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
 
 For non-production deployments, please see [MiniKube Setup Guide](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4480543593867233593415017144) to create the Kubernetes cluster locally.
  
 ### Installing MarkLogic Helm Chart
 
-This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 10GB persistent valume, 2 vCPUs, and 4 GB of RAM will be allocated for the pod.
+This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 20GB persistent volume, 2 vCPUs, and 4GB of RAM will be allocated for the pod.
 
 1. Add MarkLogic Repo to Helm:
 ```
@@ -43,11 +43,19 @@ replicaCount: 1
 auth:
   secretName: "ml-admin-secrets" 
 
-# Compute Resources
+# Configure compute resources
 resources:
   requests:      
     cpu: 2000m      
     memory: 4000Mi
+  limits:
+    cpu: 2000m
+    memory: 4000Mi
+
+# Configure the persistent volume
+persistence:
+  enabled: true
+  size: 20Gi
 ```
 5. Install the MarkLogic Helm Chart with the above custom settings. The rest of the settings will default to the values as listed below in the [Parameters](#parameters) section.
 ```

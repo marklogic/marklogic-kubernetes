@@ -212,7 +212,7 @@ containerSecurityContext:
   runAsNonRoot: true
   allowPrivilegeEscalation: true
 
-## Below are the advanced configurations, please understand read the reference before you make changes
+## Below are the advanced configurations, please read the reference in detail before making changes
 
 ## Configure options for liveness probe
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
@@ -328,7 +328,7 @@ haproxy:
     #   port: 5432
 
   ## Configure TLS for HAProxy
-  ## You need to put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
+  ## Put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
   ## The PEM-formatted SSL certificate should contain the private key and the certificate. For example: cat certificate.pem private-key.pem > mycert.pem
   ## To generate the secret in Kubernetes: kubectl create secret generic tls-cert --from-file=mycert.pem
   tls:
