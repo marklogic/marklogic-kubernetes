@@ -271,6 +271,7 @@ logCollection:
       #   Match *
       #   Host elasticsearch.default.svc.cluster.local
       #   Port 9200
+      #   Generate_ID On
       #   HTTP_User admin
       #   HTTP_Passwd admin
 
