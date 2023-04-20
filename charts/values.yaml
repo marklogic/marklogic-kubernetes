@@ -274,6 +274,8 @@ logCollection:
       #   Generate_ID On
       #   HTTP_User admin
       #   HTTP_Passwd admin
+      ## If using Elastic 8 set the parameter below 
+      #   Suppress_Type_Name On
 
 ## Configuration for the HAProxy load balancer
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
