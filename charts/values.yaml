@@ -267,15 +267,13 @@ logCollection:
   ## Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
   outputs: |-
       # [OUTPUT]
-      #   Name es
-      #   Match *
-      #   Host elasticsearch.default.svc.cluster.local
-      #   Port 9200
-      #   Generate_ID On
-      #   HTTP_User admin
-      #   HTTP_Passwd admin
-      ## If using Elastic 8 set the parameter below 
-      #   Suppress_Type_Name On
+      #   name loki
+      #   match *
+      #   host loki.default.svc.cluster.local
+      #   port 3100
+      #   labels job=fluent-bit
+      #   http_user admin
+      #   http_passwd admin
 
 ## Configuration for the HAProxy load balancer
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
