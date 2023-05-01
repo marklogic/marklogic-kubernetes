@@ -1,20 +1,20 @@
 # MarkLogic Kubernetes Helm Chart
 
-This repository contains a Helm Chart that allows you to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/?lang=en) for detailed documentation about running this.
+This repository contains a Helm Chart that can be used to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/?lang=en) for detailed documentation about running this.
 
 ## Getting Started
 
 ### Prerequisites
 
-To install this chart, you need to install [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/).
+[Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/)  must be installed locally in order to use this chart.
 
-To set up a Kubernetes Cluster for Production Workload, we recommend using EKS platform on AWS. To bring up a Kubernetes cluster on EKS, you can install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) tool. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
+For production environments, it is recommend to use a managed Kubenetes service such as AWS EKS. The [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) command line tool can be used to bring up a Kubernetes cluster on EKS. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
 
 For non-production deployments, please see [MiniKube Setup Guide](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4480543593867233593415017144) to create the Kubernetes cluster locally.
  
 ### Installing MarkLogic Helm Chart
 
-This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 10GB persistent valume, 2 vCPUs, and 4 GB of RAM will be allocated for the pod.
+This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 20GB persistent volume, 2 vCPUs, and 4GB of RAM will be allocated for the pod.
 
 1. Add MarkLogic Repo to Helm:
 ```
@@ -43,11 +43,19 @@ replicaCount: 1
 auth:
   secretName: "ml-admin-secrets" 
 
-# Compute Resources
+# Configure compute resources
 resources:
   requests:      
     cpu: 2000m      
     memory: 4000Mi
+  limits:
+    cpu: 2000m
+    memory: 4000Mi
+
+# Configure the persistent volume
+persistence:
+  enabled: true
+  size: 20Gi
 ```
 5. Install the MarkLogic Helm Chart with the above custom settings. The rest of the settings will default to the values as listed below in the [Parameters](#parameters) section.
 ```
@@ -80,78 +88,107 @@ To configure other settings, add them to the `values.yaml` file. See [Parameters
 
 Following table lists all the parameters supported by the latest MarkLogic Helm chart:
 
-| Name                                 | Description                                                                                                    | Default Value                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `replicaCount`                       | Number of MarkLogic Nodes                                                                                      | `1`                                  |
-| `image.repository`                   | repository for MarkLogic image                                                                                 | `marklogicdb/marklogic-db`           |
-| `image.tag`                          | Image tag for MarkLogic                                                                                        | `latest`                             |
-| `image.pullPolicy`                   | Image pull policy                                                                                              | `IfNotPresent`                       |
-| `imagePullSecret.registry`           | Registry of the imagePullSecret                                                                                | `""`                                 |
-| `imagePullSecret.username`           | Username of the imagePullSecret                                                                                | `""`                                 |
-| `imagePullSecret.password`           | Password of the imagePullSecret                                                                                | `""`                                 |
-| `resources.limits`                   | The resource limits for MarkLogic container                                                                    | `{}`                                 |
-| `resources.requests`                 | The resource requests for MarkLogic container                                                                  | `{}`                                 |
-| `nameOverride`                       | String to override the app name                                                                                | `""`                                 |
-| `fullnameOverride`                   | String to completely replace the generated name                                                                | `""`                                 |
-| `auth.adminUsername`                 | Username for default MarkLogic Administrator                                                                   | `admin`                              |
-| `auth.adminPassword`                 | Password for default MarkLogic Administrator                                                                   | ``     
-| `auth.walletPassword`                 | Password for wallet                                                                    | `` 
-| `realm`                              | Realm of the security database                                                                  | `` 
-| `auth.secretName`                    | Kubernetes Secret name for MarkLogic Admin credentials                                                                  | ``  
-| `bootstrapHostName`                 | Host name of MarkLogic bootstrap host                                                                | `""`   
-| `group.name`               | group name for joining MarkLogic cluster                                                                    | `Default`                              |
-| `group.enableXdqpSsl`                 | SSL encryption for XDQP                                                                   | `true`                         |
-| `license.key`                       | 	set MarkLogic license key installed                       | `""` |
-| `license.licensee`                 | set MarkLogic licensee information                       | `""` |
-| `enableConverters`                 | Installs converters for the client if they are not already installed                       | `false` |
-| `affinity`                           | Affinity property for pod assignment                                                                           | `{}`                                 |
-| `nodeSelector`                       | nodeSelector property for pod assignment                                                                       | `{}`                                 |
-| `persistence.enabled`                | Enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used | `true`                               |
-| `persistence.storageClass`           | Storage class for MarkLogic data volume, leave empty to use the default storage class                          | `""`                                 |
-| `persistence.size`                   | Size of storage request for MarkLogic data volume                                                              | `10Gi`                               |
-| `persistence.annotations`            | Annotations for Persistence Volume Claim (PVC)                                                                 | `{}`                                 |
-| `persistence.accessModes`            | Access mode for persistence volume                                                                             | `["ReadWriteOnce"]`                  |
-| `additionalContainerPorts`                | List of ports in addition to the defaults exposed at the container level (Note: This does not typically need to be updated. Use `service.additionalPorts` to expose app server ports.)                                                | `[]`                                 |
-| `additionalVolumes`                  | List of additional volumes to add to the MarkLogic containers                                                  | `[]`                                 |
-| `additionalVolumeMounts`             | List of mount points for the additional volumes to add to the MarkLogic containers                             | `[]`                                 |
-| `service.type`                       | type of the default service                                                                                    | `ClusterIP`                          |
-| `service.additionalPorts`                      | List of ports in addition to the defaults exposed at the service level.                                                                                    | `[]`                       |
-| `serviceAccount.create`              | Enable this parameter to create a service account for a MarkLogic Pod                                          | `true`                               |
-| `serviceAccount.annotations`         | Annotations for MarkLogic service account                                                                      | `{}`                                 |
-| `serviceAccount.name`                | Name of the serviceAccount                                                                                     | `""`                                 |
-| `livenessProbe.enabled`              | Enable this parameter to enable the liveness probe                                                             | `true`                               |
-| `livenessProbe.initialDelaySeconds`  | Initial delay seconds for liveness probe                                                                       | `30`                                 |
-| `livenessProbe.periodSeconds`        | Period seconds for liveness probe                                                                              | `60`                                 |
-| `livenessProbe.timeoutSeconds`       | Timeout seconds for liveness probe                                                                             | `5`                                  |
-| `livenessProbe.failureThreshold`     | Failure threshold for liveness probe                                                                           | `3`                                  |
-| `livenessProbe.successThreshold`     | Success threshold for liveness probe                                                                           | `1`                                  |
-| `readinessProbe.enabled`             | Use this parameter to enable the readiness probe                                                               | `true`                               |
-| `readinessProbe.initialDelaySeconds` | Initial delay seconds for readiness probe                                                                      | `10`                                 |
-| `readinessProbe.periodSeconds`       | Period seconds for readiness probe                                                                             | `60`                                 |
-| `readinessProbe.timeoutSeconds`      | Timeout seconds for readiness probe                                                                            | `5`                                  |
-| `readinessProbe.failureThreshold`    | Failure threshold for readiness probe                                                                          | `3`                                  |
-| `readinessProbe.successThreshold`    | Success threshold for readiness probe                                                                          | `1`                                  |
-| `startupProbe.enabled`               | Parameter to enable startup probe                                                                              | `true`                               |
-| `startupProbe.initialDelaySeconds`   | Initial delay seconds for startup probe                                                                        | `10`                                 |
-| `startupProbe.periodSeconds`         | Period seconds for startup probe                                                                               | `20`                                 |
-| `startupProbe.timeoutSeconds`        | Timeout seconds for startup probe                                                                              | `1`                                  |
-| `startupProbe.failureThreshold`      | Failure threshold for startup probe                                                                            | `30`                                 |
-| `startupProbe.successThreshold`      | Success threshold for startup probe                                                                            | `1`                                  |
-| `logCollection.enabled`              | Enable this parameter to enable cluster wide log collection of Marklogic server logs                           | `false`                              |
-| `logCollection.files.errorLogs`      | Enable this parameter to enable collection of Marklogics error logs when clog collection is enabled            | `true`                               |
-| `logCollection.files.accessLogs`     | Enable this parameter to enable collection of Marklogics access logs when log collection is enabled            | `true`                               |
-| `logCollection.files.requestLogs`    | Enable this parameter to enable collection of Marklogics request logs when log collection is enabled           | `true`                               |
-| `logCollection.files.crashLogs`      | Enable this parameter to enable collection of Marklogics crash logs when log collection is enabled             | `true`                               |
-| `logCollection.files.auditLogs`      | Enable this parameter to enable collection of Marklogics audit logs when log collection is enabled             | `true`                               |
-| `containerSecurityContext.enabled`      | Enable this parameter to enable security context for containers             | `true`                               |
-| `containerSecurityContext.runAsUser`      | User ID to run the entrypoint of the container process             | `1000`                               |
-| `containerSecurityContext.runAsNonRoot`      | Indicates that the container must run as a non-root user             | `true`                               |
-| `containerSecurityContext.allowPrivilegeEscalation`      | Controls whether a process can gain more privileges than its parent process             | `true`                               |
-| `networkPolicy.enabled`      | Enable this parameter to enable network policy             | `false`                               |
-| `networkPolicy.customRules`      | Placeholder to specify selectors              | `{}`                               |
-| `networkPolicy.ports`      | Ports to which traffic is allowed              | `[8000, 8001, 8002]`                               |
-| `priorityClassName`      | Name of a PriortyClass defined to set pod priority        | `""`                               |
-| `updateStrategy`      | Update strategy for helm chart and app version updates        | `OnDelete`                               |
+| Name                                                | Description                                                                                                                                                                            | Default Value              |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `replicaCount`                                      | Number of MarkLogic Nodes                                                                                                                                                              | `1`                        |
+| `updateStrategy`                                    | Update strategy for MarkLogic pods                                                                                                                                                     | `OnDelete`                 |
+| `terminationGracePeriod`                            | Seconds the MarkLogic Pod terminate gracefully                                                                                                                                         | `120`                      |
+| `clusterDomain`                                     | Domain for the Kubernetes cluster                                                                                                                                                      | `cluster.local`            |
+| `group.name`                                        | Group name for joining MarkLogic cluster                                                                                                                                               | `Default`                  |
+| `group.enableXdqpSsl`                               | SSL encryption for XDQP                                                                                                                                                                | `true`                     |
+| `bootstrapHostName`                                 | Host name of MarkLogic bootstrap host (to join a cluster)                                                                                                                              | `""`                       |
+| `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `marklogicdb/marklogic-db` |
+| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `11.0.2-centos-1.0.2`      |
+| `image.pullPolicy`                                  | Image pull policy for MarkLogic image                                                                                                                                                  | `IfNotPresent`             |
+| `initContainerImage.repository`                     | Repository for initContainer image                                                                                                                                                     | `curlimages/curl`          |
+| `initContainerImage.tag`                            | Image tag for initContainer image                                                                                                                                                      | `7.87.0`                   |
+| `initContainerImage.pullPolicy`                     | Pull policy for initContainer image                                                                                                                                                    | `IfNotPresent`             |
+| `imagePullSecrets`                                  | Registry secret names as an array                                                                                                                                                      | `[]`                       |
+| `resources`                                         | The resource requests and limits for MarkLogic container                                                                                                                               | `{}`                       |
+| `nameOverride`                                      | String to override the app name                                                                                                                                                        | `""`                       |
+| `fullnameOverride`                                  | String to completely replace the generated name                                                                                                                                        | `""`                       |
+| `auth.secretName`                                   | Kubernetes Secret name for MarkLogic Admin credentials                                                                                                                                 | `""`                       |
+| `auth.adminUsername`                                | Username for default MarkLogic Administrator                                                                                                                                           | `""`                       |
+| `auth.adminPassword`                                | Password for default MarkLogic Administrator                                                                                                                                           | `""`                       |
+| `auth.walletPassword`                               | Password for wallet                                                                                                                                                                    | `""`                       |
+| `enableConverters`                                  | Parameter to Install converters for the client if they are not already installed.                                                                                                      | `false`                    |
+| `license.key`                                       | Set MarkLogic license key installed                                                                                                                                                    | `""`                       |
+| `license.licensee`                                  | Set MarkLogic licensee information                                                                                                                                                     | `""`                       |
+| `affinity`                                          | Affinity for MarkLogic pods assignment                                                                                                                                                 | `{}`                       |
+| `nodeSelector`                                      | Node labels for MarkLogic pods assignment                                                                                                                                              | `{}`                       |
+| `persistence.enabled`                               | Parameter to enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used.                                                           | `true`                     |
+| `persistence.storageClass`                          | Storage class for MarkLogic data volume, leave empty to use the default storage class                                                                                                  | `""`                       |
+| `persistence.size`                                  | Size of storage request for MarkLogic data volume                                                                                                                                      | `10Gi`                     |
+| `persistence.annotations`                           | Annotations for Persistence Volume Claim (PVC)                                                                                                                                         | `{}`                       |
+| `persistence.accessModes`                           | Access mode for persistence volume                                                                                                                                                     | `["ReadWriteOnce"]`        |
+| `additionalVolumeClaimTemplates`                    | List of additional volumeClaimTemplates to each MarkLogic container                                                                                                                    | `[]`                       |
+| `additionalVolumes`                                 | List of additional volumes to add to the MarkLogic containers                                                                                                                          | `[]`                       |
+| `additionalVolumeMounts`                            | List of mount points for the additional volumes to add to the MarkLogic containers                                                                                                     | `[]`                       |
+| `additionalContainerPorts`                          | List of ports in addition to the defaults exposed at the container level (Note: This does not typically need to be updated. Use `service.additionalPorts` to expose app server ports.) | `[]`                       |
+| `service.annotations`                               | Annotations for MarkLogic service                                                                                                                                                      | `{}`                       |
+| `service.type`                                      | Default service type                                                                                                                                                                   | `ClusterIP`                |
+| `service.additionalPorts`                           | List of ports in addition to the defaults exposed at the service level                                                                                                                 | `[]`                       |
+| `serviceAccount.create`                             | Parameter to enable creating a service account for a MarkLogic Pod                                                                                                                     | `true`                     |
+| `serviceAccount.annotations`                        | Annotations for MarkLogic service account                                                                                                                                              | `{}`                       |
+| `serviceAccount.name`                               | Name of the serviceAccount                                                                                                                                                             | `""`                       |
+| `priorityClassName`                                 | Name of a PriortyClass defined to set pod priority                                                                                                                                     | `""`                       |
+| `networkPolicy.enabled`                             | Parameter to enable network policy                                                                                                                                                     | `false`                    |
+| `networkPolicy.customRules`                         | Placeholder to specify selectors                                                                                                                                                       | `{}`                       |
+| `networkPolicy.ports`                               | Parameter to specify the ports where traffic is allowed                                                                                                                                | `[{port:8000, endPort: 8020, protocol: TCP}]` |
+| `containerSecurityContext.enabled`                  | Parameter to enable security context for MarkLogic containers                                                                                                                          | `true`                     |
+| `containerSecurityContext.runAsUser`                | User ID to run the entrypoint of the container process                                                                                                                                 | `1000`                     |
+| `containerSecurityContext.runAsNonRoot`             | Indicates that the container must run as a non-root user                                                                                                                               | `true`                     |
+| `containerSecurityContext.allowPrivilegeEscalation` | Controls whether a process can gain more privileges than its parent process                                                                                                            | `true`                     |
+| `livenessProbe.enabled`                             | Parameter to enable the liveness probe                                                                                                                                                 | `true`                     |
+| `livenessProbe.initialDelaySeconds`                 | Initial delay seconds for liveness probe                                                                                                                                               | `30`                       |
+| `livenessProbe.periodSeconds`                       | Period seconds for liveness probe                                                                                                                                                      | `60`                       |
+| `livenessProbe.timeoutSeconds`                      | Timeout seconds for liveness probe                                                                                                                                                     | `5`                        |
+| `livenessProbe.failureThreshold`                    | Failure threshold for liveness probe                                                                                                                                                   | `3`                        |
+| `livenessProbe.successThreshold`                    | Success threshold for liveness probe                                                                                                                                                   | `1`                        |
+| `readinessProbe.enabled`                            | Use this parameter to enable the readiness probe                                                                                                                                       | `true`                     |
+| `readinessProbe.initialDelaySeconds`                | Initial delay seconds for readiness probe                                                                                                                                              | `10`                       |
+| `readinessProbe.periodSeconds`                      | Period seconds for readiness probe                                                                                                                                                     | `60`                       |
+| `readinessProbe.timeoutSeconds`                     | Timeout seconds for readiness probe                                                                                                                                                    | `5`                        |
+| `readinessProbe.failureThreshold`                   | Failure threshold for readiness probe                                                                                                                                                  | `3`                        |
+| `readinessProbe.successThreshold`                   | Success threshold for readiness probe                                                                                                                                                  | `1`                        |
+| `startupProbe.enabled`                              | Parameter to enable startup probe                                                                                                                                                      | `true`                     |
+| `startupProbe.initialDelaySeconds`                  | Initial delay seconds for startup probe                                                                                                                                                | `10`                       |
+| `startupProbe.periodSeconds`                        | Period seconds for startup probe                                                                                                                                                       | `20`                       |
+| `startupProbe.timeoutSeconds`                       | Timeout seconds for startup probe                                                                                                                                                      | `1`                        |
+| `startupProbe.failureThreshold`                     | Failure threshold for startup probe                                                                                                                                                    | `30`                       |
+| `startupProbe.successThreshold`                     | Success threshold for startup probe                                                                                                                                                    | `1`                        |
+| `logCollection.enabled`                             | Parameter to enable cluster wide log collection of Marklogic server logs                                                                                                               | `false`                    |
+| `logCollection.image`                               | Image repository and tag for fluent-bit container                                                                                                                                      | `fluent/fluent-bit:2.0.6`  |
+| `logCollection.resources.requests.cpu`              | The requested cpu resource for the fluent-bit container                                                                                                                                | `100m`                     |
+| `logCollection.resources.requests.memory`           | The requested memory resource for the fluent-bit container                                                                                                                             | `128Mi`                    |
+| `logCollection.resources.limits.cpu`                | The cpu resource limit for the fluent-bit container                                                                                                                                    | `100m`                     |
+| `logCollection.resources.limits.memory`             | The memory resource limit for the fluent-bit container                                                                                                                                 | `128Mi`                    |
+| `logCollection.files.errorLogs`                     | Parameter to enable collection of MarkLogics error logs when log collection is enabled                                                                                                 | `true`                     |
+| `logCollection.files.accessLogs`                    | Parameter to enable collection of MarkLogics access logs when log collection is enabled                                                                                                | `true`                     |
+| `logCollection.files.requestLogs`                   | Parameter to enable collection of MarkLogics request logs when log collection is enabled                                                                                               | `true`                     |
+| `logCollection.files.crashLogs`                     | Parameter to enable collection of MarkLogics crash logs when log collection is enabled                                                                                                 | `true`                     |
+| `logCollection.files.auditLogs`                     | Parameter to enable collection of MarkLogics audit logs when log collection is enabled                                                                                                 | `true`                     |
+| `logCollection.outputs`                             | Configure desired output for fluent-bit                                                                                                                                                | `""`                       |
+| `haproxy.enabled`                                   | Parameter to enable the HAProxy Load Balancer for MarkLogic Server                                                                                                                     | `false`                    |
+| `haproxy.existingConfigmap`                         | Name of an existing configmap with configuration for HAProxy                                                                                                                           | `marklogic-haproxy`        |
+| `haproxy.replicaCount`                              | Number of HAProxy Deployment                                                                                                                                                           | `2`                        |
+| `haproxy.restartWhenUpgrade.enabled`                | Automatically roll Deployments for every helm upgrade                                                                                                                                  | `true`                     |
+| `haproxy.stats.enabled`                             | Parameter to enable the stats page for HAProxy                                                                                                                                         | `false`                    |
+| `haproxy.stats.port`                                | Port for stats page                                                                                                                                                                    | `1024`                     |
+| `haproxy.stats.auth.enabled`                        | Parameter to enable the basic auth for stats page                                                                                                                                      | `false`                    |
+| `haproxy.stats.auth.username`                       | Username for stats page                                                                                                                                                                | `""`                       |
+| `haproxy.stats.auth.password`                       | Password for stats page                                                                                                                                                                | `""`                       |
+| `haproxy.service.type`                              | The service type of the HAproxy                                                                                                                                                        | `ClusterIP`                |
+| `haproxy.ports`                                     | Ports and load balancing type configuration for HAproxy                                                                                                                                | `[]`                       |
+| `haproxy.tls.enabled`                               | Parameter to enable TLS for HAProxy                                                                                                                                                    | `false`                    |
+| `haproxy.tls.secretName`                            | Name of the secret that stores the certificate                                                                                                                                         | `""`                       |
+| `haproxy.tls.certFileName`                          | The name of the certificate file in the secret                                                                                                                                         | `""`                       |
+| `haproxy.nodeSelector`                              | Node labels for HAProxy pods assignment                                                                                                                                                | `{}`                       |
+| `haproxy.affinity`                                  | Affinity for HAProxy pods assignment                                                                                                                                                   | `{}`                       |
+| `haproxy.resources.requests.cpu`                    | The requested cpu resource for the HAProxy container                                                                                                                                   | `250m`                     |
+| `haproxy.resources.requests.memory`                 | The requested memory resource for the HAProxy container                                                                                                                                | `128Mi`                    |
+| `haproxy.resources.limits.cpu`                      | The cpu resource limit for the HAProxy container                                                                                                                                       | `250m`                     |
+| `haproxy.resources.limits.memory`                   | The memory resource limit for the HAProxy container                                                                                                                                    | `128Mi`                    |
 
 ## Known Issues and Limitations
 
