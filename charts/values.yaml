@@ -1,88 +1,85 @@
-# Default values for marklogic server.
+## Default values for marklogic server.
 
-# Number of Marklogic nodes
+## Number of Marklogic nodes
 replicaCount: 1
 
-# update strategy for MarkLogic and Helm chart upgrades
-# It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
-# and OnDelete allows more control over the upgrade and recovery in case of failure.
+## update strategy for MarkLogic and Helm chart upgrades
+## It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
+## and OnDelete allows more control over the upgrade and recovery in case of failure.
 updateStrategy:  
     type: OnDelete
 
-# Termination Grace Period
+## Termination Grace Period
 terminationGracePeriod: 120
 
-# Kubernetes cluster domain name
+## Kubernetes cluster domain name
 clusterDomain: cluster.local
 
-# Group related settings
+## Group related settings
 group:
-  # the group name of the current Marklogic Helm Deployment
+  ## the group name of the current Marklogic Helm Deployment
   name: Default
-  # xdqp encryption for intra cluster network traffic
+  ## xdqp encryption for intra cluster network traffic
   enableXdqpSsl: true
 
-# The name of the host to join. If not provided, the deployment is a bootstrap host.
+## The name of the host to join. If not provided, the deployment is a bootstrap host.
 bootstrapHostName: ""
 
-# Marklogic image parameters
+## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
   tag: 11.0.2-centos-1.0.2
   pullPolicy: IfNotPresent
 
-# Init container image parameters
+## Init container image parameters
 initContainerImage:
   repository: curlimages/curl
   tag: 7.87.0
   pullPolicy: IfNotPresent
 
-# Configure the imagePullSecrets to pull the image from private repository that requires credential
+## Configure the imagePullSecrets to pull the image from private repository that requires credential
 imagePullSecrets: []
 # - name: "your-secret-name-1"
 # - name: "your-secret-name-2"
 
-# Marklogic pods' resource requests and limits
-# ref: https://kubernetes.io/docs/user-guide/compute-resources/
+## Marklogic pods' resource requests and limits
+## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+resources: {}
 # requests:
 #   memory: "3000Mi"
 #   cpu: "1000m"
 # limits:
 #   memory: "3000Mi"
 #   cpu: "1000m"
-resources: {}
 
 nameOverride: ""
 fullnameOverride: ""
 
-# Configure Marklogic Admin Username and Password. Create a secret and specify the name via "secretName"
-# with the following keys:
-#   * username
-#   * password
-#   * wallet-password
-# 
-# If no secret is specified and the admin credentials are not provided, a secret will be automatically
-# generated with random admin and wallet passwords.
+## Configure Marklogic Admin Username and Password. Create a secret and specify the name via "secretName"
+## with the following keys:
+##   * username
+##   * password
+##   * wallet-password
+## 
+## If no secret is specified and the admin credentials are not provided, a secret will be automatically
+## generated with random admin and wallet passwords.
 auth:
   secretName: ""
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
 
-# Configure realm of the MarkLogic security database    
-realm: ""
-
-# Optionally install converters package on MarkLogic
+## Optionally install converters package on MarkLogic
 enableConverters: false
 
-# Supply license information for MarkLogic server
+## Supply license information for MarkLogic server
 license:
   key: ""
   licensee: ""
 
-# Configure Affinity property for scheduling pods to nodes
-# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-# Preferred anti affinity rule to schedule one marklogic pod per worker node
+## Configure Affinity property for scheduling pods to nodes
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+## Preferred anti affinity rule to schedule one marklogic pod per worker node
 affinity: 
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
@@ -96,14 +93,15 @@ affinity:
             - marklogic
         topologyKey: kubernetes.io/hostname
 
-# Configure NodeSelector property for scheduling pods to nodes
-# ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
+## Configure NodeSelector property for scheduling pods to nodes
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
 nodeSelector: {}
+  # disktype: ssd
 
-# Configure persistence using persistent Volume Claim
-# ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
-# The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
-# If set the enabled to false, it will use EmptyDir volume
+## Configure persistence using persistent Volume Claim
+## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+## The "" storageClass will use the default storage class for your cluster. (gp2 for EKS, standard for Minikube)
+## If set the enabled to false, it will use EmptyDir volume
 persistence:
   enabled: true
   storageClass: ""
@@ -147,97 +145,77 @@ additionalVolumeMounts: []
 #########################################################################################
 
 ## @param additionalContainerPorts. Additional container ports 
-## Example:
-## - name: app1
-##   containerPorts: 8010
-##   protocol: TCP
 additionalContainerPorts: []
+# - name: app1
+#   containerPort: 8010
+#   protocol: TCP
 
 
-# Configure the Service to access Marklogic Clusters
-# Could be ClusterIP, NodePort or LoadBalancer
+## Configure the Service to access Marklogic Clusters
 service:
-
   ## Service annotations
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
   annotations: {}
-
+  ## service type ould be ClusterIP, NodePort or LoadBalancer
   type: ClusterIP
-  ports:
-    - protocol: TCP
-      name: query-console
-      port: 8000
-    - protocol: TCP
-      name: admin
-      port: 8001
-    - protocol: TCP
-      name: manage
-      port: 8002
-
   ## Service listener port configuration
   ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
-
   #######################################################################################
   ## NOTE : When adding new app servers to MarkLogic, the new app server ports must    ##
   ## also be added to the additionalPorts parameter to expose the ports via the        ##
   ## kubernetes service.                                                               ##
   #######################################################################################
-
   ## @param service.additionalPorts. Additional service ports 
-  ## Example:
-  ## - name: app1
-  ##   port: 8010 
-  ##   targetPort: 8010
-  ##   protocol: TCP
   additionalPorts: []
+  # - name: app1
+  #   port: 8010 
+  #   targetPort: 8010
+  #   protocol: TCP
 
 serviceAccount:
-  # Specifies whether a service account should be created
+  ## Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
+  ## Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  ## The name of the service account to use.
+  ## If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# Configure priority class for pods 
-# ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+## Configure priority class for pods 
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
 priorityClassName:  ""
 
-# Configure options for network policy
-# ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
+## Configure options for network policy
+## ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
 networkPolicy:
   enabled: false
   ## @param networkPolicy.customRules. Additional NetworkPolicy rules
   ## Note that all rules are OR-ed.
-  ## Example:
-  ## customRules:
-  ##   - matchLabels:
-  ##       - role: frontend
-  ##   - matchExpressions:
-  ##       - key: role
-  ##         operator: In
-  ##         values:
-  ##           - frontend
-  ##
   customRules: {}
+    # - matchLabels:
+    #     - role: frontend
+    # - matchExpressions:
+    #     - key: role
+    #       operator: In
+    #       values:
+    #         - frontend
   ## The endPort should be the last port exposed by an App Server
   ports:
     - port: 8000
       endPort: 8020
       protocol: TCP
     
-# Below are the security configurations for container, by default security will be enabled
+## Below are the security configurations for container, by default security will be enabled
 containerSecurityContext:
   enabled: true
   runAsUser: 1000
   runAsNonRoot: true
   allowPrivilegeEscalation: true
 
-# Below are the advanced configurations, please understand read the reference before you make changes
+## Below are the advanced configurations, please read the reference in detail before making changes
 
-# Configure options for liveness probe
-# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
+## Configure options for liveness probe
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
 livenessProbe:
   enabled: true
   initialDelaySeconds: 30
@@ -246,8 +224,8 @@ livenessProbe:
   failureThreshold: 3
   successThreshold: 1
 
-# Configure options for readiness probe
-# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+## Configure options for readiness probe
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
 readinessProbe:
   enabled: true
   initialDelaySeconds: 10
@@ -256,8 +234,8 @@ readinessProbe:
   failureThreshold: 3
   successThreshold: 1
 
-# Configure options for startup probe
-# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
+## Configure options for startup probe
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
 startupProbe:
   enabled: true
   initialDelaySeconds: 10
@@ -266,9 +244,9 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-# Configure options for log collection
-# Log collection will collect all logs for each file type enabled, parse them, 
-# And export them to a logging backend specified in the outputs section below
+## Configure options for log collection
+## Log collection will collect all logs for each file type enabled, parse them, 
+## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
   image: fluent/fluent-bit:2.0.6
@@ -285,17 +263,17 @@ logCollection:
     requestLogs: true
     crashLogs: true
     auditLogs: true
+  ## Configure desired output
+  ## Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
   outputs: |-
-      # Example output config for ElasticSearch output
       # [OUTPUT]
-      #   Name es
-      #   Match *
-      #   Host elasticsearch.default.svc.cluster.local
-      #   Port 9200
-      #   HTTP_User admin
-      #   HTTP_Passwd admin
-      # Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
-      # Configure desired output below
+      #   name loki
+      #   match *
+      #   host loki.default.svc.cluster.local
+      #   port 3100
+      #   labels job=fluent-bit
+      #   http_user admin
+      #   http_passwd admin
 
 ## Configuration for the HAProxy load balancer
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
@@ -314,7 +292,8 @@ haproxy:
   restartWhenUpgrade:
     enabled: true
 
-  # Statistic page for HAproxy
+  ## Stats page for HAproxy
+  ## ref: https://www.haproxy.com/blog/exploring-the-haproxy-stats-page/
   stats:
     enabled: false
     port: 1024
@@ -323,12 +302,12 @@ haproxy:
       username: ''
       password: ''
 
+  ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
   service:
-    ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
     ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
     type: ClusterIP
 
-  ## ports and load balancing type configuration for HAproxy
+  ## Ports and load balancing type configuration for HAproxy
   ## There are three types of backends supported:
   ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
   ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
@@ -350,16 +329,16 @@ haproxy:
     #   port: 5432
 
   ## Configure TLS for HAProxy
-  ## You need to put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
+  ## Put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
   ## The PEM-formatted SSL certificate should contain the private key and the certificate. For example: cat certificate.pem private-key.pem > mycert.pem
   ## To generate the secret in Kubernetes: kubectl create secret generic tls-cert --from-file=mycert.pem
-  ## The certFileName field is the name of the certificate file in the secret.
   tls:
     enabled: false
     secretName: "" # tls-cert
+    ## The name of the certificate file in the secret.
     certFileName: "" # mycert.pem
 
-  ## Pod Node assignment
+  ## Node labels for HAProxy pods assignment
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
 
@@ -370,9 +349,9 @@ haproxy:
   ## Compute Resources
   ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   resources:
-  #  limits:
-  #    cpu: 250m
-  #    memory: 128Mi
     requests:
       cpu: 250m
       memory: 128Mi
+    # limits:
+    #   cpu: 250m
+    #   memory: 128Mi
