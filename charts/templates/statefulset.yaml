@@ -156,11 +156,10 @@ spec:
                   - |
                     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
                     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
-                    
-                    pid=$(pgrep start.marklogic)
 
                     log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
+                      pid=$(pgrep start.marklogic)
                       # Check to make sure pod doesn't terminate if PID value is empty for any reason
                       # If PID value is empty postStart hook logs are not recorded
                       if [ -n "$pid" ]; then
