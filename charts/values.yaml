@@ -205,7 +205,20 @@ networkPolicy:
       endPort: 8020
       protocol: TCP
     
-## Below are the security configurations for container, by default security will be enabled
+## Below are the security configuration at POD level, by default security will be enabled
+## https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods
+  #######################################################################################
+  ## NOTE : The POD Security context should be set when using additional volume.       ##
+  ## This will ensure that additional volume created is set with the right ownership.  ##
+  #######################################################################################
+
+podSecurityContext:
+  enabled: true
+  ## group id of user owning the MarkLogic service
+  fsGroup: 2 
+  fsGroupChangePolicy: "OnRootMismatch" 
+
+## Below are the security configurations for markLogic container, by default security will be enabled
 containerSecurityContext:
   enabled: true
   runAsUser: 1000
