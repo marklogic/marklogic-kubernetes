@@ -180,7 +180,7 @@ pipeline {
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
         choice(name: 'ML_VERSION', choices: '11.1\n12.0\n10.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
-        booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests')
+        booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         string(name: 'dockerReleaseVer', defaultValue: '1.0.2', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
         choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
         string(name: 'prevDockerReleaseVer', defaultValue: '1.0.2', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
