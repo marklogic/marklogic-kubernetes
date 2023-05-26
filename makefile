@@ -131,15 +131,15 @@ hc-test:
 	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
 
 	@echo "=====Run HC tests with a shell script"
-	./test/hc_e2e.sh  > ./test/hc_e2e.log 2>&1
-	
-	@echo "=====Uninstall helm"
-	helm uninstall hc
+	./test/hc_e2e.sh
 
 	@echo "=====Finalize test report"
 	mkdir -p ./test/test_results
 	cp ./marklogic-data-hub/marklogic-data-hub-central/ui/e2e/results/* ./test/test_results/
 	rm -rf marklogic-data-hub
+
+	@echo "=====Uninstall helm"
+	helm uninstall hc
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
