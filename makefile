@@ -128,7 +128,7 @@ hc-test:
 	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-marklogic-0 --for=condition=ready pod --timeout=30m
 
 	@echo "=====Clone Data Hub repository"
-	git clone https://github.com/marklogic/marklogic-data-hub
+	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
 
 	@echo "=====Run HC tests with a shell script"
 	./test/hc_e2e.sh | tee ./test/hc_e2e.log
