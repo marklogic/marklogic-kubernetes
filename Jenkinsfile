@@ -236,7 +236,7 @@ pipeline {
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                minikube delete --all --purge
+                export MINIKUBE_HOME=/space; minikube delete --all --purge
             '''
             publishTestResults()
         }
