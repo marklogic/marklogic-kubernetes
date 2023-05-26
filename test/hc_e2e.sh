@@ -7,14 +7,14 @@ forwarderPID=$!
 
 echo "---- configure environment ----"
 cd marklogic-data-hub/
-./gradlew clean build -x test
-./gradlew publishToMavenLocal -PskipWeb=true
+./gradlew -Dhttps.protocols=TLSv1.2 clean build -x test
+./gradlew -Dhttps.protocols=TLSv1.2 publishToMavenLocal -PskipWeb=true
 cd marklogic-data-hub-central/ui/e2e
 ./setup.sh dhs=false mlHost=localhost mlSecurityUsername=admin mlSecurityPassword=admin
 
 echo "---- start Hub Central application ----"
 cd ../../..
-./gradlew bootRun -PhubUseLocalDefaults=true &
+./gradlew -Dhttps.protocols=TLSv1.2 bootRun -PhubUseLocalDefaults=true &
 bootRunPID=$!
 
 sleep 10
