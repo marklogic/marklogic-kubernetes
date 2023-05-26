@@ -131,8 +131,8 @@ hc-test:
 	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
 
 	@echo "=====Run HC tests with a shell script"
-	./test/hc_e2e.sh | tee ./test/hc_e2e.log
-
+	./test/hc_e2e.sh  > ./test/hc_e2e.log 2>&1
+	
 	@echo "=====Uninstall helm"
 	helm uninstall hc
 
