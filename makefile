@@ -114,7 +114,6 @@ e2e-test: prepare
 hc-test: 
  	
 	@echo "=====Delete if there are existing minikube cluster"
-	date
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
