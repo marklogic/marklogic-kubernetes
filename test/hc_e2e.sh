@@ -10,6 +10,9 @@ forwarderPID=$!
 
 echo "---- configure environment ----"
 cd marklogic-data-hub/
+rm -rf .gradle/
+mkdir .gradle
+export GRADLE_USER_HOME=$PWD/.gradle
 ./gradlew clean build -x test
 ./gradlew publishToMavenLocal -PskipWeb=true
 cd marklogic-data-hub-central/ui/e2e
@@ -28,3 +31,4 @@ npm run cy:run --reporter junit --reporter-options "toConsole=false"
 
 echo "---- cleanup background processes ----"
 kill $bootRunPID $forwarderPID
+rm -rf $GRADLE_USER_HOME
