@@ -29,6 +29,7 @@ echo "---- start UI sanity tests on HC ----"
 cd marklogic-data-hub-central/ui/e2e
 npm run cy:run-sanity --reporter junit --reporter-options "toConsole=false"
 
-echo "---- cleanup background processes ----"
+echo "---- cleanup resources ----"
 kill $bootRunPID $forwarderPID
-rm -rf $GRADLE_USER_HOME/
+rm -rf ${GRADLE_USER_HOME}/*
+rm -rf ${GRADLE_USER_HOME}/
