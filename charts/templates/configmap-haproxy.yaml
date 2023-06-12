@@ -9,7 +9,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: marklogic-haproxy
+  name: {{ include "marklogic.fullname" . }}-haproxy
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: haproxy
