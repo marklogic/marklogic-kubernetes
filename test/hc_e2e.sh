@@ -32,4 +32,4 @@ npm run cy:run-sanity --reporter junit --reporter-options "toConsole=false"
 echo "---- cleanup resources ----"
 kill $bootRunPID $forwarderPID
 rm -rf ${GRADLE_USER_HOME}/*
-rm -rf ${GRADLE_USER_HOME}/
+rm -rf ${GRADLE_USER_HOME}/ || ( ls -a ${GRADLE_USER_HOME} && exit 1 )
