@@ -165,7 +165,7 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * *%HC_TESTS=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * *''' : '')
     }
     environment {
         timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
