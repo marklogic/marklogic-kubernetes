@@ -127,7 +127,6 @@ void lint() {
 
 void publishTestResults() {
     junit allowEmptyResults:true, testResults: '**/test/test_results/*.xml'
-    publishHTML allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'test/test_results', reportFiles: 'report.html', reportName: 'Kubernetes Tests Report', reportTitles: ''
 }
 
 void pullImage() {
