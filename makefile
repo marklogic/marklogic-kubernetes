@@ -135,7 +135,8 @@ hc-test:
 	@echo "=====Finalize test report"
 	mkdir -p ./test/test_results
 	cp ./marklogic-data-hub/marklogic-data-hub-central/ui/e2e/results/* ./test/test_results/
-	rm -rf marklogic-data-hub
+	rm -rf marklogic-data-hub/*
+	rm -rf marklogic-data-hub || ( ls -a marklogic-data-hub && exit 1 )
 
 	@echo "=====Uninstall helm"
 	helm uninstall hc
