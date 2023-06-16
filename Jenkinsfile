@@ -232,15 +232,14 @@ pipeline {
     post {
         always {
             publishTestResults()
-            archiveArtifacts artifacts: '**/test/test_results/*.xml'
+            archiveArtifacts artifacts: '**/test/test_results/*.xml', allowEmptyArchive: true
             sh '''
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
                 export MINIKUBE_HOME=/space; minikube delete --all --purge
-                rm -rf test/test/test_results/
             '''
-            
+            sh "rm -rf $WORKSPACE/test/test/test_results/"
         }
         success {
             resultNotification('BUILD SUCCESS ✅')
