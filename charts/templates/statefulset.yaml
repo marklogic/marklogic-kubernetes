@@ -174,12 +174,28 @@ spec:
                         log "[poststart] wait for marklogic server to be ready"
                         sleep 5s
                       done
-                      sleep 10s
+
+                      # Fetch timestamp before updating group config
+                      TIMESTAMP=`curl --anyauth http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+
                       GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
                       log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
-                      sleep 2s
+                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /dev/null -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                      
+                      # check if MarkLogic has restarted
+                      if [[ ${GROUP_RESP_CODE} -eq 202 ]]; then
+                        log "Info: [poststart] Waiting for MarkLogic to restart."
+                        LAST_START=`curl --anyauth http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                        for i in $(seq 1 5); do
+                            if [ ${TIMESTAMP} == ${LAST_START} ] || [ -z ${LAST_START} ]; then
+                                sleep 10
+                                LAST_START=`curl --anyauth http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                            else
+                                log "Info: [poststart] MarkLogic has restarted."
+                            fi
+                        done
+                      fi
                     fi
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
