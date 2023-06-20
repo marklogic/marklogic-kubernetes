@@ -239,7 +239,9 @@ pipeline {
                 docker image prune --force --all
                 export MINIKUBE_HOME=/space; minikube delete --all --purge
             '''
+            sh "whoami; ls $WORKSPACE/test/test/test_results/"
             sh "rm -rf $WORKSPACE/test/test/test_results/"
+            sh "ls $WORKSPACE/test/test/"
         }
         success {
             resultNotification('BUILD SUCCESS ✅')
