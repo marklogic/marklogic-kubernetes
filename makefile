@@ -128,6 +128,7 @@ hc-test:
 
 	@echo "=====Clone Data Hub repository"
 	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
+	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
 
 	@echo "=====Run HC tests with a shell script (~3 hours)"
 	./test/hc_e2e.sh
