@@ -232,13 +232,14 @@ pipeline {
 
     post {
         always {
+            publishTestResults()
             sh '''
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
                 export MINIKUBE_HOME=/space; minikube delete --all --purge
             '''
-            publishTestResults()
+            sh "rm -rf $WORKSPACE/test/test_results/"
         }
         success {
             resultNotification('BUILD SUCCESS ✅')
