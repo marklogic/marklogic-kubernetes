@@ -94,8 +94,8 @@ spec:
           volumeMounts:
             - name: datadir
               mountPath: /var/opt/MarkLogic
-            {{- if .Values.extraVolumeMounts }}
-              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- if .Values.additionalVolumeMounts }}
+              {{- toYaml .Values.additionalVolumeMounts | nindent 12 }}
             {{- end }}
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
@@ -113,6 +113,14 @@ spec:
               valueFrom:
                 fieldRef:
                     fieldPath: metadata.name
+            - name: INSTALL_CONVERTERS
+              value: {{ .Values.enableConverters | quote }}
+            - name: LICENSE_KEY
+              value: {{ .Values.license.key | quote }}
+            - name: LICENSEE
+              value: {{ .Values.license.licensee | quote }}
+            - name: REALM
+              value: {{ .Values.realm  | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
@@ -148,11 +156,10 @@ spec:
                   - |
                     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
                     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
-                    
-                    pid=$(pgrep start.marklogic)
 
                     log () {
                       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
+                      pid=$(pgrep start.marklogic)
                       # Check to make sure pod doesn't terminate if PID value is empty for any reason
                       # If PID value is empty postStart hook logs are not recorded
                       if [ -n "$pid" ]; then
@@ -275,8 +282,8 @@ spec:
           volumeMounts:
             - name: datadir
               mountPath: /var/opt/MarkLogic
-            {{- if .Values.extraVolumeMounts }}
-              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- if .Values.additionalVolumeMounts }}
+              {{- toYaml .Values.additionalVolumeMounts | nindent 12 }}
             {{- end }}
             - name: {{ include "marklogic.fullname" . }}-fb-config-map
               mountPath: /fluent-bit/etc/
@@ -293,9 +300,8 @@ spec:
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8}}
       {{- end }}
-      {{- if .Values.imagePullSecret }}
-      imagePullSecrets:
-        - name: {{ include "marklogic.fullname" . }}-registry
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       dnsConfig:
         searches:
@@ -303,7 +309,7 @@ spec:
       volumes:
         - name: mladmin-secrets
           secret:
-            secretName: {{ include "marklogic.fullname" . }}-admin
+            secretName: {{ include "marklogic.authSecretNameToMount" . }}
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:
