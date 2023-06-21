@@ -6,6 +6,7 @@
 import groovy.json.JsonSlurperClassic
 
 emailList = 'vitaly.korolev@marklogic.com, sumanth.ravipati@marklogic.com, peng.zhou@marklogic.com, fayez.saliba@marklogic.com, barkha.choithani@marklogic.com, romain.winieski@marklogic.com'
+emailList = 'vitaly.korolev@marklogic.com, sumanth.ravipati@marklogic.com, peng.zhou@marklogic.com, fayez.saliba@marklogic.com, barkha.choithani@marklogic.com, romain.winieski@marklogic.com'
 gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /CLD-\d{3,4}/
@@ -214,6 +215,17 @@ pipeline {
                 sh """
                     export MINIKUBE_HOME=/space
                     make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} saveOutput=true
+                """
+            }
+        }
+        stage('Kubernetes-Run-HC-Tests') {
+            when {
+                expression { return params.HC_TESTS }
+            }
+            steps {
+                sh """
+                    export MINIKUBE_HOME=/space;
+                    make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION}
                 """
             }
         }
