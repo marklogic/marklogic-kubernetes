@@ -108,8 +108,6 @@ e2e-test: prepare
 # hc-test
 #***************************************************************************
 ## Run all HC tests
-## Options:
-## * [some option] 
 .PHONY: hc-test
 hc-test: 
  	
