@@ -5,7 +5,7 @@
 @Library('shared-libraries@1.0-declarative')
 import groovy.json.JsonSlurperClassic
 
-emailList = 'vkorolev@marklogic.com, irosenba@marklogic.com, sumanth.ravipati@marklogic.com, peng.zhou@marklogic.com, fayez.saliba@marklogic.com, barkha.choithani@marklogic.com'
+emailList = 'vitaly.korolev@marklogic.com, sumanth.ravipati@marklogic.com, peng.zhou@marklogic.com, fayez.saliba@marklogic.com, barkha.choithani@marklogic.com'
 gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /CLD-\d{3,4}/
@@ -180,6 +180,7 @@ pipeline {
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
         choice(name: 'ML_VERSION', choices: '11.0\n12.0\n10.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
+        booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         string(name: 'dockerReleaseVer', defaultValue: '1.0.2', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
         choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
         string(name: 'prevDockerReleaseVer', defaultValue: '1.0.2', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
@@ -210,8 +211,19 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space;
+                    export MINIKUBE_HOME=/space
                     make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} saveOutput=true
+                """
+            }
+        }
+        stage('Kubernetes-Run-HC-Tests') {
+            when {
+                expression { return params.HC_TESTS }
+            }
+            steps {
+                sh """
+                    export MINIKUBE_HOME=/space;
+                    make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION}
                 """
             }
         }
@@ -223,7 +235,7 @@ pipeline {
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                minikube delete --all --purge
+                export MINIKUBE_HOME=/space; minikube delete --all --purge
             '''
             publishTestResults()
         }

@@ -1,5 +1,6 @@
-dockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:11.0.20230307-centos-1.0.2
-prevDockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:10.0-20230307-centos-1.0.2
+dockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
+prevDockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
+kubernetesVersion?=v1.25.8
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
@@ -83,7 +84,7 @@ lint:
 ## * [prevDockerImage] optional. used for marklogic upgrade tests 
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: e2e-test
- e2e-test: prepare
+e2e-test: prepare
 	@echo "=====Delete if there are existing minikube cluster"
 	minikube delete
 
@@ -98,6 +99,46 @@ lint:
 
 	@echo "=====Running e2e tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 45m, go test -v -count=1 -timeout 45m ./test/e2e/...) 
+
+	@echo "=====Delete minikube cluster"
+	minikube delete
+
+#***************************************************************************
+# hc-test
+#***************************************************************************
+## Run all HC tests
+## Options:
+## * [some option] 
+.PHONY: hc-test
+hc-test: 
+ 	
+	@echo "=====Delete if there are existing minikube cluster"
+	date
+	minikube delete
+
+	@echo "=====Installing minikube cluster"
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+
+	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
+	minikube image load $(dockerImage)
+
+	@echo "=====Deploy helm with a single MarkLogic node"
+	helm install hc charts --set auth.adminUsername=admin --set auth.adminPassword=admin --set persistence.enabled=false --wait
+	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-marklogic-0 --for=condition=ready pod --timeout=30m
+
+	@echo "=====Clone Data Hub repository"
+	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
+
+	@echo "=====Run HC tests with a shell script (~3 hours)"
+	./test/hc_e2e.sh
+
+	@echo "=====Finalize test report"
+	mkdir -p ./test/test_results
+	cp ./marklogic-data-hub/marklogic-data-hub-central/ui/e2e/results/* ./test/test_results/
+	rm -rf marklogic-data-hub
+
+	@echo "=====Uninstall helm"
+	helm uninstall hc
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
