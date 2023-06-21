@@ -127,6 +127,7 @@ void lint() {
 
 void publishTestResults() {
     junit allowEmptyResults:true, testResults: '**/test/test_results/*.xml'
+    archiveArtifacts artifacts: '**/test/test_results/*.xml', allowEmptyArchive: true
 }
 
 void pullImage() {
