@@ -127,7 +127,6 @@ void lint() {
 
 void publishTestResults() {
     junit allowEmptyResults:true, testResults: '**/test/test_results/*.xml'
-    publishHTML allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'test/test_results', reportFiles: 'report.html', reportName: 'Kubernetes Tests Report', reportTitles: ''
 }
 
 void pullImage() {
@@ -232,13 +231,16 @@ pipeline {
 
     post {
         always {
+            publishTestResults()
+            archiveArtifacts artifacts: '**/test/test_results/*.xml', allowEmptyArchive: true
             sh '''
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
                 export MINIKUBE_HOME=/space; minikube delete --all --purge
             '''
-            publishTestResults()
+
+            sh "rm -rf $WORKSPACE/test/test/test_results/"
         }
         success {
             resultNotification('BUILD SUCCESS ✅')
