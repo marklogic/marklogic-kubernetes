@@ -100,6 +100,10 @@ spec:
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
               readOnly: true
+            {{- if .Values.tls.enabled}}
+            - name: certs-volume
+              mountPath: /certs
+            {{- end }}
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
               value: "ml-secrets/username"
@@ -166,21 +170,116 @@ spec:
                           echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
                       fi
                     }
+
                     log "Info: [poststart] Begin Poststart Hook Execution"
                     if [[ $POD_NAME != *-0 ]]; then
-                      log "Info: [poststart] Skipping group configuration."
+                      log "Info: [poststart] Skipping group configuration." exit 0
+                    fi 
+                      
+                    while [ ! -f /var/opt/MarkLogic/ready ]; do
+                      log "[poststart] wait for marklogic server to be ready"
+                      sleep 5s
+                    done
+                    sleep 10s
+                    GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
+                    GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
+                    log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
+                    curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
+                    sleep 2s
+
+
+                    if [[ "$MARKLOGIC_ENABLE_SSL" == "true" ]]; then
+                      log "ENABLE_SSL is set to true, configuring SSL for ML_SERVER"
                     else
-                      while [ ! -f /var/opt/MarkLogic/ready ]; do
-                        log "[poststart] wait for marklogic server to be ready"
-                        sleep 5s
-                      done
-                      sleep 10s
-                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
-                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-                      log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
-                      sleep 2s
+                      log "ENABLE_SSL is set to false"
+                      exit 0
                     fi
+
+                    AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
+                    
+                    while [ ! -f /var/opt/MarkLogic/ready ]; do
+                          log "Waiting Marklogic to be ready"
+                          sleep 10s
+                    done
+                    cd ~ 
+                    
+                    log "creating certificate template"
+
+                    cp /certs/tls.crt server.pem
+                    cp /certs/tls.key server-key.pem
+                    cp /certs/ca.crt ca.pem
+
+                    cat <<'EOF' > defaultCertificateTemplate.json
+                    {
+                      "template-name": "defaultTemplate",
+                      "template-description": "defaultTemplate",
+                      "key-type": "rsa",
+                      "key-options": {
+                        "key-length": "2048"
+                      },
+                      "req": {
+                        "version": "0",
+                        "subject": {
+                          "countryName": "US",
+                          "stateOrProvinceName": "CA",
+                          "localityName": "San Carlos",
+                          "organizationName": "MarkLogic",
+                          "organizationalUnitName": "Engineering",
+                          "commonName": "default.marklogic.com",
+                          "emailAddress": "default@marklogic.com"
+                        }
+                      }
+                    }
+                    EOF
+
+                    log "creating default certificate Template"
+                    $AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates > /proc/$pid/fd/1
+                    sleep 5s
+
+                    cat <<'EOF' > insert-host-certificates.json
+                    {
+                      "operation": "insert-host-certificates",
+                      "certificates": [
+                        {
+                          "certificate": {
+                            "cert": "CERT",
+                            "pkey": "PKEY"
+                          }
+                        }
+                      ]
+                    }
+                    EOF
+
+
+                    cert="$(<server.pem)"
+                    cert="${cert//$'\n'/}"
+                    pkey="$(<server-key.pem)"
+                    pkey="${pkey//$'\n'/}"
+
+                    sed -i "s|CERT|$cert|" insert-host-certificates.json
+                    sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert-host-certificates.json
+                    sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert-host-certificates.json
+                    sed -i "s|PKEY|$pkey|" insert-host-certificates.json
+                    sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert-host-certificates.json
+                    sed -i "s|-----END RSA|\\\\n-----END RSA|" insert-host-certificates.json
+
+
+                    log "inserting following certificates"
+
+
+
+                    $AUTH_CURL -X POST --header "Content-Type:application/json" \
+                    -d @insert-host-certificates.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate
+                    sleep 5s
+                      
+                    appServices=($(echo $MARKLOGIC_APP_SERVER | tr ',' "\n"))
+                    for appServer in ${appServices[@]}; do
+                      log "configuring SSL for App Server $appServer"
+                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
+                      http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
+                      sleep 5s
+                    done
+
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
             preStop:
@@ -307,6 +406,11 @@ spec:
         searches:
           - {{ include "marklogic.headlessURL" . }}
       volumes:
+        {{- if .Values.tls.enabled }}
+        - name: certs-volume
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+        {{- end }}
         - name: mladmin-secrets
           secret:
             secretName: {{ include "marklogic.authSecretNameToMount" . }}

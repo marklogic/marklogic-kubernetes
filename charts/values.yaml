@@ -69,6 +69,13 @@ auth:
 #  adminPassword: ""
 #  walletPassword: ""
 
+tls:
+  enabled: false
+  secretName: ""
+  appServer: []
+  # - "App-Services"
+  # - "Manage"
+
 ## Optionally install converters package on MarkLogic
 enableConverters: false
 
