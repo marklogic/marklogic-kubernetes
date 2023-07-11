@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug
+spec:
+  containers:
+  - name: debug
+    image: curlimages/curl
+    volumeMounts:
+    - name: cert
+      mountPath: "cert"
+    command:
+    - sleep
+    - "3600"
+  volumes:
+  - name: cert
+    secret:
+      secretName: marklogic-tls
+      optional: false
+
+# curl https://marklogic-0.marklogic-headless.default.svc.cluster.local:8002/manage/v2 -u admin:admin --digest --cacert ca.crt

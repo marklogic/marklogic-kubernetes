@@ -1,0 +1,32 @@
+replicaCount: 1
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+persistence:
+  enabled: false
+
+tls:
+  enabled: true
+  secretName: "marklogic-0-tls"
+  appServer:
+  # - "App-Services"
+  - "Manage"
+  - "Admin"
+# resources: 
+#   requests:
+#     memory: "2800Mi"
+#     cpu: "1000m"
+#   limits:
+#     memory: "2800Mi"
+#     cpu: "1000m"
+
+startupProbe:
+  enabled: false
+
+livenessProbe:
+  enabled: false
+
+readinessProbe:
+  enabled: false
