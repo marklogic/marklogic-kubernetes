@@ -9,11 +9,13 @@ persistence:
 
 tls:
   enabled: true
-  secretName: "marklogic-0-tls"
+  secretNames: 
+    - "marklogic-0-tls"
+    - "ml-marklogic-0-self"
+
   appServer:
   # - "App-Services"
-  - "Manage"
-  - "Admin"
+  - "App-Services"
 # resources: 
 #   requests:
 #     memory: "2800Mi"

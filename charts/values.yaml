@@ -341,7 +341,7 @@ haproxy:
   ## To generate the secret in Kubernetes: kubectl create secret generic tls-cert --from-file=mycert.pem
   tls:
     enabled: false
-    secretName: "" # tls-cert
+    secretNames: "" # tls-cert
     ## The name of the certificate file in the secret.
     certFileName: "" # mycert.pem
 

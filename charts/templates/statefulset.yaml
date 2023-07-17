@@ -23,8 +23,24 @@ spec:
       affinity: {{- toYaml . | nindent 8}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
-      {{- if ne .Values.bootstrapHostName "" }}
+      {{- if or ( ne .Values.bootstrapHostName "") (eq .Values.tls.enabled true ) }}
       initContainers: 
+      {{- if eq .Values.tls.enabled true }}
+      - name: copy-certs
+        image: "busybox"
+        command:
+          - sh
+          - '-c'
+          - |
+            echo 'hi'
+            cp -f /certs-secret/* /marklogic-certs/;
+        volumeMounts:
+          - name: certs
+            mountPath: /marklogic-certs/
+          - name: certs-secret
+            mountPath: /certs-secret/
+      {{- end }}
+      {{- if ne .Values.bootstrapHostName "" }}
       - name: configure-group
         image: "{{ .Values.initContainerImage.repository }}:{{ .Values.initContainerImage.tag }}"
         volumeMounts:
@@ -87,6 +103,7 @@ spec:
         - configMapRef:
             name: {{ include "marklogic.fullname" . }}
       {{- end }}
+      {{- end }}
       containers:
         - name: marklogic-server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -101,8 +118,8 @@ spec:
               mountPath: /run/secrets/ml-secrets
               readOnly: true
             {{- if .Values.tls.enabled}}
-            - name: certs-volume
-              mountPath: /certs
+            - name: certs
+              mountPath: /marklogic-certs
             {{- end }}
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
@@ -205,9 +222,9 @@ spec:
                     
                     log "creating certificate template"
 
-                    cp /certs/tls.crt server.pem
-                    cp /certs/tls.key server-key.pem
-                    cp /certs/ca.crt ca.pem
+                    cp /marklogic-certs/tls_0.crt server.pem
+                    cp /marklogic-certs/tls_0.key server-key.pem
+                    cp /marklogic-certs/ca_0.crt ca.pem
 
                     cat <<'EOF' > defaultCertificateTemplate.json
                     {
@@ -266,19 +283,22 @@ spec:
 
                     log "inserting following certificates"
 
-
-
                     $AUTH_CURL -X POST --header "Content-Type:application/json" \
                     -d @insert-host-certificates.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate
                     sleep 5s
+
+                    log "enabling app-servers for HTTPS"
                       
-                    appServices=($(echo $MARKLOGIC_APP_SERVER | tr ',' "\n"))
-                    for appServer in ${appServices[@]}; do
-                      log "configuring SSL for App Server $appServer"
-                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
+                    appServers=("Admin" "Manage" "App-Services")
+                    for appServer in ${appServers[@]}; do
+                      echo "configuring SSL for App Server $appServer"
+                      curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                        -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
                       http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
                       sleep 5s
                     done
+
+                    rm -f /marklogic-certs/*
 
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
@@ -407,9 +427,22 @@ spec:
           - {{ include "marklogic.headlessURL" . }}
       volumes:
         {{- if .Values.tls.enabled }}
-        - name: certs-volume
-          secret:
-            secretName: {{ .Values.tls.secretName }}
+        - name: certs
+          emptyDir: {}
+        - name: certs-secret
+          projected:
+            sources:
+            {{-  range $i, $secretName := .Values.tls.secretNames }}
+              - secret:
+                  name: {{ $secretName | quote }}
+                  items: 
+                    - key: ca.crt
+                      path: ca_{{$i}}.crt
+                    - key: tls.crt
+                      path: tls_{{$i}}.crt
+                    - key: tls.key
+                      path: tls_{{$i}}.key
+            {{- end }}
         {{- end }}
         - name: mladmin-secrets
           secret:
