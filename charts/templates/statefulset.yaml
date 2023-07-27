@@ -27,18 +27,36 @@ spec:
       initContainers: 
       {{- if eq .Values.tls.enabled true }}
       - name: copy-certs
-        image: "busybox"
+        image: "finalgene/openssh"
         command:
           - sh
           - '-c'
           - |
             echo 'hi'
-            cp -f /certs-secret/* /marklogic-certs/;
+            echo $MARKLOGIC_BOOTSTRAP_HOST
+            MARKLOGIC_ADMIN_USERNAME=`admin`
+            MARKLOGIC_ADMIN_PASSWORD=`admin`
+            if [[ $POD_NAME == *-0 ]]; then
+              echo "this is bootstrap host. copying certificate"
+              cp -f /certs-secret/* /marklogic-certs/;
+            else
+              cd /marklogic-certs/
+              echo "this is not bootstrap host"
+              echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
+            fi
         volumeMounts:
           - name: certs
             mountPath: /marklogic-certs/
           - name: certs-secret
             mountPath: /certs-secret/
+        env: 
+        - name: MARKLOGIC_ADMIN_USERNAME_FILE
+          value: "ml-secrets/username"
+        - name: MARKLOGIC_ADMIN_PASSWORD_FILE
+          value: "ml-secrets/password"
+        envFrom:
+        - configMapRef:
+            name: {{ include "marklogic.fullname" . }}
       {{- end }}
       {{- if ne .Values.bootstrapHostName "" }}
       - name: configure-group
@@ -242,7 +260,6 @@ spec:
                           "localityName": "San Carlos",
                           "organizationName": "MarkLogic",
                           "organizationalUnitName": "Engineering",
-                          "commonName": "default.marklogic.com",
                           "emailAddress": "default@marklogic.com"
                         }
                       }
@@ -298,7 +315,7 @@ spec:
                       sleep 5s
                     done
 
-                    rm -f /marklogic-certs/*
+                    rm -f /marklogic-certs/*.key
 
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}

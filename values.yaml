@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 2
 
 auth:
   adminPassword: admin
@@ -12,10 +12,6 @@ tls:
   secretNames: 
     - "marklogic-0-tls"
     - "ml-marklogic-0-self"
-
-  appServer:
-  # - "App-Services"
-  - "App-Services"
 # resources: 
 #   requests:
 #     memory: "2800Mi"
