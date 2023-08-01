@@ -11,6 +11,11 @@ data:
 {{- else }}
   MARKLOGIC_BOOTSTRAP_HOST: {{ include "marklogic.fqdn" . }}
 {{- end }}
+{{- if .Values.tls.enabled }}
+  MARKLOGIC_JOIN_TLS_ENABLED: "true"
+{{- else }}
+  MARKLOGIC_JOIN_TLS_ENABLED: "false"
+{{- end }}
   MARKLOGIC_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
   MARKLOGIC_INIT: "true"
   MARKLOGIC_JOIN_CLUSTER: "true"
