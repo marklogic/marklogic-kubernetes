@@ -126,6 +126,7 @@ spec:
         - name: marklogic-server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy}}
+
           volumeMounts:
             - name: datadir
               mountPath: /var/opt/MarkLogic
@@ -255,12 +256,7 @@ spec:
                       "req": {
                         "version": "0",
                         "subject": {
-                          "countryName": "US",
-                          "stateOrProvinceName": "CA",
-                          "localityName": "San Carlos",
-                          "organizationName": "MarkLogic",
-                          "organizationalUnitName": "Engineering",
-                          "emailAddress": "default@marklogic.com"
+                          "organizationName": "MarkLogic"
                         }
                       }
                     }
@@ -284,6 +280,27 @@ spec:
                     }
                     EOF
 
+                    cat <<'EOF' > generateCA.xqy
+                    xquery=
+                        xquery version "1.0-ml"; 
+                        import module namespace pki = "http://marklogic.com/xdmp/pki" 
+                            at "/MarkLogic/pki.xqy";
+                        let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
+                        return
+                            pki:generate-template-certificate-authority($tid, 365)
+                    EOF
+
+                    cat <<'EOF' > createTempCert.xqy
+                    xquery= 
+                      xquery version "1.0-ml"; 
+                      import module namespace pki = "http://marklogic.com/xdmp/pki" 
+                          at "/MarkLogic/pki.xqy";
+
+                      let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
+
+                      return
+                        pki:generate-temporary-certificate-if-necessary($tid, 365, "marklogic-0.marklogic-headless.default.svc.cluster.local", (), ())
+                    EOF
 
                     cert="$(<server.pem)"
                     cert="${cert//$'\n'/}"
@@ -304,9 +321,16 @@ spec:
                     -d @insert-host-certificates.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate
                     sleep 5s
 
+                    log "Generating Temporary Certificate"
+                    $AUTH_CURL -X POST -i -d @generateCA.xqy \
+                    -H "Content-type: application/x-www-form-urlencoded" \
+                    -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                    http://localhost:8000/v1/eval
+
+
                     log "enabling app-servers for HTTPS"
-                      
-                    appServers=("Admin" "Manage" "App-Services")
+                    // Manage need be put in the last in the array to make sure http works for all the requests
+                    appServers=("App-Services" "Admin" "Manage")
                     for appServer in ${appServers[@]}; do
                       echo "configuring SSL for App Server $appServer"
                       curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
@@ -314,6 +338,13 @@ spec:
                       http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
                       sleep 5s
                     done
+
+                    log "Generate temporary certificate if necessary"
+                    $AUTH_CURL -k -X POST -i -d @createTempCert.xqy \
+                    -H "Content-type: application/x-www-form-urlencoded" \
+                    -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                    https://localhost:8000/v1/eval
+
 
                     rm -f /marklogic-certs/*.key
 
