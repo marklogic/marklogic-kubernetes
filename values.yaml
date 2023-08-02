@@ -7,6 +7,10 @@ auth:
 persistence:
   enabled: false
 
+image:
+  repository: marklogic-centos/marklogic-server-centos
+  tag: 10-internal
+  
 tls:
   enabled: true
   secretNames: 
