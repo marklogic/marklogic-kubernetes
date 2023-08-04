@@ -29,13 +29,13 @@ spec:
       - name: copy-certs
         image: "finalgene/openssh"
         command:
-          - sh
+          - bash
           - '-c'
           - |
             echo 'hi'
             echo $MARKLOGIC_BOOTSTRAP_HOST
-            MARKLOGIC_ADMIN_USERNAME=`admin`
-            MARKLOGIC_ADMIN_PASSWORD=`admin`
+            MARKLOGIC_ADMIN_USERNAME="admin"
+            MARKLOGIC_ADMIN_PASSWORD="admin"
             if [[ $POD_NAME == *-0 ]]; then
               echo "this is bootstrap host. copying certificate"
               cp -f /certs-secret/* /marklogic-certs/;
@@ -126,7 +126,6 @@ spec:
         - name: marklogic-server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy}}
-
           volumeMounts:
             - name: datadir
               mountPath: /var/opt/MarkLogic

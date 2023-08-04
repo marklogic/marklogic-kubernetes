@@ -13,9 +13,7 @@ image:
   
 tls:
   enabled: true
-  secretNames: 
-    - "marklogic-0-tls"
-    - "ml-marklogic-0-self"
+  secretNames: []
 # resources: 
 #   requests:
 #     memory: "2800Mi"
