@@ -32,23 +32,24 @@ spec:
           - bash
           - '-c'
           - |
-            echo 'hi'
-            echo $MARKLOGIC_BOOTSTRAP_HOST
-            MARKLOGIC_ADMIN_USERNAME="admin"
-            MARKLOGIC_ADMIN_PASSWORD="admin"
+            MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
+            MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/username)"
             if [[ $POD_NAME == *-0 ]]; then
               echo "this is bootstrap host. copying certificate"
-              cp -f /certs-secret/* /marklogic-certs/;
+              cp -f /certs-secret/* /run/secrets/marklogic-certs/;
             else
-              cd /marklogic-certs/
+              cd /run/secrets/marklogic-certs/
               echo "this is not bootstrap host"
               echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
             fi
         volumeMounts:
           - name: certs
-            mountPath: /marklogic-certs/
+            mountPath: /run/secrets/marklogic-certs/
           - name: certs-secret
             mountPath: /certs-secret/
+          - name: mladmin-secrets
+            mountPath: /run/secrets/ml-secrets/
+            readOnly: true
         env: 
         - name: MARKLOGIC_ADMIN_USERNAME_FILE
           value: "ml-secrets/username"
@@ -137,7 +138,7 @@ spec:
               readOnly: true
             {{- if .Values.tls.enabled}}
             - name: certs
-              mountPath: /marklogic-certs
+              mountPath: /run/secrets/marklogic-certs/
             {{- end }}
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
@@ -208,8 +209,9 @@ spec:
 
                     log "Info: [poststart] Begin Poststart Hook Execution"
                     if [[ $POD_NAME != *-0 ]]; then
-                      log "Info: [poststart] Skipping group configuration." exit 0
-                    fi 
+                      log "Info: [poststart] Skipping group configuration." 
+                      exit 0
+                    fi
                       
                     while [ ! -f /var/opt/MarkLogic/ready ]; do
                       log "[poststart] wait for marklogic server to be ready"
@@ -240,9 +242,9 @@ spec:
                     
                     log "creating certificate template"
 
-                    cp /marklogic-certs/tls_0.crt server.pem
-                    cp /marklogic-certs/tls_0.key server-key.pem
-                    cp /marklogic-certs/ca_0.crt ca.pem
+                    cp /run/secrets/marklogic-certs/marklogic-certs/tls_0.crt server.pem
+                    cp /run/secrets/marklogic-certs/tls_0.key server-key.pem
+                    cp /run/secrets/marklogic-certs/marklogic-certs/ca_0.crt ca.pem
 
                     cat <<'EOF' > defaultCertificateTemplate.json
                     {

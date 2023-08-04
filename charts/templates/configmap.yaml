@@ -13,6 +13,7 @@ data:
 {{- end }}
 {{- if .Values.tls.enabled }}
   MARKLOGIC_JOIN_TLS_ENABLED: "true"
+  MARKLOGIC_JOIN_CACERT_FILE: "marklogic-certs/cacert.pem"
 {{- else }}
   MARKLOGIC_JOIN_TLS_ENABLED: "false"
 {{- end }}
