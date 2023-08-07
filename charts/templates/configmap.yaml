@@ -11,7 +11,7 @@ data:
 {{- else }}
   MARKLOGIC_BOOTSTRAP_HOST: {{ include "marklogic.fqdn" . }}
 {{- end }}
-{{- if .Values.tls.enabled }}
+{{- if .Values.tls.enableOnDefaultAppServers }}
   MARKLOGIC_JOIN_TLS_ENABLED: "true"
   MARKLOGIC_JOIN_CACERT_FILE: "marklogic-certs/cacert.pem"
 {{- else }}
@@ -22,10 +22,6 @@ data:
   MARKLOGIC_JOIN_CLUSTER: "true"
   MARKLOGIC_GROUP: {{ .Values.group.name }}
   XDQP_SSL_ENABLED: {{ quote .Values.group.enableXdqpSsl }}
-{{- if .Values.tls.enabled }}
-  MARKLOGIC_ENABLE_SSL: "true"
-  MARKLOGIC_APP_SERVER: {{ join "," .Values.tls.appServer }}
-{{- end }}
 ---
 {{- if .Values.logCollection.enabled }}
 apiVersion: v1

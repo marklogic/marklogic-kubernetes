@@ -12,8 +12,10 @@ image:
   tag: 10-internal
   
 tls:
-  enabled: true
-  secretNames: []
+  enableOnDefaultAppServers: true
+  certSecretNames: 
+    - "marklogic-0-cert"
+  caSecretName: "ca-secret"
 # resources: 
 #   requests:
 #     memory: "2800Mi"

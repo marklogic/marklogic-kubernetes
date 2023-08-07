@@ -70,11 +70,9 @@ auth:
 #  walletPassword: ""
 
 tls:
-  enabled: false
-  secretName: ""
-  appServer: []
-  # - "App-Services"
-  # - "Manage"
+  enableOnDefaultAppServers: false
+  certSecretNames: []
+  caSecretName: ""
 
 ## Optionally install converters package on MarkLogic
 enableConverters: false

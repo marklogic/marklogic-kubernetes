@@ -23,9 +23,9 @@ spec:
       affinity: {{- toYaml . | nindent 8}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
-      {{- if or ( ne .Values.bootstrapHostName "") (eq .Values.tls.enabled true ) }}
+      {{- if or ( ne .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers true ) }}
       initContainers: 
-      {{- if eq .Values.tls.enabled true }}
+      {{- if eq .Values.tls.enableOnDefaultAppServers true }}
       - name: copy-certs
         image: "finalgene/openssh"
         command:
@@ -37,12 +37,16 @@ spec:
             if [[ $POD_NAME == *-0 ]]; then
               echo "this is bootstrap host. copying certificate"
               cp -f /certs-secret/* /run/secrets/marklogic-certs/;
+              cp -f /ca-secret/* /run/secrets/marklogic-certs/;
             else
               cd /run/secrets/marklogic-certs/
               echo "this is not bootstrap host"
               echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
             fi
+            sleep 1000s
         volumeMounts:
+          - name: cacert-secret
+            mountPath: /ca-secret/
           - name: certs
             mountPath: /run/secrets/marklogic-certs/
           - name: certs-secret
@@ -136,7 +140,7 @@ spec:
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
               readOnly: true
-            {{- if .Values.tls.enabled}}
+            {{- if .Values.tls.enableOnDefaultAppServers }}
             - name: certs
               mountPath: /run/secrets/marklogic-certs/
             {{- end }}
@@ -242,9 +246,8 @@ spec:
                     
                     log "creating certificate template"
 
-                    cp /run/secrets/marklogic-certs/marklogic-certs/tls_0.crt server.pem
+                    cp /run/secrets/marklogic-certs/tls_0.crt server.pem
                     cp /run/secrets/marklogic-certs/tls_0.key server-key.pem
-                    cp /run/secrets/marklogic-certs/marklogic-certs/ca_0.crt ca.pem
 
                     cat <<'EOF' > defaultCertificateTemplate.json
                     {
@@ -475,18 +478,19 @@ spec:
         searches:
           - {{ include "marklogic.headlessURL" . }}
       volumes:
-        {{- if .Values.tls.enabled }}
+        {{- if .Values.tls.enableOnDefaultAppServers }}
         - name: certs
           emptyDir: {}
+        - name: cacert-secret
+          secret:
+            secretName: {{ .Values.tls.caSecretName }}
         - name: certs-secret
           projected:
             sources:
-            {{-  range $i, $secretName := .Values.tls.secretNames }}
+            {{-  range $i, $secretName := .Values.tls.certSecretNames }}
               - secret:
                   name: {{ $secretName | quote }}
                   items: 
-                    - key: ca.crt
-                      path: ca_{{$i}}.crt
                     - key: tls.crt
                       path: tls_{{$i}}.crt
                     - key: tls.key
