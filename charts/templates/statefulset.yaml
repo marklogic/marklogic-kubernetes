@@ -41,9 +41,9 @@ spec:
             else
               cd /run/secrets/marklogic-certs/
               echo "this is not bootstrap host"
-              echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
+              cp -f /ca-secret/* /run/secrets/marklogic-certs/;
+              # echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
             fi
-            sleep 1000s
         volumeMounts:
           - name: cacert-secret
             mountPath: /ca-secret/
@@ -55,6 +55,10 @@ spec:
             mountPath: /run/secrets/ml-secrets/
             readOnly: true
         env: 
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: MARKLOGIC_ADMIN_USERNAME_FILE
           value: "ml-secrets/username"
         - name: MARKLOGIC_ADMIN_PASSWORD_FILE
@@ -229,10 +233,10 @@ spec:
                     sleep 2s
 
 
-                    if [[ "$MARKLOGIC_ENABLE_SSL" == "true" ]]; then
-                      log "ENABLE_SSL is set to true, configuring SSL for ML_SERVER"
+                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL for ML_SERVER"
                     else
-                      log "ENABLE_SSL is set to false"
+                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
                       exit 0
                     fi
 
