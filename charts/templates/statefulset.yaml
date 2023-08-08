@@ -323,21 +323,21 @@ spec:
                     sed -i "s|-----END RSA|\\\\n-----END RSA|" insert-host-certificates.json
 
 
+                    # log "Generating Temporary Certificate"
+                    # $AUTH_CURL -X POST -i -d @generateCA.xqy \
+                    # -H "Content-type: application/x-www-form-urlencoded" \
+                    # -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                    # http://localhost:8000/v1/eval
+                    # sleep 5s
+
                     log "inserting following certificates"
 
                     $AUTH_CURL -X POST --header "Content-Type:application/json" \
                     -d @insert-host-certificates.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate
                     sleep 5s
 
-                    log "Generating Temporary Certificate"
-                    $AUTH_CURL -X POST -i -d @generateCA.xqy \
-                    -H "Content-type: application/x-www-form-urlencoded" \
-                    -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                    http://localhost:8000/v1/eval
-
-
                     log "enabling app-servers for HTTPS"
-                    // Manage need be put in the last in the array to make sure http works for all the requests
+                    # Manage need be put in the last in the array to make sure http works for all the requests
                     appServers=("App-Services" "Admin" "Manage")
                     for appServer in ${appServers[@]}; do
                       echo "configuring SSL for App Server $appServer"
@@ -347,11 +347,11 @@ spec:
                       sleep 5s
                     done
 
-                    log "Generate temporary certificate if necessary"
-                    $AUTH_CURL -k -X POST -i -d @createTempCert.xqy \
-                    -H "Content-type: application/x-www-form-urlencoded" \
-                    -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                    https://localhost:8000/v1/eval
+                    # log "Generate temporary certificate if necessary"
+                    # $AUTH_CURL -k -X POST -i -d @createTempCert.xqy \
+                    # -H "Content-type: application/x-www-form-urlencoded" \
+                    # -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                    # https://localhost:8000/v1/eval
 
 
                     rm -f /marklogic-certs/*.key

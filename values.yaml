@@ -1,8 +1,10 @@
-replicaCount: 2
+replicaCount: 1
 
 auth:
   adminPassword: admin
   adminUsername: admin
+
+terminationGracePeriod: 10
 
 persistence:
   enabled: false
