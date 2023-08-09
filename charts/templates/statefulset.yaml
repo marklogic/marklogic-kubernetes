@@ -34,23 +34,37 @@ spec:
           - |
             MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
             MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/username)"
-            if [[ $POD_NAME == *-0 ]]; then
-              echo "this is bootstrap host. copying certificate"
-              cp -f /certs-secret/* /run/secrets/marklogic-certs/;
-              cp -f /ca-secret/* /run/secrets/marklogic-certs/;
+            if [[ -d "/tmp/certs-secret" ]]; then
+              certType="named"
             else
-              cd /run/secrets/marklogic-certs/
-              echo "this is not bootstrap host"
-              cp -f /ca-secret/* /run/secrets/marklogic-certs/;
-              # echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
+              certType="self-signed"
+            fi
+            echo "certType: $certType"
+            if [[ "$certType" == "named" ]]; then
+              cp -f /tmp/ca-secret/* /run/secrets/marklogic-certs/;
+              if [[ $POD_NAME == *"-0" ]]; then
+                echo "this is bootstrap host. copying certificate"
+                cp -f /tmp/certs-secret/* /run/secrets/marklogic-certs/;
+              fi
+            elif [[ "$certType" == "self-signed" ]]; then
+              if [[ $POD_NAME != *"-0" ]]; then
+                echo "Getting CA for bootstrap host"
+                cd /run/secrets/marklogic-certs/
+                echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
+              fi
+            else 
+              echo "unknown certType: $certType"
+              exit 1
             fi
         volumeMounts:
+        {{- if .Values.tls.certSecretNames }}
           - name: cacert-secret
-            mountPath: /ca-secret/
+            mountPath: /tmp/ca-secret/
+          - name: certs-secret
+            mountPath: /tmp/certs-secret/
+        {{- end }}
           - name: certs
             mountPath: /run/secrets/marklogic-certs/
-          - name: certs-secret
-            mountPath: /certs-secret/
           - name: mladmin-secrets
             mountPath: /run/secrets/ml-secrets/
             readOnly: true
@@ -233,25 +247,35 @@ spec:
                     sleep 2s
 
 
-                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
-                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL for ML_SERVER"
-                    else
-                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
-                      exit 0
-                    fi
-
                     AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
                     
                     while [ ! -f /var/opt/MarkLogic/ready ]; do
                           log "Waiting Marklogic to be ready"
                           sleep 10s
                     done
-                    cd ~ 
                     
-                    log "creating certificate template"
+                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
+                    else
+                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
+                      exit 0
+                    fi
 
-                    cp /run/secrets/marklogic-certs/tls_0.crt server.pem
-                    cp /run/secrets/marklogic-certs/tls_0.key server-key.pem
+                    cd ~ 
+
+                    if [[ -e "/run/secrets/marklogic-certs/tls_0.crt" ]]; then
+                      log "named cert flow"
+                      certType="named"
+                    else 
+                      log "self-signed cert flow"
+                      certType="self-signed"
+                    fi
+                    log "certType in postStart: $certType"
+                    if [[ "$certType" == "named" ]]; then
+                      log "creating named certificate"
+                      cp /run/secrets/marklogic-certs/tls_0.crt server.pem
+                      cp /run/secrets/marklogic-certs/tls_0.key server-key.pem
+                    fi
 
                     cat <<'EOF' > defaultCertificateTemplate.json
                     {
@@ -324,11 +348,11 @@ spec:
 
 
                     # log "Generating Temporary Certificate"
-                    # $AUTH_CURL -X POST -i -d @generateCA.xqy \
-                    # -H "Content-type: application/x-www-form-urlencoded" \
-                    # -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                    # http://localhost:8000/v1/eval
-                    # sleep 5s
+                    $AUTH_CURL -X POST -i -d @generateCA.xqy \
+                    -H "Content-type: application/x-www-form-urlencoded" \
+                    -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                    http://localhost:8000/v1/eval
+                    sleep 5s
 
                     log "inserting following certificates"
 
@@ -347,14 +371,13 @@ spec:
                       sleep 5s
                     done
 
-                    # log "Generate temporary certificate if necessary"
-                    # $AUTH_CURL -k -X POST -i -d @createTempCert.xqy \
-                    # -H "Content-type: application/x-www-form-urlencoded" \
-                    # -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                    # https://localhost:8000/v1/eval
-
-
-                    rm -f /marklogic-certs/*.key
+                    if [[ "$certType" == "self-signed" ]]; then
+                      # log "Generate temporary certificate if necessary"
+                      $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
+                      -H "Accept: multipart/mixed; boundary=BOUNDARY" https://localhost:8000/v1/eval
+                    fi
+                    
+                    rm -f /run/secrets/marklogic-certs/*.key
 
                     log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
@@ -485,6 +508,7 @@ spec:
         {{- if .Values.tls.enableOnDefaultAppServers }}
         - name: certs
           emptyDir: {}
+        {{- if .Values.tls.certSecretNames }}
         - name: cacert-secret
           secret:
             secretName: {{ .Values.tls.caSecretName }}
@@ -500,6 +524,7 @@ spec:
                     - key: tls.key
                       path: tls_{{$i}}.key
             {{- end }}
+        {{- end }}
         {{- end }}
         - name: mladmin-secrets
           secret:

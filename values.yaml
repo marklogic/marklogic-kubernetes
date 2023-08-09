@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 2
 
 auth:
   adminPassword: admin
@@ -12,12 +12,18 @@ persistence:
 image:
   repository: marklogic-centos/marklogic-server-centos
   tag: 10-internal
-  
+
 tls:
   enableOnDefaultAppServers: true
-  certSecretNames: 
-    - "marklogic-0-cert"
-  caSecretName: "ca-secret"
+  certSecretNames: []
+  caSecretName: ""
+
+# tls:
+#   enableOnDefaultAppServers: true
+#   certSecretNames:
+#     - "marklogic-0-cert"
+#   caSecretName: "ca-secret"
+
 # resources: 
 #   requests:
 #     memory: "2800Mi"
