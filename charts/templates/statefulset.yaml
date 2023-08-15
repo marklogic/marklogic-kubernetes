@@ -216,6 +216,9 @@ spec:
                   - bash
                   - '-c'
                   - |
+                    set -x
+                    set -o functrace
+
                     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
                     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
@@ -272,9 +275,7 @@ spec:
                     fi
                     log "certType in postStart: $certType"
                     if [[ "$certType" == "named" ]]; then
-                      log "creating named certificate"
-                      cp /run/secrets/marklogic-certs/tls_0.crt server.pem
-                      cp /run/secrets/marklogic-certs/tls_0.key server-key.pem
+                      log "cert!!!"
                     fi
 
                     cat <<'EOF' > defaultCertificateTemplate.json
@@ -284,7 +285,7 @@ spec:
                       "key-type": "rsa",
                       "key-options": {
                         "key-length": "2048"
-                      },
+                      },  
                       "req": {
                         "version": "0",
                         "subject": {
@@ -295,9 +296,12 @@ spec:
                     EOF
 
                     log "creating default certificate Template"
-                    $AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates > /proc/$pid/fd/1
+                    response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
+                    log "$response"
                     sleep 5s
+                    log "done creating default certificate Template"
 
+                    log "creating insert-host-certificates.json"
                     cat <<'EOF' > insert-host-certificates.json
                     {
                       "operation": "insert-host-certificates",
@@ -312,6 +316,7 @@ spec:
                     }
                     EOF
 
+                    log "creating generateCA.xqy"
                     cat <<'EOF' > generateCA.xqy
                     xquery=
                         xquery version "1.0-ml"; 
@@ -322,6 +327,7 @@ spec:
                             pki:generate-template-certificate-authority($tid, 365)
                     EOF
 
+                    log "creating createTempCert.xqy"
                     cat <<'EOF' > createTempCert.xqy
                     xquery= 
                       xquery version "1.0-ml"; 
@@ -333,32 +339,50 @@ spec:
                       return
                         pki:generate-temporary-certificate-if-necessary($tid, 365, "marklogic-0.marklogic-headless.default.svc.cluster.local", (), ())
                     EOF
+                    
+                    log "inserting certificates $certType"
+                    if [[ "$certType" == "named" ]]; then
+                      log "creating named certificate"
+                      certs=$(find /run/secrets/marklogic-certs/tls_*.crt -type f)
+                      log "certs $certs"
+                      for cert_path in $certs; do
+                        log "cert_path: $cert_path"
+                        pkey_path=$(echo "$cert_path" | sed "s:.crt:.key:")
+                        log "pkey_path: $pkey_path"
+                        if [[ ! -e "$pkey_path" ]]; then
+                          log "private key to certificate $cert is not found"
+                          exit 1
+                        fi
+                        cp insert-host-certificates.json insert_cert_payload.json
+                        cert="$(<$cert_path)"
+                        cert="${cert//$'\n'/}"
+                        pkey="$(<$pkey_path)"
+                        pkey="${pkey//$'\n'/}"
 
-                    cert="$(<server.pem)"
-                    cert="${cert//$'\n'/}"
-                    pkey="$(<server-key.pem)"
-                    pkey="${pkey//$'\n'/}"
+                        sed -i "s|CERT|$cert|" insert_cert_payload.json
+                        sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert_cert_payload.json
+                        sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert_cert_payload.json
+                        sed -i "s|PKEY|$pkey|" insert_cert_payload.json
+                        sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert_cert_payload.json
+                        sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
+                        log "inserting following certificates for $cert_path"
 
-                    sed -i "s|CERT|$cert|" insert-host-certificates.json
-                    sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert-host-certificates.json
-                    sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert-host-certificates.json
-                    sed -i "s|PKEY|$pkey|" insert-host-certificates.json
-                    sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert-host-certificates.json
-                    sed -i "s|-----END RSA|\\\\n-----END RSA|" insert-host-certificates.json
+                        res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
+                        -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                        log $res
+                        sleep 5s
+                      done
+                    fi
 
 
-                    # log "Generating Temporary Certificate"
-                    $AUTH_CURL -X POST -i -d @generateCA.xqy \
-                    -H "Content-type: application/x-www-form-urlencoded" \
-                    -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                    http://localhost:8000/v1/eval
-                    sleep 5s
-
-                    log "inserting following certificates"
-
-                    $AUTH_CURL -X POST --header "Content-Type:application/json" \
-                    -d @insert-host-certificates.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate
-                    sleep 5s
+                    if [[ "$certType" == "self-signed" ]]; then
+                      # log "Generating Temporary Certificate"
+                      $AUTH_CURL -X POST -i -d @generateCA.xqy \
+                      -H "Content-type: application/x-www-form-urlencoded" \
+                      -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                      http://localhost:8000/v1/eval
+                      sleep 5s
+                    fi
 
                     log "enabling app-servers for HTTPS"
                     # Manage need be put in the last in the array to make sure http works for all the requests
