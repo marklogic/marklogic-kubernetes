@@ -5,7 +5,7 @@ metadata:
 spec:
   # Secret names are always required.
   secretName: marklogic-1-tls
-  duration: 1000h #2160h # 90d
+  duration: 2160h #2160h # 90d
   renewBefore: 360h # 15d
   subject:
     organizations:
