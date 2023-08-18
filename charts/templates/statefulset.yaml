@@ -252,8 +252,11 @@ spec:
 
                     log "Info: [poststart] Begin Poststart Hook Execution"
                     if [[ $POD_NAME != *-0 ]]; then
+                      log "Info: [poststart] Not bootstrap host."
                       log "Info: [poststart] Skipping group configuration." 
-                      exit 0
+                      if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" != "true" ]]; then
+                        exit 0
+                      fi
                     fi
                       
                     while [ ! -f /var/opt/MarkLogic/ready ]; do
@@ -261,27 +264,24 @@ spec:
                       sleep 5s
                     done
                     sleep 10s
-                    GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
-                    GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-                    log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                    curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
-                    sleep 2s
+                    if [[ $POD_NAME == *-0 ]]; then
+                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
+                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
+                      log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
+                      curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
+                      sleep 2s
 
+                      if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                        log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
+                      else
+                        log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
+                        exit 0
+                      fi
+
+                    fi
 
                     AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
                     
-                    while [ ! -f /var/opt/MarkLogic/ready ]; do
-                          log "Waiting Marklogic to be ready"
-                          sleep 10s
-                    done
-                    
-                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
-                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
-                    else
-                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
-                      exit 0
-                    fi
-
                     cd ~ 
 
                     if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
@@ -313,11 +313,13 @@ spec:
                     }
                     EOF
 
-                    log "creating default certificate Template"
-                    response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
-                    log "$response"
-                    sleep 5s
-                    log "done creating default certificate Template"
+                    if [[ $POD_NAME == *-0 ]]; then
+                      log "creating default certificate Template"
+                      response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
+                      log "$response"
+                      sleep 5s
+                      log "done creating default certificate Template"
+                    if
 
                     log "creating insert-host-certificates.json"
                     cat <<'EOF' > insert-host-certificates.json
@@ -383,15 +385,14 @@ spec:
                       sleep 5s
                     fi
 
-
-                    # if [[ "$certType" == "self-signed" ]]; then
+                    if [[ $POD_NAME == *-0 ]]; then
                       # log "Generating Temporary Certificate"
                       $AUTH_CURL -X POST -i -d @generateCA.xqy \
                       -H "Content-type: application/x-www-form-urlencoded" \
                       -H "Accept: multipart/mixed; boundary=BOUNDARY" \
                       http://localhost:8000/v1/eval
                       sleep 5s
-                    # fi
+                    fi
 
                     log "enabling app-servers for HTTPS"
                     # Manage need be put in the last in the array to make sure http works for all the requests
@@ -404,11 +405,13 @@ spec:
                       sleep 5s
                     done
 
-                    if [[ "$certType" == "self-signed" ]]; then
-                      # log "Generate temporary certificate if necessary"
-                      $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
-                      -H "Accept: multipart/mixed; boundary=BOUNDARY" https://localhost:8000/v1/eval
-                    fi
+                    if [[ $POD_NAME == *-0 ]]; then
+                      if [[ "$certType" == "self-signed" ]]; then
+                        # log "Generate temporary certificate if necessary"
+                        $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
+                        -H "Accept: multipart/mixed; boundary=BOUNDARY" https://localhost:8000/v1/eval
+                      fi
+                    if
                     
                     rm -f /run/secrets/marklogic-certs/*.key
 
