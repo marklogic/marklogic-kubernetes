@@ -40,12 +40,28 @@ spec:
               certType="self-signed"
             fi
             echo "certType: $certType"
+            host_FQDN="$POD_NAME.$MARKLOGIC_FQDN_SUFFIX"
             if [[ "$certType" == "named" ]]; then
               cp -f /tmp/ca-secret/* /run/secrets/marklogic-certs/;
-              if [[ $POD_NAME == *"-0" ]]; then
-                echo "this is bootstrap host. copying certificate"
-                cp -f /tmp/certs-secret/* /run/secrets/marklogic-certs/;
-              fi
+              certs=$(find /tmp/certs-secret/tls_*.crt)
+              echo "certs $certs"
+              for cert_path in $certs; do
+                echo "cert_path: $cert_path"
+                cert_cn=$(openssl x509 -noout -subject -in $cert_path | sed -n '/subject/s/.*CN = \([^/]*\).*/\1/p')
+                echo "cert_cn: $cert_cn"
+                if [[ "$host_FQDN" == "$cert_cn" ]]; then
+                  cp $cert_path /run/secrets/marklogic-certs/tls.crt
+                  pkey_path=$(echo "$cert_path" | sed "s:.crt:.key:")
+                  echo "pkey_path: $pkey_path"
+                  cp $pkey_path /run/secrets/marklogic-certs/tls.key
+                  if [[ ! -e "$pkey_path" ]]; then
+                    echo "private key to certificate $cert is not found"
+                    exit 1
+                  fi
+                  echo "found cert for the host"
+                  break
+                fi
+              done
             elif [[ "$certType" == "self-signed" ]]; then
               if [[ $POD_NAME != *"-0" ]]; then
                 echo "Getting CA for bootstrap host"
@@ -73,6 +89,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: MARKLOGIC_BOOTSTRAP_HOST
+          value: {{ .Values.bootstrapHostName }}
         - name: MARKLOGIC_ADMIN_USERNAME_FILE
           value: "ml-secrets/username"
         - name: MARKLOGIC_ADMIN_PASSWORD_FILE
@@ -343,46 +361,37 @@ spec:
                     log "inserting certificates $certType"
                     if [[ "$certType" == "named" ]]; then
                       log "creating named certificate"
-                      certs=$(find /run/secrets/marklogic-certs/tls_*.crt -type f)
-                      log "certs $certs"
-                      for cert_path in $certs; do
-                        log "cert_path: $cert_path"
-                        pkey_path=$(echo "$cert_path" | sed "s:.crt:.key:")
-                        log "pkey_path: $pkey_path"
-                        if [[ ! -e "$pkey_path" ]]; then
-                          log "private key to certificate $cert is not found"
-                          exit 1
-                        fi
-                        cp insert-host-certificates.json insert_cert_payload.json
-                        cert="$(<$cert_path)"
-                        cert="${cert//$'\n'/}"
-                        pkey="$(<$pkey_path)"
-                        pkey="${pkey//$'\n'/}"
+                      cert_path="/run/secrets/marklogic-certs/tls.crt"
+                      pkey_path="/run/secrets/marklogic-certs/tls.key"
+                      cp insert-host-certificates.json insert_cert_payload.json
+                      cert="$(<$cert_path)"
+                      cert="${cert//$'\n'/}"
+                      pkey="$(<$pkey_path)"
+                      pkey="${pkey//$'\n'/}"
 
-                        sed -i "s|CERT|$cert|" insert_cert_payload.json
-                        sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert_cert_payload.json
-                        sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert_cert_payload.json
-                        sed -i "s|PKEY|$pkey|" insert_cert_payload.json
-                        sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert_cert_payload.json
-                        sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
-                        log "inserting following certificates for $cert_path"
+                      sed -i "s|CERT|$cert|" insert_cert_payload.json
+                      sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert_cert_payload.json
+                      sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert_cert_payload.json
+                      sed -i "s|PKEY|$pkey|" insert_cert_payload.json
+                      sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert_cert_payload.json
+                      sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
+                      log "inserting following certificates for $cert_path"
 
-                        res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
-                        -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
-                        log $res
-                        sleep 5s
-                      done
+                      res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
+                      -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                      log $res
+                      sleep 5s
                     fi
 
 
-                    if [[ "$certType" == "self-signed" ]]; then
+                    # if [[ "$certType" == "self-signed" ]]; then
                       # log "Generating Temporary Certificate"
                       $AUTH_CURL -X POST -i -d @generateCA.xqy \
                       -H "Content-type: application/x-www-form-urlencoded" \
                       -H "Accept: multipart/mixed; boundary=BOUNDARY" \
                       http://localhost:8000/v1/eval
                       sleep 5s
-                    fi
+                    # fi
 
                     log "enabling app-servers for HTTPS"
                     # Manage need be put in the last in the array to make sure http works for all the requests
