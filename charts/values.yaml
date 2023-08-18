@@ -69,6 +69,7 @@ auth:
 #  adminPassword: ""
 #  walletPassword: ""
 
+# Add comment mention that if certSecretNames is empty. 
 tls:
   enableOnDefaultAppServers: false
   certSecretNames: []

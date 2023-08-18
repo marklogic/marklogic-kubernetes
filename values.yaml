@@ -1,4 +1,4 @@
-replicaCount: 2
+replicaCount: 1  
 
 auth:
   adminPassword: admin
@@ -15,14 +15,11 @@ image:
 
 tls:
   enableOnDefaultAppServers: true
-  certSecretNames: []
-  caSecretName: ""
-
-# tls:
-#   enableOnDefaultAppServers: true
-#   certSecretNames:
-#     - "marklogic-0-cert"
-#   caSecretName: "ca-secret"
+  certSecretNames:
+    - "marklogic-0-cert"
+    - "marklogic-1-cert"
+    - "marklogic-wild-tls"
+  caSecretName: "ca-secret"
 
 # resources: 
 #   requests:
