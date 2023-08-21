@@ -234,9 +234,7 @@ spec:
                   - bash
                   - '-c'
                   - |
-                    set -x
-                    set -o functrace
-
+                    
                     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
                     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
@@ -291,10 +289,8 @@ spec:
                       log "self-signed cert flow"
                       certType="self-signed"
                     fi
+
                     log "certType in postStart: $certType"
-                    if [[ "$certType" == "named" ]]; then
-                      log "cert!!!"
-                    fi
 
                     cat <<'EOF' > defaultCertificateTemplate.json
                     {
@@ -313,13 +309,13 @@ spec:
                     }
                     EOF
 
-                    if [[ $POD_NAME == *-0 ]]; then
-                      log "creating default certificate Template"
-                      response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
-                      log "$response"
-                      sleep 5s
-                      log "done creating default certificate Template"
-                    if
+                    log "creating default certificate Template, $POD_NAME"
+                    log "creating default certificate Template"
+                    response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
+                    log "$response"
+                    sleep 5s
+                    log "done creating default certificate Template"
+                    
 
                     log "creating insert-host-certificates.json"
                     cat <<'EOF' > insert-host-certificates.json
@@ -386,7 +382,7 @@ spec:
                     fi
 
                     if [[ $POD_NAME == *-0 ]]; then
-                      # log "Generating Temporary Certificate"
+                      log "Generating Temporary Certificate"
                       $AUTH_CURL -X POST -i -d @generateCA.xqy \
                       -H "Content-type: application/x-www-form-urlencoded" \
                       -H "Accept: multipart/mixed; boundary=BOUNDARY" \
@@ -398,21 +394,23 @@ spec:
                     # Manage need be put in the last in the array to make sure http works for all the requests
                     appServers=("App-Services" "Admin" "Manage")
                     for appServer in ${appServers[@]}; do
-                      echo "configuring SSL for App Server $appServer"
+                      log "configuring SSL for App Server $appServer"
                       curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
                         -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
                       http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
                       sleep 5s
                     done
-
+                    log "done enablingb HTTPS in App Server"
+                    
                     if [[ $POD_NAME == *-0 ]]; then
                       if [[ "$certType" == "self-signed" ]]; then
-                        # log "Generate temporary certificate if necessary"
+                        log "Generate temporary certificate if necessary"
                         $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
                         -H "Accept: multipart/mixed; boundary=BOUNDARY" https://localhost:8000/v1/eval
                       fi
-                    if
+                    fi
                     
+                    log "removing cert keys"
                     rm -f /run/secrets/marklogic-certs/*.key
 
                     log "Info: [poststart] Poststart Hook Execution Completed"
