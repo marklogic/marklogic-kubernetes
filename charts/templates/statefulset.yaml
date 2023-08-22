@@ -375,8 +375,13 @@ spec:
                       sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
                       log "inserting following certificates for $cert_path"
 
-                      res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
-                      -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                      if [[ $POD_NAME == *-0 ]]; then
+                        res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
+                        -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                      else 
+                        res=$($AUTH_CURL -k -iv -X POST --header "Content-Type:application/json" \
+                        -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate)  
+                      fi
                       log $res
                       sleep 5s
                     fi
@@ -388,21 +393,20 @@ spec:
                       -H "Accept: multipart/mixed; boundary=BOUNDARY" \
                       http://localhost:8000/v1/eval
                       sleep 5s
-                    fi
-
-                    log "enabling app-servers for HTTPS"
-                    # Manage need be put in the last in the array to make sure http works for all the requests
-                    appServers=("App-Services" "Admin" "Manage")
-                    for appServer in ${appServers[@]}; do
-                      log "configuring SSL for App Server $appServer"
-                      curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
-                        -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
-                      http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
-                      sleep 5s
-                    done
-                    log "done enablingb HTTPS in App Server"
                     
-                    if [[ $POD_NAME == *-0 ]]; then
+
+                      log "enabling app-servers for HTTPS"
+                      # Manage need be put in the last in the array to make sure http works for all the requests
+                      appServers=("App-Services" "Admin" "Manage")
+                      for appServer in ${appServers[@]}; do
+                        log "configuring SSL for App Server $appServer"
+                        curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                          -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
+                        http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
+                        sleep 5s
+                      done
+                      log "done enablingb HTTPS in App Server"
+                    
                       if [[ "$certType" == "self-signed" ]]; then
                         log "Generate temporary certificate if necessary"
                         $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
