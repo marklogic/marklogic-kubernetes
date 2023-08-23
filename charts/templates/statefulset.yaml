@@ -89,8 +89,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: MARKLOGIC_BOOTSTRAP_HOST
-          value: {{ .Values.bootstrapHostName }}
         - name: MARKLOGIC_ADMIN_USERNAME_FILE
           value: "ml-secrets/username"
         - name: MARKLOGIC_ADMIN_PASSWORD_FILE
