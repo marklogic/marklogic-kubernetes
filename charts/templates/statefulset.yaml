@@ -63,7 +63,9 @@ spec:
                 fi
               done
             elif [[ "$certType" == "self-signed" ]]; then
-              if [[ $POD_NAME != *"-0" ]]; then
+              echo "self-signed"
+              echo "MARKLOGIC_BOOTSTRAP_HOST: $MARKLOGIC_BOOTSTRAP_HOST"
+              if [[ $POD_NAME != *"-0" ]] || [[ $host_FQDN != $MARKLOGIC_BOOTSTRAP_HOST ]]; then
                 echo "Getting CA for bootstrap host"
                 cd /run/secrets/marklogic-certs/
                 echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
@@ -119,20 +121,27 @@ spec:
               log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as $POD_NAME is not the first node in the group."
               exit 0
             fi
-            HOST_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+            HTTP_PROTOCOL="http"
+            HTTPS_OPTION=""
+            if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+              HTTP_PROTOCOL="https"
+              HTTPS_OPTION="-k"
+            fi
+            HOST_RESP_CODE=`curl --anyauth -m 20 -s ${HTTPS_OPTION} -o /dev/null -w "%{http_code}" -X GET ${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+            log "Info: HOST_RESP_CODE $HOST_RESP_CODE"
             if [[ ${HOST_RESP_CODE} -ne 200 ]]; then
               log "Error: [initContainer] Bootstrap host $MARKLOGIC_BOOTSTRAP_HOST not found, exiting Init container."
               exit 1
             fi
             GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
             GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null ${HTTPS_OPTION} -w "%{http_code}" -X GET ${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
             if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
               log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
               exit 0
             fi
             log "Info: [initContainer] Group $MARKLOGIC_GROUP does not exist, configuring group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups`
+            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST ${HTTPS_OPTION} -d "${GROUP_CFG}" -H "Content-type: application/json" ${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups`
             if [[ ${res_code} -eq 201 ]]; then
               log "Info: [initContainer] Successfully configured group $MARKLOGIC_GROUP on the MarkLogic cluster."
             else
@@ -140,7 +149,7 @@ spec:
               exit 1
             fi
             log "Info: [initContainer] Group $MARKLOGIC_GROUP has been created, configuring App-server App-Services in group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
+            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s ${HTTPS_OPTION} -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
             if [[ ${res_code} -eq 201 ]]; then
               log "Info: [initContainer] Successfully configured App-server App-Services into group $MARKLOGIC_GROUP on the MarkLogic cluster."
             else
@@ -347,11 +356,13 @@ spec:
                       xquery version "1.0-ml"; 
                       import module namespace pki = "http://marklogic.com/xdmp/pki" 
                           at "/MarkLogic/pki.xqy";
-
+                      import module namespace admin = "http://marklogic.com/xdmp/admin"
+                          at "/MarkLogic/admin.xqy";
                       let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
-
+                      let $config := admin:get-configuration()
+                      let $hostname := admin:host-get-name($config, admin:host-get-id($config, xdmp:host-name()))
                       return
-                        pki:generate-temporary-certificate-if-necessary($tid, 365, "marklogic-0.marklogic-headless.default.svc.cluster.local", (), ())
+                        pki:generate-temporary-certificate-if-necessary($tid, 365, $hostname, (), ())
                     EOF
                     
                     log "inserting certificates $certType"
