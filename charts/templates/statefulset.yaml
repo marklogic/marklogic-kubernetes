@@ -10,6 +10,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   updateStrategy:
     type: {{ .Values.updateStrategy.type }}
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
@@ -23,70 +24,6 @@ spec:
       affinity: {{- toYaml . | nindent 8}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
-      {{- if ne .Values.bootstrapHostName "" }}
-      initContainers: 
-      - name: configure-group
-        image: "{{ .Values.initContainerImage.repository }}:{{ .Values.initContainerImage.tag }}"
-        volumeMounts:
-            - name: mladmin-secrets
-              mountPath: /run/secrets/ml-secrets
-              readOnly: true
-        command:
-          - sh
-          - '-c'
-          - |
-            MARKLOGIC_ADMIN_USERNAME=`cat /run/secrets/ml-secrets/username`
-            MARKLOGIC_ADMIN_PASSWORD=`cat /run/secrets/ml-secrets/password`
-            log () {
-                      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      echo "${TIMESTAMP}  $@"
-                    }
-            log "Info: [initContainer] Begin configure-group execution"
-            if [[ $POD_NAME != *-0 ]]; then
-              log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as $POD_NAME is not the first node in the group."
-              exit 0
-            fi
-            HOST_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-            if [[ ${HOST_RESP_CODE} -ne 200 ]]; then
-              log "Error: [initContainer] Bootstrap host $MARKLOGIC_BOOTSTRAP_HOST not found, exiting Init container."
-              exit 1
-            fi
-            GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
-            GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-            if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
-              log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
-              exit 0
-            fi
-            log "Info: [initContainer] Group $MARKLOGIC_GROUP does not exist, configuring group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups`
-            if [[ ${res_code} -eq 201 ]]; then
-              log "Info: [initContainer] Successfully configured group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            else
-              log "Info: [initContainer] Expected response code 201, got $res_code"
-              exit 1
-            fi
-            log "Info: [initContainer] Group $MARKLOGIC_GROUP has been created, configuring App-server App-Services in group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
-            if [[ ${res_code} -eq 201 ]]; then
-              log "Info: [initContainer] Successfully configured App-server App-Services into group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            else
-              log "Info: [initContainer] Expected response code 201, got $res_code"
-              exit 1
-            fi                      
-        env: 
-        - name: MARKLOGIC_ADMIN_USERNAME_FILE
-          value: "ml-secrets/username"
-        - name: MARKLOGIC_ADMIN_PASSWORD_FILE
-          value: "ml-secrets/password"
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        envFrom:
-        - configMapRef:
-            name: {{ include "marklogic.fullname" . }}
-      {{- end }}
       containers:
         - name: marklogic-server
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -105,22 +42,12 @@ spec:
               value: "ml-secrets/username"
             - name: MARKLOGIC_ADMIN_PASSWORD_FILE
               value: "ml-secrets/password"
-            {{- if .Values.auth.walletPassword }}
-            - name: MARKLOGIC_WALLET_PASSWORD_FILE
-              value: ml-secrets/wallet-password
-            {{- end }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                     fieldPath: metadata.name
             - name: INSTALL_CONVERTERS
               value: {{ .Values.enableConverters | quote }}
-            - name: LICENSE_KEY
-              value: {{ .Values.license.key | quote }}
-            - name: LICENSEE
-              value: {{ .Values.license.licensee | quote }}
-            - name: REALM
-              value: {{ .Values.realm  | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}
@@ -147,72 +74,6 @@ spec:
               {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
-            {{- if eq .Values.bootstrapHostName "" }}
-            postStart:
-              exec:
-                command:
-                  - bash
-                  - '-c'
-                  - |
-                    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
-                    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
-
-                    log () {
-                      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      pid=$(pgrep start.marklogic)
-                      # Check to make sure pod doesn't terminate if PID value is empty for any reason
-                      # If PID value is empty postStart hook logs are not recorded
-                      if [ -n "$pid" ]; then
-                          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-                      fi
-                    }
-
-                    log "Info: [poststart] Poststart Hook Execution"
-                    restart_check () {
-                      local retry_count LAST_START timestamp=$1
-                      LAST_START=$(curl -s --anyauth --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp")
-                      for ((retry_count = 0; retry_count < 5; retry_count = retry_count + 1)); do
-                        if [[ "${timestamp}" == "${LAST_START}" ]] || [[ -z "${LAST_START}" ]]; then
-                            sleep 10
-                            LAST_START=$(curl -s --anyauth --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp")
-                        else
-                            log "Info: [poststart] MarkLogic host: ${MARKLOGIC_BOOTSTRAP_HOST} has restarted."
-                            return 0
-                        fi
-                      done
-                      log "Error: [poststart] Failed to restart MarkLogic host: ${MARKLOGIC_BOOTSTRAP_HOST}"
-                      exit 1
-                    }
-
-                    if [[ $POD_NAME != *-0 ]]; then
-                      log "Info: [poststart] Skipping group configuration."
-                    else
-                      log "Info: [poststart] Begin group configuration."
-                      while [ ! -f /var/opt/MarkLogic/ready ]; do
-                        log "[poststart] waiting for MarkLogic server to be ready"
-                        sleep 5s
-                      done
-
-                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
-                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-                      log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-                     
-                      # check whether MarkLogic has restarted
-                      if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
-                        log "Info: [poststart] Successfully configured properties for $MARKLOGIC_GROUP group on the MarkLogic cluster."
-                        TIMESTAMP=$(< /tmp/restart_payload.xml grep "last-startup" | sed 's%^.*<last-startup.*>\(.*\)</last-startup>.*$%\1%')
-                        rm  -f /tmp/restart_payload.xml
-                        if [[ -n ${TIMESTAMP} ]]; then
-                          restart_check ${TIMESTAMP}
-                        fi
-                      else
-                        log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.
-                        log "Error: [poststart] Expected response code 202 or 204, got "${GROUP_RESP_CODE}"
-                        exit 1
-                      fi
-                    fi
-            {{- end }}
             preStop:
               exec:
                 command:

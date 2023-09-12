@@ -31,10 +31,9 @@ image:
   tag: 11.0.2-centos-1.0.2
   pullPolicy: IfNotPresent
 
-## Init container image parameters
-initContainerImage:
-  repository: curlimages/curl
-  tag: 7.87.0
+hook:
+  image: redhat/ubi9
+  tag: 9.2
   pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
