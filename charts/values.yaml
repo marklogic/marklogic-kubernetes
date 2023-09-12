@@ -233,16 +233,6 @@ readinessProbe:
   failureThreshold: 3
   successThreshold: 1
 
-## Configure options for startup probe
-## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
-startupProbe:
-  enabled: true
-  initialDelaySeconds: 10
-  periodSeconds: 20
-  timeoutSeconds: 1
-  failureThreshold: 30
-  successThreshold: 1
-
 ## Configure options for log collection
 ## Log collection will collect all logs for each file type enabled, parse them, 
 ## And export them to a logging backend specified in the outputs section below
