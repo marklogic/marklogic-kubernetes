@@ -65,7 +65,7 @@ spec:
             elif [[ "$certType" == "self-signed" ]]; then
               echo "self-signed"
               echo "MARKLOGIC_BOOTSTRAP_HOST: $MARKLOGIC_BOOTSTRAP_HOST"
-              if [[ $POD_NAME != *"-0" ]] || [[ $host_FQDN != $MARKLOGIC_BOOTSTRAP_HOST ]]; then
+              if [[ $POD_NAME != *"-0" ]] || [[ $MARKLOGIC_CLUSTER_TYPE == "non-bootstrap" ]]; then
                 echo "Getting CA for bootstrap host"
                 cd /run/secrets/marklogic-certs/
                 echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
@@ -234,7 +234,7 @@ spec:
               {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
-            {{- if eq .Values.bootstrapHostName "" }}
+            {{- if or (eq .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers "true") }}
             postStart:
               exec:
                 command:
@@ -269,6 +269,7 @@ spec:
                       sleep 5s
                     done
                     sleep 10s
+
                     if [[ $POD_NAME == *-0 ]]; then
                       GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
@@ -316,7 +317,6 @@ spec:
                     }
                     EOF
 
-                    log "creating default certificate Template, $POD_NAME"
                     log "creating default certificate Template"
                     response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
                     log "$response"
@@ -384,7 +384,7 @@ spec:
                       sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
                       log "inserting following certificates for $cert_path"
 
-                      if [[ $POD_NAME == *-0 ]]; then
+                      if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                         res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
                         -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
                       else 
@@ -395,7 +395,7 @@ spec:
                       sleep 5s
                     fi
 
-                    if [[ $POD_NAME == *-0 ]]; then
+                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       log "Generating Temporary Certificate"
                       $AUTH_CURL -X POST -i -d @generateCA.xqy \
                       -H "Content-type: application/x-www-form-urlencoded" \
