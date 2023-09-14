@@ -93,16 +93,6 @@ affinity:
             - marklogic
         topologyKey: kubernetes.io/hostname
 
-## Configure POD Topology Spread Constraints to spread Pods across cluster
-## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-topologySpreadConstraints: {}
-  # - maxSkew: 1
-  #   topologyKey: topology.kubernetes.io/zone
-  #   whenUnsatisfiable: ScheduleAnyway
-  #   labelSelector:
-  #     matchLabels:
-  #       app.kubernetes.io/name: marklogic
-
 ## Configure NodeSelector property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
 nodeSelector: {}
