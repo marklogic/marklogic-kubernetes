@@ -10,6 +10,15 @@ spec:
   selector:
     {{- include "marklogic.selectorLabels" . | nindent 4 }}
   type: {{ .Values.service.type }}
+  {{- if or (eq .Values.service.type "LoadBalancer") (eq .Values.service.type "NodePort") }}
+  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy | quote }}
+  {{- end }}
+  {{- if and (eq .Values.service.type "LoadBalancer") (not (empty .Values.service.loadBalancerSourceRanges)) }}
+  loadBalancerSourceRanges: {{- toYaml .Values.service.loadBalancerSourceRanges | nindent 4}}
+  {{- end }}
+  {{- if and (eq .Values.service.type "LoadBalancer") (not (empty .Values.service.loadBalancerIP)) }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- end }}
   ports:
     - name: health-check
       port: 7997
