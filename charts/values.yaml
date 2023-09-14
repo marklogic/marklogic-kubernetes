@@ -93,7 +93,7 @@ affinity:
             - marklogic
         topologyKey: kubernetes.io/hostname
 
-## Configure POD Topology Spread Constraints to spreads Pods across cluster
+## Configure POD Topology Spread Constraints to spread Pods across cluster
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
 topologySpreadConstraints: {}
   # - maxSkew: 1
