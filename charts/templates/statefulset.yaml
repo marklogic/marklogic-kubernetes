@@ -65,6 +65,8 @@ spec:
             elif [[ "$certType" == "self-signed" ]]; then
               echo "self-signed"
               echo "MARKLOGIC_BOOTSTRAP_HOST: $MARKLOGIC_BOOTSTRAP_HOST"
+              echo "MARKLOGIC_CLUSTER_TYPE: $MARKLOGIC_CLUSTER_TYPE"
+              echo "POD_NAME: $POD_NAME"
               if [[ $POD_NAME != *"-0" ]] || [[ $MARKLOGIC_CLUSTER_TYPE == "non-bootstrap" ]]; then
                 echo "Getting CA for bootstrap host"
                 cd /run/secrets/marklogic-certs/

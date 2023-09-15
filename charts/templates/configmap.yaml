@@ -7,10 +7,10 @@ metadata:
     {{- include "marklogic.labels" . | nindent 4 }}
 data:
 {{- if ne .Values.bootstrapHostName "" }}
-  MARKLOGIC_CLUSTER_TYPE: "bootstrap"
+  MARKLOGIC_CLUSTER_TYPE: "non-bootstrap"
   MARKLOGIC_BOOTSTRAP_HOST: {{ .Values.bootstrapHostName }}
 {{- else }}
-  MARKLOGIC_CLUSTER_TYPE: "non-bootstrap"
+  MARKLOGIC_CLUSTER_TYPE: "bootstrap"
   MARKLOGIC_BOOTSTRAP_HOST: {{ include "marklogic.fqdn" . }}
 {{- end }}
 {{- if .Values.tls.enableOnDefaultAppServers }}
