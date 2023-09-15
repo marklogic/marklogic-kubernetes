@@ -36,15 +36,16 @@ Refer to the official Kubernetes documentation for detailed steps on how to [cre
 
 4. Create a `values.yaml` file to customize the settings. Specify the number of pods (one MarkLogic host in this case), add the secret name for the admin credentials (if not using the automatically generated one), and specify the resources that should be allocated to each MarkLiogic pod.
 
-Note: Please make sure to use latest MarkLogic Docker image for the new implementation as shown below in the values.yaml file:
+Note: Please make sure to use the latest MarkLogic Docker image for new implementation. To get the latest image, see https://hub.docker.com/r/marklogicdb/marklogic-db/tags.
 ```
 # Create a single MarkLogic pod
 replicaCount: 1
 
 # Marklogic image parameters
+# using the latest image 11.0.3-centos-1.0.2 
 image:
   repository: marklogicdb/marklogic-db;
-  tag: latest
+  tag: 11.0.3-centos-1.0.2 
   pullPolicy: IfNotPresent
 
 # Set the admin credentials secret. Leave this out or set to blank "" to use the automatically generated secret.
@@ -106,7 +107,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `group.enableXdqpSsl`                               | SSL encryption for XDQP                                                                                                                                                                | `true`                     |
 | `bootstrapHostName`                                 | Host name of MarkLogic bootstrap host (to join a cluster)                                                                                                                              | `""`                       |
 | `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `marklogicdb/marklogic-db` |
-| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `latest`      |
+| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          |      |
 | `image.pullPolicy`                                  | Image pull policy for MarkLogic image                                                                                                                                                  | `IfNotPresent`             |
 | `initContainerImage.repository`                     | Repository for initContainer image                                                                                                                                                     | `curlimages/curl`          |
 | `initContainerImage.tag`                            | Image tag for initContainer image                                                                                                                                                      | `7.87.0`                   |
