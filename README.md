@@ -36,7 +36,7 @@ Refer to the official Kubernetes documentation for detailed steps on how to [cre
 
 4. Create a `values.yaml` file to customize the settings. Specify the number of pods (one MarkLogic host in this case), add the secret name for the admin credentials (if not using the automatically generated one), and specify the resources that should be allocated to each MarkLiogic pod.
 
-Note: Please make sure to use the latest MarkLogic Docker image for new implementation. To get the latest image, see https://hub.docker.com/r/marklogicdb/marklogic-db/tags.
+Note: Please ensure to use the latest MarkLogic Docker image for new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/marklogicdb/marklogic-db/tags](https://hub.docker.com/r/marklogicdb/marklogic-db/tags) for latest image available.
 ```
 # Create a single MarkLogic pod
 replicaCount: 1
