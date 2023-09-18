@@ -49,6 +49,7 @@ spec:
                 echo "cert_path: $cert_path"
                 cert_cn=$(openssl x509 -noout -subject -in $cert_path | sed -n '/subject/s/.*CN = \([^/]*\).*/\1/p')
                 echo "cert_cn: $cert_cn"
+                echo "host_FQDN: $host_FQDN"
                 if [[ "$host_FQDN" == "$cert_cn" ]]; then
                   cp $cert_path /run/secrets/marklogic-certs/tls.crt
                   pkey_path=$(echo "$cert_path" | sed "s:.crt:.key:")
@@ -157,7 +158,7 @@ spec:
             else
               log "Info: [initContainer] Expected response code 201, got $res_code"
               exit 1
-            fi                      
+            fi
         env: 
         - name: MARKLOGIC_ADMIN_USERNAME_FILE
           value: "ml-secrets/username"
@@ -236,7 +237,7 @@ spec:
               {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
-            {{- if or (eq .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers "true") }}
+            {{- if or (eq .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers true) }}
             postStart:
               exec:
                 command:
@@ -272,20 +273,19 @@ spec:
                     done
                     sleep 10s
 
-                    if [[ $POD_NAME == *-0 ]]; then
+                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
                       log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
                       curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
                       sleep 2s
+                    fi
 
-                      if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
-                        log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
-                      else
-                        log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
-                        exit 0
-                      fi
-
+                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
+                    else
+                      log "MARKLOGIC_JOIN_TLS_ENABLED is set to false"
+                      exit 0
                     fi
 
                     AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
@@ -398,7 +398,7 @@ spec:
                     fi
 
                     if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                      log "Generating Temporary Certificate"
+                      log "Generating Temporary CA Certificate"
                       $AUTH_CURL -X POST -i -d @generateCA.xqy \
                       -H "Content-type: application/x-www-form-urlencoded" \
                       -H "Accept: multipart/mixed; boundary=BOUNDARY" \
