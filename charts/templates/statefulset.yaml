@@ -385,6 +385,8 @@ spec:
                       sed -i "s|PKEY|$pkey|" insert_cert_payload.json
                       sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert_cert_payload.json
                       sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
+                      sed -i "s|-----END PRIVATE|\\\\n-----END PRIVATE|" insert_cert_payload.json
+                      
                       log "inserting following certificates for $cert_path"
 
                       if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
