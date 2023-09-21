@@ -258,7 +258,7 @@ spec:
                           echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
                       fi
                     }
-
+                    
                     log "Info: [poststart] Begin Poststart Hook Execution"
                     if [[ $POD_NAME != *-0 ]]; then
                       log "Info: [poststart] Not bootstrap host."
@@ -278,8 +278,21 @@ spec:
                       GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
                       log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      curl --anyauth -m 20 -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}
-                      sleep 2s
+                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                     
+                      # check whether MarkLogic has restarted
+                      if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
+                        log "Info: [poststart] Successfully configured properties for $MARKLOGIC_GROUP group on the MarkLogic cluster."
+                        TIMESTAMP=$(< /tmp/restart_payload.xml grep "last-startup" | sed 's%^.*<last-startup.*>\(.*\)</last-startup>.*$%\1%')
+                        rm  -f /tmp/restart_payload.xml
+                        if [[ -n ${TIMESTAMP} ]]; then
+                          restart_check ${TIMESTAMP}
+                        fi
+                      else
+                        log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.
+                        log "Error: [poststart] Expected response code 202 or 204, got "${GROUP_RESP_CODE}"
+                        exit 1
+                      fi
                     fi
 
                     if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then

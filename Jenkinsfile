@@ -5,7 +5,7 @@
 @Library('shared-libraries@1.0-declarative')
 import groovy.json.JsonSlurperClassic
 
-emailList = 'vitaly.korolev@marklogic.com, sumanth.ravipati@marklogic.com, peng.zhou@marklogic.com, fayez.saliba@marklogic.com, barkha.choithani@marklogic.com, romain.winieski@marklogic.com'
+emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
 gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /CLD-\d{3,4}/
