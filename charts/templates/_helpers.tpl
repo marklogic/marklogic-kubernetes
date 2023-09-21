@@ -101,3 +101,15 @@ Fully qualified domain name
 {{- define "marklogic.fqdn" -}}
 {{- printf "%s-0.%s.%s.svc.%s" (include "marklogic.fullname" .) (include "marklogic.headlessServiceName" .) .Release.Namespace .Values.clusterDomain }}
 {{- end}}
+
+{{/*
+Validate values file
+*/}}
+{{- define "marklogic.checkInputError" -}}
+{{- $fqdn := include "marklogic.fqdn" . }}
+{{- if gt (len $fqdn) 64}}
+{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again."  }}
+{{- fail $errorMessage }}
+{{- end }}
+{{- end }}
+
