@@ -22,7 +22,7 @@ func TestChartTemplateEnableConvertersEnabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
@@ -60,7 +60,7 @@ func TestChartTemplateEnableConvertersDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
@@ -99,7 +99,7 @@ func TestChartTemplateLicenseValues(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
@@ -142,7 +142,7 @@ func TestChartTemplateAuthRealmValue(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install

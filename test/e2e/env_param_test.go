@@ -42,7 +42,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -70,7 +70,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	releaseName := "test"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
 	tunnel := k8s.NewTunnel(

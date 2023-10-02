@@ -22,13 +22,13 @@ func TestSeparateEDnode(t *testing.T) {
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "test-dnode-group"
 	enodeReleaseName := "test-enode-group"
-	dnodePodName := dnodeReleaseName + "-marklogic-0"
-	enodePodName0 := enodeReleaseName + "-marklogic-0"
-	enodePodName1 := enodeReleaseName + "-marklogic-1"
+	dnodePodName := dnodeReleaseName + "-0"
+	enodePodName0 := enodeReleaseName + "-0"
+	enodePodName1 := enodeReleaseName + "-1"
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -211,11 +211,11 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "test-dnode-group"
 	enodeReleaseName := "test-enode-group"
-	dnodePodName := dnodeReleaseName + "-marklogic-0"
+	dnodePodName := dnodeReleaseName + "-0"
 
 	// Incorrect boostrap hostname for negative test
 	incorrectBootstrapHost := "Incorrect Host Name"

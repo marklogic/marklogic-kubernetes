@@ -37,7 +37,7 @@ func TestHelmScaleUp(t *testing.T) {
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -75,7 +75,7 @@ func TestHelmScaleUp(t *testing.T) {
 	t.Logf("====Upgrading Helm Chart")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-1"
+	podName := releaseName + "-1"
 
 	// wait until second pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
@@ -128,7 +128,7 @@ func TestHelmScaleDown(t *testing.T) {
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -152,7 +152,7 @@ func TestHelmScaleDown(t *testing.T) {
 	releaseName := "test-scale-down"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName1 := releaseName + "-marklogic-1"
+	podName1 := releaseName + "-1"
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 10, 20*time.Second)
@@ -173,7 +173,7 @@ func TestHelmScaleDown(t *testing.T) {
 
 	time.Sleep(20 * time.Second)
 
-	podName0 := releaseName + "-marklogic-0"
+	podName0 := releaseName + "-0"
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName0, 8002, 8002)

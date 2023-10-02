@@ -67,7 +67,7 @@ helm install my-release marklogic/marklogic --version=1.0.0 --values values.yaml
 ```
 Once the installation is complete and the pod is in a running state, the MarkLogic admin UI can be accessed using the port-forwarding command as below:
 ```
-kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001
+kubectl port-forward my-release-0 8000:8000 8001:8001
 ```
 Please refer [Official Documentation](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/accessing-marklogic-server-in-a-kubernetes-cluster.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
 
