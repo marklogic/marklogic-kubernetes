@@ -72,7 +72,7 @@ persistence:
 ```
 5. Install the MarkLogic Helm Chart with the above custom settings. The rest of the settings will default to the values as listed below in the [Parameters](#parameters) section.
 ```
-helm install my-release marklogic/marklogic --version=1.0.0 --values values.yaml --namespace=marklogic
+helm install my-release marklogic/marklogic --values values.yaml --namespace=marklogic
 ```
 Once the installation is complete and the pod is in a running state, the MarkLogic admin UI can be accessed using the port-forwarding command as below:
 ```
@@ -128,6 +128,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `license.key`                                       | Set MarkLogic license key installed                                                                                                                                                    | `""`                       |
 | `license.licensee`                                  | Set MarkLogic licensee information                                                                                                                                                     | `""`                       |
 | `affinity`                                          | Affinity for MarkLogic pods assignment                                                                                                                                                 | `{}`                       |
+| `topologySpreadConstraints`                         | POD Topology Spread Constraints to spread Pods across cluster                                                                                                                                                    | `[]`                       |
 | `nodeSelector`                                      | Node labels for MarkLogic pods assignment                                                                                                                                              | `{}`                       |
 | `persistence.enabled`                               | Parameter to enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used.                                                           | `true`                     |
 | `persistence.storageClass`                          | Storage class for MarkLogic data volume, leave empty to use the default storage class                                                                                                  | `""`                       |
