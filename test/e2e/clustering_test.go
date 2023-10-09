@@ -1,9 +1,7 @@
 package e2e
 
 import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +11,8 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
+	"github.com/imroc/req/v3"
+	"github.com/tidwall/gjson"
 )
 
 func TestClusterJoin(t *testing.T) {
@@ -29,18 +28,15 @@ func TestClusterJoin(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	var resp *http.Response
-	var body []byte
-	var err error
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
@@ -74,22 +70,33 @@ func TestClusterJoin(t *testing.T) {
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s/manage/v2/hosts", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
 
-	dr := digestAuth.NewRequest(username, password, "GET", endpoint, "")
-
-	if resp, err = dr.Execute(); err != nil {
-		t.Fatalf(err.Error())
-	}
+	numOfHosts := 0
+	client := req.C()
+	resp, err := client.R().
+		SetDigestAuth(username, password).
+		SetRetryCount(5).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Logf("error: %s", err.Error())
+			}
+			totalHosts := gjson.Get(string(body), `host-default-list.list-items.list-count.value`)
+			numOfHosts = int(totalHosts.Num)
+			if numOfHosts != 2 {
+				t.Log("Waiting for MarkLogic hosts")
+			}
+			return numOfHosts != 2
+		}).
+		Get("http://localhost:8002/manage/v2/hosts?format=json")
 	defer resp.Body.Close()
 
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	t.Logf("Response:\n" + string(body))
-	if !strings.Contains(string(body), "<list-count units=\"quantity\">2</list-count>") {
+	if numOfHosts != 2 {
 		t.Errorf("Wrong number of hosts")
 	}
 }
