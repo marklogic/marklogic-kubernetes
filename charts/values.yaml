@@ -241,16 +241,21 @@ containerSecurityContext:
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 30
-  periodSeconds: 60
+  initialDelaySeconds: 300
+  periodSeconds: 20
   timeoutSeconds: 5
-  failureThreshold: 3
+  failureThreshold: 15
   successThreshold: 1
 
 ## Configure options for readiness probe
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+
+################################################################
+## NOTE: See Limitations and known Issues in the README file  ##
+################################################################
+
 readinessProbe:
-  enabled: true
+  enabled: false
   initialDelaySeconds: 10
   periodSeconds: 60
   timeoutSeconds: 5
@@ -259,8 +264,13 @@ readinessProbe:
 
 ## Configure options for startup probe
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
+
+################################################################
+## NOTE: See Limitations and known Issues in the README file  ##
+################################################################
+
 startupProbe:
-  enabled: true
+  enabled: false
   initialDelaySeconds: 10
   periodSeconds: 20
   timeoutSeconds: 1
