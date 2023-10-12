@@ -42,15 +42,30 @@ imagePullSecrets: []
 # - name: "your-secret-name-1"
 # - name: "your-secret-name-2"
 
+
+## Manage HugePages
+## ref: https://v1-23.docs.kubernetes.io/docs/tasks/manage-hugepages/scheduling-hugepages/
+  #####################################################
+  ## NOTE : MarkLogic only supports 2Mi huge pages   ##
+  #####################################################
+hugepages:
+  enabled: false
+  mountPath: /dev/hugepages
+
 ## Marklogic pods' resource requests and limits
 ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  ################################################################
+  ## NOTE : When using huge pages requests should equal limits  ##
+  ################################################################
 resources: {}
-# requests:
-#   memory: "3000Mi"
-#   cpu: "1000m"
-# limits:
-#   memory: "3000Mi"
-#   cpu: "1000m"
+#   requests:
+#     memory: "3000Mi"
+#     cpu: "1000m"
+#     hugepages-2Mi: 1Gi
+#   limits:
+#     memory: "3000Mi"
+#     cpu: "1000m"
+#     hugepages-2Mi: 1Gi
 
 nameOverride: ""
 fullnameOverride: ""

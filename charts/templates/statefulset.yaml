@@ -106,6 +106,10 @@ spec:
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
               readOnly: true
+            {{- if .Values.hugepages.enabled }}
+            - name: huge-pages
+              mountPath: {{ .Values.hugepages.mountPath }}
+            {{- end }}            
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
               value: "ml-secrets/username"
@@ -363,6 +367,11 @@ spec:
           configMap:
             name: {{ include "marklogic.fullname" . }}-fb-config-map
         {{- end }}
+        {{- if .Values.hugepages.enabled }}
+        - name: huge-pages
+          emptyDir:
+            medium: HugePages
+        {{- end }}  
         {{- if not .Values.persistence.enabled }}
         - name: datadir
           emptyDir: {}
