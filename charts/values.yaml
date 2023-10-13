@@ -34,7 +34,7 @@ image:
 ## Init container image parameters
 initContainerImage:
   repository: curlimages/curl
-  tag: 7.87.0
+  tag: 8.4.0
   pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
@@ -282,7 +282,7 @@ startupProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.0.6
+  image: fluent/fluent-bit:2.1.10
   resources:
     requests:
       cpu: "100m"
