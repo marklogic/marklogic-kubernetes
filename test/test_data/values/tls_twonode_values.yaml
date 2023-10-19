@@ -1,0 +1,21 @@
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+terminationGracePeriod: 10
+
+replicaCount: 2
+
+persistence:
+  enabled: true
+
+image:
+  repository: marklogicdb/marklogic-db
+  tag: latest
+
+tls:
+  enableOnDefaultAppServers: true
+  certSecretNames:
+    - "marklogic-0-cert"
+    - "marklogic-1-cert" 
+  caSecretName: "ca-cert"

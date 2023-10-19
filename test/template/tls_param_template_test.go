@@ -27,7 +27,7 @@ func TestChartTemplateTLSEnabled(t *testing.T) {
 
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
-		ValuesFiles: []string{"tlsvalues.yaml"},
+		ValuesFiles:    []string{"../test_data/values/tls_template_values.yaml"},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -72,10 +72,10 @@ func TestChartTemplateTLSDisabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
-			"image.tag":                        "latest",
-			"persistence.enabled":              "false",
-			"tls.enableOnDefaultAppServers":    "false",
+			"image.repository":              "marklogicdb/marklogic-db",
+			"image.tag":                     "latest",
+			"persistence.enabled":           "false",
+			"tls.enableOnDefaultAppServers": "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
