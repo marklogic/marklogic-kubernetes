@@ -19,9 +19,15 @@ spec:
       labels:
         {{- include "marklogic.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
       {{- with .Values.affinity }}
       affinity: {{- toYaml . | nindent 8}}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 6}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
       containers:
@@ -37,6 +43,10 @@ spec:
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
               readOnly: true
+            {{- if .Values.hugepages.enabled }}
+            - name: huge-pages
+              mountPath: {{ .Values.hugepages.mountPath }}
+            {{- end }}            
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
               value: "ml-secrets/username"
@@ -195,6 +205,11 @@ spec:
           configMap:
             name: {{ include "marklogic.fullname" . }}-fb-config-map
         {{- end }}
+        {{- if .Values.hugepages.enabled }}
+        - name: huge-pages
+          emptyDir:
+            medium: HugePages
+        {{- end }}  
         {{- if not .Values.persistence.enabled }}
         - name: datadir
           emptyDir: {}
