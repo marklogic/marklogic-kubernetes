@@ -1,3 +1,4 @@
+{{- include "marklogic.checkInputError" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -29,10 +30,112 @@ spec:
       topologySpreadConstraints: {{- toYaml . | nindent 6}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
-      {{- if ne .Values.bootstrapHostName "" }}
+      {{- if or ( ne .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers true ) }}
       initContainers: 
+      {{- if eq .Values.tls.enableOnDefaultAppServers true }}
+      - name: copy-certs
+        image: {{ .Values.initContainers.copyCerts.image | quote }}
+        imagePullPolicy: {{ .Values.initContainers.copyCerts.pullPolicy | quote }}
+        command:
+          - bash
+          - '-c'
+          - |
+            MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
+            MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/username)"
+            log () {
+              local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
+              echo "${TIMESTAMP}  $@"
+            }
+            if [[ -d "/tmp/server-cert-secrets" ]]; then
+              certType="named"
+            else
+              certType="self-signed"
+            fi
+            log "Info: [copy-certs] Proceeding with $certType certificate flow."
+            host_FQDN="$POD_NAME.$MARKLOGIC_FQDN_SUFFIX"
+            log "Info: [copy-certs] FQDN for this server: $host_FQDN"
+            foundMatchingCert="false"
+            if [[ "$certType" == "named" ]]; then
+              cp -f /tmp/ca-cert-secret/* /run/secrets/marklogic-certs/;
+              cert_paths=$(find /tmp/server-cert-secrets/tls_*.crt)
+              for cert_path in $cert_paths; do
+                cert_cn=$(openssl x509 -noout -subject -in $cert_path | sed -n 's/.*CN = \([^,]*\).*/\1/p')
+                log "Info: [copy-certs] FQDN for the certificate: $cert_cn"
+                if [[ "$host_FQDN" == "$cert_cn" ]]; then
+                  log "Info: [copy-certs] found certificate for the server"
+                  foundMatchingCert="true"
+                  cp $cert_path /run/secrets/marklogic-certs/tls.crt
+                  pkey_path=$(echo "$cert_path" | sed "s:.crt:.key:")
+                  cp $pkey_path /run/secrets/marklogic-certs/tls.key
+                  if [[ ! -e "$pkey_path" ]]; then
+                    log "Error: [copy-certs] private key tls.key for certificate $cert_cn is not found. Exiting."
+                    exit 1
+                  fi
+
+                  # verify the tls.crt and cacert.pem is valid, otherwise exit
+                  openssl verify -CAfile /run/secrets/marklogic-certs/cacert.pem /run/secrets/marklogic-certs/tls.crt
+                  if [[ $? -ne 0 ]]; then
+                    log "Error: [copy-certs] Server certificate tls.crt verification with cacert.pem failed. Exiting."
+                    exit 1
+                  fi
+                  # verify the tls.crt and tls.key is matching, otherwise exit
+                  privateKeyMD5=$(openssl rsa -modulus -noout -in /run/secrets/marklogic-certs/tls.key | openssl md5)
+                  publicKeyMD5=$(openssl x509 -modulus -noout -in /run/secrets/marklogic-certs/tls.crt | openssl md5)
+                  if [[ -z "privateKeyMD5" ]] || [[ "$privateKeyMD5" != "$publicKeyMD5" ]]; then
+                    log "Error: [copy-certs] private key tls.key and server certificate tls.crt are not matching. Exiting."
+                    exit 1
+                  fi
+                  log "Info: [copy-certs] certificate and private key are valid."
+                  break
+                fi
+              done
+              if [[ $foundMatchingCert == "false" ]] then
+                if [[ $POD_NAME = *"-0" ]] ; then
+                  log "Error: [copy-certs] Failed to find matching certificate for the bootstrap server. Exiting."
+                  exit 1
+                else 
+                  log "Error: [copy-certs] Failed to find matching certificate for the non-bootstrap server. Continuing with temporary certificate for this host. Please update the certificate for this host later."
+                fi
+              fi
+            elif [[ "$certType" == "self-signed" ]]; then
+              if [[ $POD_NAME != *"-0" ]] || [[ $MARKLOGIC_CLUSTER_TYPE == "non-bootstrap" ]]; then
+                log "Info: [copy-certs] Getting CA for bootstrap host"
+                cd /run/secrets/marklogic-certs/
+                echo quit | openssl s_client -showcerts -servername "${MARKLOGIC_BOOTSTRAP_HOST}" -showcerts -connect "${MARKLOGIC_BOOTSTRAP_HOST}":8000 2>&1 < /dev/null | sed -n '/-----BEGIN/,/-----END/p' > cacert.pem
+              fi
+            else 
+              log "Error: [copy-certs] unknown certType: $certType"
+              exit 1
+            fi
+        volumeMounts:
+        {{- if .Values.tls.certSecretNames }}
+          - name: ca-cert-secret
+            mountPath: /tmp/ca-cert-secret/
+          - name: server-cert-secrets
+            mountPath: /tmp/server-cert-secrets/
+        {{- end }}
+          - name: certs
+            mountPath: /run/secrets/marklogic-certs/
+          - name: mladmin-secrets
+            mountPath: /run/secrets/ml-secrets/
+            readOnly: true
+        env: 
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MARKLOGIC_ADMIN_USERNAME_FILE
+          value: "ml-secrets/username"
+        - name: MARKLOGIC_ADMIN_PASSWORD_FILE
+          value: "ml-secrets/password"
+        envFrom:
+        - configMapRef:
+            name: {{ include "marklogic.fullname" . }}
+      {{- end }}
+      {{- if ne .Values.bootstrapHostName "" }}
       - name: configure-group
-        image: "{{ .Values.initContainerImage.repository }}:{{ .Values.initContainerImage.tag }}"
+        image: {{ .Values.initContainers.configureGroup.image | quote }} 
+        imagePullPolicy: {{ .Values.initContainers.configureGroup.pullPolicy | quote }}
         volumeMounts:
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
@@ -52,20 +155,27 @@ spec:
               log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as $POD_NAME is not the first node in the group."
               exit 0
             fi
-            HOST_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+            HTTP_PROTOCOL="http"
+            HTTPS_OPTION=""
+            if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+              HTTP_PROTOCOL="https"
+              HTTPS_OPTION="-k"
+            fi
+            HOST_RESP_CODE=`curl --anyauth -m 20 -s ${HTTPS_OPTION} -o /dev/null -w "%{http_code}" -X GET ${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+            log "Info: HOST_RESP_CODE $HOST_RESP_CODE"
             if [[ ${HOST_RESP_CODE} -ne 200 ]]; then
               log "Error: [initContainer] Bootstrap host $MARKLOGIC_BOOTSTRAP_HOST not found, exiting Init container."
               exit 1
             fi
             GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
             GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
-            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+            GROUP_RESP_CODE=`curl --anyauth -m 20 -s -o /dev/null ${HTTPS_OPTION} -w "%{http_code}" -X GET ${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
             if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
               log "Info: [initContainer] Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
               exit 0
             fi
             log "Info: [initContainer] Group $MARKLOGIC_GROUP does not exist, configuring group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d "${GROUP_CFG}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups`
+            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST ${HTTPS_OPTION} -d "${GROUP_CFG}" -H "Content-type: application/json" ${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups`
             if [[ ${res_code} -eq 201 ]]; then
               log "Info: [initContainer] Successfully configured group $MARKLOGIC_GROUP on the MarkLogic cluster."
             else
@@ -73,13 +183,13 @@ spec:
               exit 1
             fi
             log "Info: [initContainer] Group $MARKLOGIC_GROUP has been created, configuring App-server App-Services in group $MARKLOGIC_GROUP on the MarkLogic cluster."
-            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
+            res_code=`curl --retry 5 --retry-all-errors --retry-max-time 60 --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s ${HTTPS_OPTION} -w '%{http_code}' -X POST -d '{"server-name":"App-Services", "root":"/", "port":8000,"modules-database":"Modules", "content-database":"Documents", "error-handler":"/MarkLogic/rest-api/8000-error-handler.xqy", "url-rewriter":"/MarkLogic/rest-api/8000-rewriter.xml"}' -H "Content-type: application/json" "${HTTP_PROTOCOL}://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/servers?group-id=${MARKLOGIC_GROUP}&server-type=http"`
             if [[ ${res_code} -eq 201 ]]; then
               log "Info: [initContainer] Successfully configured App-server App-Services into group $MARKLOGIC_GROUP on the MarkLogic cluster."
             else
               log "Info: [initContainer] Expected response code 201, got $res_code"
               exit 1
-            fi                      
+            fi                    
         env: 
         - name: MARKLOGIC_ADMIN_USERNAME_FILE
           value: "ml-secrets/username"
@@ -92,6 +202,7 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "marklogic.fullname" . }}
+      {{- end }}
       {{- end }}
       containers:
         - name: marklogic-server
@@ -106,6 +217,10 @@ spec:
             - name: mladmin-secrets
               mountPath: /run/secrets/ml-secrets
               readOnly: true
+            {{- if .Values.tls.enableOnDefaultAppServers }}
+            - name: certs
+              mountPath: /run/secrets/marklogic-certs/
+            {{- end }}
             {{- if .Values.hugepages.enabled }}
             - name: huge-pages
               mountPath: {{ .Values.hugepages.mountPath }}
@@ -157,7 +272,7 @@ spec:
               {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
-            {{- if eq .Values.bootstrapHostName "" }}
+            {{- if or (eq .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers true) }}
             postStart:
               exec:
                 command:
@@ -195,11 +310,8 @@ spec:
                       exit 1
                     }
 
-
-                    if [[ $POD_NAME != *-0 ]]; then
-                      log "Info: [poststart] Skipping group configuration."
-                    else
-
+                    # Begin Group Configuration
+                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       [ -f /var/opt/MarkLogic/group_cfg ] && current_group_cfg=$(cat /var/opt/MarkLogic/group_cfg)
                       if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}" = "${current_group_cfg}" ]; then
                           log "Info: [poststart] Group config has not changed, poststart hook complete"
@@ -216,8 +328,8 @@ spec:
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED")
 
                       log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-                     
+                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP}/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                    
                       # check whether MarkLogic has restarted
                       if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
                         log "Info: [poststart] Successfully configured properties for $MARKLOGIC_GROUP group on the MarkLogic cluster."
@@ -233,7 +345,158 @@ spec:
                         log "Error: [poststart] Expected response code 202 or 204, got "${GROUP_RESP_CODE}"
                         exit 1
                       fi
+                    else
+                      log "Info: [poststart] This is not bootstrap host. Skipping group configuration."
                     fi
+                    # End Group Configuration
+
+                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                      log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
+                    else
+                      log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to false"
+                      exit 0
+                    fi
+
+                    AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
+                    cd ~ 
+                    if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
+                      log "Info: [poststart] named cert flow"
+                      certType="named"
+                    else 
+                      log "Info: [poststart] self-signed cert flow"
+                      certType="self-signed"
+                    fi
+                    log "Info: [poststart] certType in postStart: $certType"
+
+                    cat <<'EOF' > defaultCertificateTemplate.json
+                    {
+                      "template-name": "defaultTemplate",
+                      "template-description": "defaultTemplate",
+                      "key-type": "rsa",
+                      "key-options": {
+                        "key-length": "2048"
+                      },  
+                      "req": {
+                        "version": "0",
+                        "subject": {
+                          "organizationName": "MarkLogic"
+                        }
+                      }
+                    }
+                    EOF
+
+                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]];
+                      log "Info: [poststart] creating default certificate Template"
+                      response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
+                      sleep 5s
+                      log "Info: [poststart] done creating default certificate Template"
+                    fi
+                    
+                    log "Info: [poststart] creating insert-host-certificates.json"
+                    cat <<'EOF' > insert-host-certificates.json
+                    {
+                      "operation": "insert-host-certificates",
+                      "certificates": [
+                        {
+                          "certificate": {
+                            "cert": "CERT",
+                            "pkey": "PKEY"
+                          }
+                        }
+                      ]
+                    }
+                    EOF
+
+                    log "Info: [poststart] creating generateCA.xqy"
+                    cat <<'EOF' > generateCA.xqy
+                    xquery=
+                        xquery version "1.0-ml"; 
+                        import module namespace pki = "http://marklogic.com/xdmp/pki" 
+                            at "/MarkLogic/pki.xqy";
+                        let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
+                        return
+                            pki:generate-template-certificate-authority($tid, 365)
+                    EOF
+
+                    log "Info: [poststart] creating createTempCert.xqy"
+                    cat <<'EOF' > createTempCert.xqy
+                    xquery= 
+                      xquery version "1.0-ml"; 
+                      import module namespace pki = "http://marklogic.com/xdmp/pki" 
+                          at "/MarkLogic/pki.xqy";
+                      import module namespace admin = "http://marklogic.com/xdmp/admin"
+                          at "/MarkLogic/admin.xqy";
+                      let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
+                      let $config := admin:get-configuration()
+                      let $hostname := admin:host-get-name($config, admin:host-get-id($config, xdmp:host-name()))
+                      return
+                        pki:generate-temporary-certificate-if-necessary($tid, 365, $hostname, (), ())
+                    EOF
+                    
+                    log "Info: [poststart] inserting certificates $certType"
+                    if [[ "$certType" == "named" ]]; then
+                      log "creating named certificate"
+                      cert_path="/run/secrets/marklogic-certs/tls.crt"
+                      pkey_path="/run/secrets/marklogic-certs/tls.key"
+                      cp insert-host-certificates.json insert_cert_payload.json
+                      cert="$(<$cert_path)"
+                      cert="${cert//$'\n'/}"
+                      pkey="$(<$pkey_path)"
+                      pkey="${pkey//$'\n'/}"
+
+                      sed -i "s|CERT|$cert|" insert_cert_payload.json
+                      sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert_cert_payload.json
+                      sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert_cert_payload.json
+                      sed -i "s|PKEY|$pkey|" insert_cert_payload.json
+                      sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert_cert_payload.json
+                      sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
+                      sed -i "s|-----END PRIVATE|\\\\n-----END PRIVATE|" insert_cert_payload.json
+                      
+                      log "Info: [poststart] inserting following certificates for $cert_path"
+
+                      if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
+                        res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
+                        -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                      else 
+                        res=$($AUTH_CURL -k -iv -X POST --header "Content-Type:application/json" \
+                        -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate)  
+                      fi
+                      log $res
+                      sleep 5s
+                    fi
+
+                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
+                      log "Info: [poststart] Generating Temporary CA Certificate"
+                      $AUTH_CURL -X POST -i -d @generateCA.xqy \
+                      -H "Content-type: application/x-www-form-urlencoded" \
+                      -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                      http://localhost:8000/v1/eval
+                      sleep 5s
+                    
+
+                      log "Info: [poststart] enabling app-servers for HTTPS"
+                      # Manage need be put in the last in the array to make sure http works for all the requests
+                      appServers=("App-Services" "Admin" "Manage")
+                      for appServer in ${appServers[@]}; do
+                        log "configuring SSL for App Server $appServer"
+                        curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                          -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
+                        http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
+                        sleep 5s
+                      done
+                      log "Info: [poststart] done enablingb HTTPS in App Server"
+                    
+                      if [[ "$certType" == "self-signed" ]]; then
+                        log "Info: [poststart] Generate temporary certificate if necessary"
+                        $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
+                        -H "Accept: multipart/mixed; boundary=BOUNDARY" https://localhost:8000/v1/eval
+                      fi
+                    fi
+                    
+                    log "Info: [poststart] removing cert keys"
+                    rm -f /run/secrets/marklogic-certs/*.key
+
+                    log "Info: [poststart] Poststart Hook Execution Completed"
             {{- end }}
             preStop:
               exec:
@@ -359,6 +622,27 @@ spec:
         searches:
           - {{ include "marklogic.headlessURL" . }}
       volumes:
+        {{- if .Values.tls.enableOnDefaultAppServers }}
+        - name: certs
+          emptyDir: {}
+        {{- if .Values.tls.certSecretNames }}
+        - name: ca-cert-secret
+          secret:
+            secretName: {{ .Values.tls.caSecretName }}
+        - name: server-cert-secrets
+          projected:
+            sources:
+            {{-  range $i, $secretName := .Values.tls.certSecretNames }}
+              - secret:
+                  name: {{ $secretName | quote }}
+                  items: 
+                    - key: tls.crt
+                      path: tls_{{$i}}.crt
+                    - key: tls.key
+                      path: tls_{{$i}}.key
+            {{- end }}
+        {{- end }}
+        {{- end }}
         - name: mladmin-secrets
           secret:
             secretName: {{ include "marklogic.authSecretNameToMount" . }}
