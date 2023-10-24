@@ -223,7 +223,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	podLogs := k8s.GetPodLogs(t, kubectlOptions, pod, "")
 
 	// verify logs if named certificate is used
-	if !strings.Contains(podLogs, "certType in postStart: named") {
+	if !strings.Contains(podLogs, "Info: [poststart] certType in postStart: named") {
 		t.Errorf("TLS configuration failed")
 	}
 
@@ -235,7 +235,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	podOneLogs := k8s.GetPodLogs(t, kubectlOptions, podOne, "")
 
 	// verify logs if wallet password is set as secret
-	if (!strings.Contains(podOneLogs, "MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL")) && (!strings.Contains(podOneLogs, "creating named certificate")) {
+	if (!strings.Contains(podOneLogs, "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL")) && (!strings.Contains(podOneLogs, "creating named certificate")) {
 		t.Errorf("TLS configuration failed")
 	}
 
