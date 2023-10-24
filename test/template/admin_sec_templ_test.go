@@ -17,12 +17,12 @@ func TestChartTemplateAdminSecret(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-admin-sec-test"
+	releaseName := "admin-sec"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
@@ -47,7 +47,7 @@ func TestChartTemplateAdminSecret(t *testing.T) {
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
 	// Verify the secret name is passed for MarkLogic admin credentials
-	expectedAdminSecName := "marklogic-admin-sec-test-admin"
+	expectedAdminSecName := "admin-sec-admin"
 	actualAdminSecName := statefulset.Spec.Template.Spec.Volumes[0].Secret.SecretName
 	require.Equal(t, actualAdminSecName, expectedAdminSecName)
 }

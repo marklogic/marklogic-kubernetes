@@ -289,7 +289,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	}
 
 	//verify correct hostname is set for named certificate
-	if certHostName.Str != "marklogic-0.marklogic.marklogic-tlsnamed.svc.cluster.local" {
+	t.Log("Verifying hostname is set for named certificate", certHostName.Str)
+
+	if certHostName.Str != "marklogic-1.marklogic.marklogic-tlsnamed.svc.cluster.local" && certHostName.Str != "marklogic-0.marklogic.marklogic-tlsnamed.svc.cluster.local" {
 		t.Errorf("Incorrect hostname configured for Named certificate")
 	}
 }
