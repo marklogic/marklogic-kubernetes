@@ -43,7 +43,7 @@ func TestChartTemplateTLSEnabled(t *testing.T) {
 	require.Equal(t, expectedInitContainer, statefulset.Spec.Template.Spec.InitContainers[0].Name)
 
 	//Verify Volumes are created for CACerts and CertSecrets and values are mapped to volume secrets
-	expectedVolumeForCACerts := "cacert-secret"
+	expectedVolumeForCACerts := "ca-cert-secret"
 	expectedVolumeForCertSecrets := "certs-secret"
 	expectedSecretForVolumeCACerts := "ca-secret"
 	expectedSecretForVolumeCertSecrets := "marklogic-0-cert"
