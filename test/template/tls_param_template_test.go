@@ -2,7 +2,6 @@ package template_test
 
 import (
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,19 +9,18 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
-	"github.com/gruntwork-io/terratest/modules/random"
 )
 
 func TestChartTemplateTLSEnabled(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-admin-tls-test"
+	releaseName := "marklogic"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "marklogic-templ"
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install using custom values.yaml file
@@ -61,12 +59,12 @@ func TestChartTemplateTLSDisabled(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-admin-tls-test"
+	releaseName := "marklogic"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "marklogic-templ"
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
