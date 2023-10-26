@@ -44,7 +44,7 @@ func TestChartTemplateTLSEnabled(t *testing.T) {
 
 	//Verify Volumes are created for CACerts and CertSecrets and values are mapped to volume secrets
 	expectedVolumeForCACerts := "ca-cert-secret"
-	expectedVolumeForCertSecrets := "certs-secret"
+	expectedVolumeForCertSecrets := "server-cert-secrets"
 	expectedSecretForVolumeCACerts := "ca-secret"
 	expectedSecretForVolumeCertSecrets := "marklogic-0-cert"
 	expectedCRTForVolumeCertSecrets := "tls_0.crt"
