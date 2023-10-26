@@ -68,7 +68,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	podLogs := k8s.GetPodLogs(t, kubectlOptions, pod, "")
 
 	// verify logs if wallet password is set as secret
-	if !strings.Contains(podLogs, "MARKLOGIC_WALLET_PASSWORD_FILE is set, using Docker secrets for wallet-password.") {
+	if !strings.Contains(podLogs, "MARKLOGIC_WALLET_PASSWORD_FILE is set, using file as secret for wallet-password.") {
 		t.Errorf("wallet password not set as secret")
 	}
 }

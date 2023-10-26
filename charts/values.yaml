@@ -41,15 +41,30 @@ imagePullSecrets: []
 # - name: "your-secret-name-1"
 # - name: "your-secret-name-2"
 
+
+## Manage HugePages
+## ref: https://v1-23.docs.kubernetes.io/docs/tasks/manage-hugepages/scheduling-hugepages/
+  #####################################################
+  ## NOTE : MarkLogic only supports 2Mi huge pages   ##
+  #####################################################
+hugepages:
+  enabled: false
+  mountPath: /dev/hugepages
+
 ## Marklogic pods' resource requests and limits
 ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  ################################################################
+  ## NOTE : When using huge pages requests should equal limits  ##
+  ################################################################
 resources: {}
-# requests:
-#   memory: "3000Mi"
-#   cpu: "1000m"
-# limits:
-#   memory: "3000Mi"
-#   cpu: "1000m"
+#   requests:
+#     memory: "3000Mi"
+#     cpu: "1000m"
+#     hugepages-2Mi: 1Gi
+#   limits:
+#     memory: "3000Mi"
+#     cpu: "1000m"
+#     hugepages-2Mi: 1Gi
 
 nameOverride: ""
 fullnameOverride: ""
@@ -92,6 +107,16 @@ affinity:
             - marklogic
         topologyKey: kubernetes.io/hostname
 
+## Configure POD Topology Spread Constraints to spread Pods across cluster
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+topologySpreadConstraints: []
+  # - maxSkew: 1
+  #   topologyKey: topology.kubernetes.io/zone
+  #   whenUnsatisfiable: ScheduleAnyway
+  #   labelSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: marklogic
+
 ## Configure NodeSelector property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
 nodeSelector: {}
@@ -111,18 +136,20 @@ persistence:
 
 ## Specify additional list of persistent volume claims
 additionalVolumeClaimTemplates: []
-# - metadata:
-#     name: "logsdir"
-#   spec:
-#     accessModes:
-#       - ReadWriteOnce
-#     resources:
-#       requests:
-#         storage: 10Gi
+  # - metadata:
+  #     name: "logsdir"
+  #     annotations: {}
+  #   spec:
+  #     accessModes:
+  #       - ReadWriteOnce
+  #     storageClassName: ""
+  #     resources:
+  #       requests:
+  #         storage: 10Gi
 
 ## specify additional list of volumes
 additionalVolumes: []
-# - name: additional-vol
+# - name: "logsdir"
 #   emptyDir: {}
 
 ## specify additional list of volumeMounts
@@ -204,7 +231,20 @@ networkPolicy:
       endPort: 8020
       protocol: TCP
     
-## Below are the security configurations for container, by default security will be enabled
+## Below are the security configuration at POD level, by default security will be enabled
+## https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods
+  #######################################################################################
+  ## NOTE : The POD Security context should be set when using additional volume.       ##
+  ## This will ensure that additional volume created is set with the right ownership.  ##
+  #######################################################################################
+
+podSecurityContext:
+  enabled: true
+  ## group id of user owning the MarkLogic service
+  fsGroup: 2 
+  fsGroupChangePolicy: "OnRootMismatch" 
+
+## Below are the security configurations for markLogic container, by default security will be enabled
 containerSecurityContext:
   enabled: true
   runAsUser: 1000
@@ -217,16 +257,21 @@ containerSecurityContext:
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 30
-  periodSeconds: 60
+  initialDelaySeconds: 300
+  periodSeconds: 20
   timeoutSeconds: 5
-  failureThreshold: 3
+  failureThreshold: 15
   successThreshold: 1
 
 ## Configure options for readiness probe
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+
+################################################################
+## NOTE: See Limitations and known Issues in the README file  ##
+################################################################
+
 readinessProbe:
-  enabled: true
+  enabled: false
   initialDelaySeconds: 10
   periodSeconds: 60
   timeoutSeconds: 5
