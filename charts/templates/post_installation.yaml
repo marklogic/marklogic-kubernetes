@@ -1,0 +1,59 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: post-install-{{ template "marklogic.fullname" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  annotations:
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-weight": "5"
+spec:
+  backoffLimit: 20
+  template:
+    spec:
+      securityContext:
+        runAsUser: 2
+        runAsGroup: 2
+        fsGroup: 2
+      restartPolicy: Never
+      containers:
+        - name: post-install-job
+          image: "{{ .Values.hook.image }}:{{ .Values.hook.tag }}"
+          command: ["/bin/bash","/tmp/helm-scripts/marklogic-setup.sh"]
+          env:
+            - name: LICENSE_KEY
+              value: {{ .Values.license.key | quote }}
+            - name: LICENSEE
+              value: {{ .Values.license.licensee | quote }}
+            - name: MARKLOGIC_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marklogic.authSecretNameToMount" . }}
+                  key: username
+            - name: MARKLOGIC_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marklogic.authSecretNameToMount" . }}
+                  key: password
+            - name: MARKLOGIC_WALLET_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marklogic.authSecretNameToMount" . }}
+                  key: wallet-password
+          envFrom:
+            - configMapRef:
+                name: {{ include "marklogic.fullname" . }}
+          volumeMounts:
+            - name: marklogic-config-script
+              mountPath: /tmp/helm-scripts
+      serviceAccount: marklogic-hook
+      volumes:
+        - name: marklogic-config-script
+          configMap:
+            name: helm-scripts
+            defaultMode: 0755
