@@ -328,7 +328,7 @@ spec:
                       GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED")
 
                       log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP}/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
                     
                       # check whether MarkLogic has restarted
                       if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
@@ -481,7 +481,7 @@ spec:
                         log "configuring SSL for App Server $appServer"
                         curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
                           -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
-                        http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=Default
+                        http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP}
                         sleep 5s
                       done
                       log "Info: [poststart] done enablingb HTTPS in App Server"

@@ -47,7 +47,7 @@ func TestHelmInstall(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-install"
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -79,7 +79,7 @@ func TestHelmInstall(t *testing.T) {
 	)
 
 	t.Log("====Testing Generated Random Password====")
-	secretName := releaseName + "-marklogic-admin"
+	secretName := releaseName + "-admin"
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
 	passwordArr := secret.Data["password"]
 	password := string(passwordArr[:])
