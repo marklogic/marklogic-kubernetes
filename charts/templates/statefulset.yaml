@@ -357,6 +357,11 @@ spec:
                       exit 0
                     fi
 
+                    while [ ! -f /var/opt/MarkLogic/ready ]; do
+                      log "[poststart] waiting for MarkLogic server to be ready"
+                      sleep 5s
+                    done
+
                     AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
                     cd ~ 
                     if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
