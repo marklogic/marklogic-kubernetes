@@ -357,6 +357,11 @@ spec:
                       exit 0
                     fi
 
+                    while [ ! -f /var/opt/MarkLogic/ready ]; do
+                      log "[poststart] waiting for MarkLogic server to be ready"
+                      sleep 5s
+                    done
+
                     AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
                     cd ~ 
                     if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
@@ -384,8 +389,8 @@ spec:
                       }
                     }
                     EOF
-
-                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]];
+                    
+                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       log "Info: [poststart] creating default certificate Template"
                       response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
                       sleep 5s
@@ -484,7 +489,7 @@ spec:
                         http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP}
                         sleep 5s
                       done
-                      log "Info: [poststart] done enablingb HTTPS in App Server"
+                      log "Info: [poststart] Configure HTTPS in App Server finished"
                     
                       if [[ "$certType" == "self-signed" ]]; then
                         log "Info: [poststart] Generate temporary certificate if necessary"
