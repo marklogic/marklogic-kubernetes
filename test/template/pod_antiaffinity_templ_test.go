@@ -17,12 +17,12 @@ func TestChartTemplatePodAntiAffinityClass(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-pod-antiaffinity-test"
+	releaseName := "pod-antiaffinity"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install

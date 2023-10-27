@@ -38,7 +38,7 @@ func TestHelmUpgrade(t *testing.T) {
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -61,7 +61,7 @@ func TestHelmUpgrade(t *testing.T) {
 	helm.Install(t, options, helmChartPath, releaseName)
 
 	// save the generated password from first installation
-	secretName := releaseName + "-marklogic-admin"
+	secretName := releaseName + "-admin"
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
 	passwordArr := secret.Data["password"]
 	passwordAfterInstall := string(passwordArr[:])
@@ -81,7 +81,7 @@ func TestHelmUpgrade(t *testing.T) {
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
 	tlsConfig := tls.Config{}
-	podName := releaseName + "-marklogic-1"
+	podName := releaseName + "-1"
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 20, 20*time.Second)
@@ -136,7 +136,7 @@ func TestMLupgrade(t *testing.T) {
 	username := "admin"
 	password := "admin"
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -157,10 +157,10 @@ func TestMLupgrade(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
-	releaseName := "test-ml-upgrade"
+	releaseName := "ml-upgrade"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName := releaseName + "-0"
 
 	// wait until second pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 20, 20*time.Second)
