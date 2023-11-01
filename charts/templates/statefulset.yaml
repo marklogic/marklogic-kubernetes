@@ -440,7 +440,7 @@ spec:
                     
                     log "Info: [poststart] inserting certificates $certType"
                     if [[ "$certType" == "named" ]]; then
-                      log "creating named certificate"
+                      log "Info: [poststart] creating named certificate"
                       cert_path="/run/secrets/marklogic-certs/tls.crt"
                       pkey_path="/run/secrets/marklogic-certs/tls.key"
                       cp insert-host-certificates.json insert_cert_payload.json
@@ -457,16 +457,14 @@ spec:
                       sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
                       sed -i "s|-----END PRIVATE|\\\\n-----END PRIVATE|" insert_cert_payload.json
                       
-                      log "Info: [poststart] inserting following certificates for $cert_path"
+                      log "Info: [poststart] inserting following certificates for $cert_path for $MARKLOGIC_CLUSTER_TYPE"
 
-                      if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                        res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
-                        -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                      if [[ $POD_NAME == *-0 ]]; then
+                        res=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
                       else 
-                        res=$($AUTH_CURL -k -iv -X POST --header "Content-Type:application/json" \
-                        -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate)  
+                        res=$($AUTH_CURL -k  -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
                       fi
-                      log $res
+                      log "Info: [poststart] $res"
                       sleep 5s
                     fi
 
