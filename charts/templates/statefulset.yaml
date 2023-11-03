@@ -365,10 +365,10 @@ spec:
                     AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
                     cd ~ 
                     if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
-                      log "Info: [poststart] named cert flow"
+                      log "Info: [poststart] Configuring named certificates on host"
                       certType="named"
                     else 
-                      log "Info: [poststart] self-signed cert flow"
+                      log "Info: [poststart] Configuring self-signed certificates on host"
                       certType="self-signed"
                     fi
                     log "Info: [poststart] certType in postStart: $certType"
@@ -440,7 +440,7 @@ spec:
                     
                     log "Info: [poststart] inserting certificates $certType"
                     if [[ "$certType" == "named" ]]; then
-                      log "creating named certificate"
+                      log "Info: [poststart] creating named certificate"
                       cert_path="/run/secrets/marklogic-certs/tls.crt"
                       pkey_path="/run/secrets/marklogic-certs/tls.key"
                       cp insert-host-certificates.json insert_cert_payload.json
@@ -457,28 +457,27 @@ spec:
                       sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
                       sed -i "s|-----END PRIVATE|\\\\n-----END PRIVATE|" insert_cert_payload.json
                       
-                      log "Info: [poststart] inserting following certificates for $cert_path"
+                      log "Info: [poststart] inserting following certificates for $cert_path for $MARKLOGIC_CLUSTER_TYPE"
 
-                      if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                        res=$($AUTH_CURL -iv -X POST --header "Content-Type:application/json" \
-                        -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate)
+                      if [[ $POD_NAME == *-0 ]]; then
+                        res=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
                       else 
-                        res=$($AUTH_CURL -k -iv -X POST --header "Content-Type:application/json" \
-                        -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate)  
+                        res=$($AUTH_CURL -k  -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
                       fi
-                      log $res
+                      log "Info: [poststart] $res"
                       sleep 5s
                     fi
 
-                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                      log "Info: [poststart] Generating Temporary CA Certificate"
-                      $AUTH_CURL -X POST -i -d @generateCA.xqy \
-                      -H "Content-type: application/x-www-form-urlencoded" \
-                      -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                      http://localhost:8000/v1/eval
-                      sleep 5s
+                    if [[ $POD_NAME == *-0 ]]; then
+                      if [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
+                        log "Info: [poststart] Generating Temporary CA Certificate"
+                        $AUTH_CURL -X POST -i -d @generateCA.xqy \
+                        -H "Content-type: application/x-www-form-urlencoded" \
+                        -H "Accept: multipart/mixed; boundary=BOUNDARY" \
+                        http://localhost:8000/v1/eval
+                        sleep 5s
+                      fi
                     
-
                       log "Info: [poststart] enabling app-servers for HTTPS"
                       # Manage need be put in the last in the array to make sure http works for all the requests
                       appServers=("App-Services" "Admin" "Manage")
@@ -490,7 +489,7 @@ spec:
                         sleep 5s
                       done
                       log "Info: [poststart] Configure HTTPS in App Server finished"
-                    
+
                       if [[ "$certType" == "self-signed" ]]; then
                         log "Info: [poststart] Generate temporary certificate if necessary"
                         $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
