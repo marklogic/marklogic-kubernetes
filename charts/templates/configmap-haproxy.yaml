@@ -3,7 +3,8 @@
 {{- $releaseName := include "marklogic.fullname" . }}
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
-{{- $tlsEnabled := .Values.haproxy.tls.enabled }}
+{{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
+{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
 {{- $certFileName := .Values.haproxy.tls.certFileName }}
 
 apiVersion: v1
@@ -79,13 +80,13 @@ data:
         mode tcp
         balance leastconn
         {{- range $i := until $replicas }}
-        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
+        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
         {{- end }}
     {{- else if eq $portType "HTTP" }}
 
     frontend marklogic-{{$portNumber}}
       mode http
-      {{- if $tlsEnabled }}
+      {{- if $haproxyTlsEnabled }}
       bind :{{ $portNumber }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
       {{- else }}
       bind :{{ $portNumber }}
@@ -105,7 +106,11 @@ data:
       stick match req.cook(SessionId)
       default-server check
       {{- range $i := until $replicas }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}-headless.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      {{- if $appServerTlsEnabled }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      {{- end }}
       {{- end }}
     {{- end }}
     {{- end }}
