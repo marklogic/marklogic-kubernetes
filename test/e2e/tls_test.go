@@ -98,11 +98,29 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	fmt.Println("StatusCode: ", resp.GetStatusCode())
 }
 
-func GenerateCertificates(command string) error {
-	cmd := exec.Command("bash", "-c", command)
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(err)
+func GenerateCACertificate(caPath string) error {
+	var err error
+	fmt.Println("====Generating CA Certificates")
+	genKeyCmd := strings.Replace("openssl genrsa -out caPath/ca-private-key.pem 2048", "caPath", caPath, -1)
+	genCACertCmd := strings.Replace("openssl req -new -x509 -days 3650 -key caPath/ca-private-key.pem -out caPath/cacert.pem -subj '/CN=TlsTest/C=US/ST=California/L=RedwoodCity/O=Progress/OU=MarkLogic'", "caPath", caPath, -1)
+	rvariable := []string{genKeyCmd, genCACertCmd}
+	for _, j := range rvariable {
+		cmd := exec.Command("bash", "-c", j)
+		err = cmd.Run()
+	}
+	return err
+}
+
+func GenerateCertificates(path string, caPath string) error {
+	var err error
+	fmt.Println("====Generating TLS Certificates")
+	genTlsKeyCmd := strings.Replace("openssl genpkey -algorithm RSA -out path/tls.key", "path", path, -1)
+	genCsrCmd := strings.Replace("openssl req -new -key path/tls.key -config path/server.cnf -out path/tls.csr", "path", path, -1)
+	genCrtCmd := strings.Replace(strings.Replace("openssl x509 -req -CA caPath/cacert.pem -CAkey caPath/ca-private-key.pem -CAcreateserial -CAserial path/cacert.srl -in path/tls.csr -out path/tls.crt -days 365", "path", path, -1), "caPath", caPath, -1)
+	rvariable := []string{genTlsKeyCmd, genCsrCmd, genCrtCmd}
+	for _, j := range rvariable {
+		cmd := exec.Command("bash", "-c", j)
+		err = cmd.Run()
 	}
 	return err
 }
@@ -131,43 +149,20 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	//generate certificates for testing tls using named certificates
-	err = GenerateCertificates("openssl genrsa -out ../test_data/ca_certs/ca-private-key.pem 2048")
+	// generate CA certificates for pods
+	err = GenerateCACertificate("../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
 
-	err = GenerateCertificates("openssl req -new -x509 -days 3650 -key ../test_data/ca_certs/ca-private-key.pem -out ../test_data/ca_certs/cacert.pem -subj '/CN=TlsTest/C=US/ST=California/L=RedwoodCity/O=Progress/OU=MarkLogic'")
+	//generate certificates for pod zero
+	err = GenerateCertificates("../test_data/pod_zero_certs", "../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
 
-	err = GenerateCertificates("openssl genpkey -algorithm RSA -out ../test_data/pod_zero_certs/tls.key")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl req -new -key ../test_data/pod_zero_certs/tls.key -config ../test_data/pod_zero_certs/server.cnf -out ../test_data/pod_zero_certs/tls.csr")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl x509 -req -CA ../test_data/ca_certs/cacert.pem -CAkey ../test_data/ca_certs/ca-private-key.pem -CAcreateserial -CAserial ../test_data/pod_zero_certs/cacert.srl -in ../test_data/pod_zero_certs/tls.csr -out ../test_data/pod_zero_certs/tls.crt -days 365")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl genpkey -algorithm RSA -out ../test_data/pod_one_certs/tls.key")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl req -new -key ../test_data/pod_one_certs/tls.key -config ../test_data/pod_one_certs/server.cnf -out ../test_data/pod_one_certs/tls.csr")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl x509 -req -CA ../test_data/ca_certs/cacert.pem -CAkey ../test_data/ca_certs/ca-private-key.pem -CAcreateserial -CAserial ../test_data/pod_one_certs/cacert.srl -in ../test_data/pod_one_certs/tls.csr -out ../test_data/pod_one_certs/tls.crt -days 365")
+	//generate certificates for pod one
+	err = GenerateCertificates("../test_data/pod_one_certs", "../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
@@ -215,30 +210,6 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 30*time.Second)
 
-	// get corev1.Pod to get logs of a pod
-	pod := k8s.GetPod(t, kubectlOptions, podName)
-
-	// get pod logs to verify named certificate is used
-	t.Logf("====Getting pod logs")
-	podLogs := k8s.GetPodLogs(t, kubectlOptions, pod, "")
-
-	// verify logs if named certificate is used
-	if !strings.Contains(podLogs, "Info: [poststart] certType in postStart: named") {
-		t.Errorf("TLS configuration failed")
-	}
-
-	// get corev1.Pod to get logs of a pod
-	podOne := k8s.GetPod(t, kubectlOptions, podName)
-
-	// get pod logs to verify pod-1 joins the cluster using tls and certificates
-	t.Logf("====Getting podOne logs")
-	podOneLogs := k8s.GetPodLogs(t, kubectlOptions, podOne, "")
-
-	// verify logs if wallet password is set as secret
-	if (!strings.Contains(podOneLogs, "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL")) && (!strings.Contains(podOneLogs, "creating named certificate")) {
-		t.Errorf("TLS configuration failed")
-	}
-
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel.Close()
@@ -265,13 +236,61 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		}).
 		Get("https://localhost:8002/manage/v2/hosts?view=status&format=json")
 	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
 	if totalHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
 
+	resp, err = client.R().
+		Get("https://localhost:8002/manage/v2/certificate-templates/defaultTemplate?format=json")
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	defaultCertTemplId := gjson.Get(string(body), `certificate-template-default.id`)
+
+	resp, err = client.R().
+		Get("https://localhost:8002/manage/v2/certificates?format=json")
+	defer resp.Body.Close()
+
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	cert_Id := (gjson.Get(string(body), `certificate-default-list.list-items.list-item.1.idref`))
+
+	endpoint := strings.Replace("https://localhost:8002/manage/v2/certificates/certId?format=json", "certId", cert_Id.Str, -1)
+	resp, err = client.R().
+		Get(endpoint)
+	defer resp.Body.Close()
+
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	certTemplId := gjson.Get(string(body), `certificate-default.template-id`)
+	isCertTemporary := gjson.Get(string(body), `certificate-default.temporary`)
+	certHostName := gjson.Get(string(body), `certificate-default.host-name`)
+
+	//verify named certificate is configured for default certificate template
+	if defaultCertTemplId.Str != certTemplId.Str {
+		t.Errorf("Named certificates not configured for defaultTemplate")
+	}
+
+	//verify temporary certificate is not used
+	if isCertTemporary.Str != "false" {
+		t.Errorf("Named certificate is not configured for host")
+	}
+
+	//verify correct hostname is set for named certificate
+	if certHostName.Str != "marklogic-0.marklogic.marklogic-tlsnamed.svc.cluster.local" {
+		t.Errorf("Incorrect hostname configured for Named certificate")
 	}
 }
 
@@ -315,28 +334,14 @@ func TestTlsOnEDnode(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	// generate certificates for testing tls using named certificates
-	err = GenerateCertificates("openssl genrsa -out ../test_data/ca_certs/ca-private-key.pem 2048")
+	// generate CA certificates for pods
+	err = GenerateCACertificate("../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
 
-	err = GenerateCertificates("openssl req -new -x509 -days 3650 -key ../test_data/ca_certs/ca-private-key.pem -out ../test_data/ca_certs/cacert.pem -subj '/CN=TlsTest/C=US/ST=California/L=RedwoodCity/O=Progress/OU=MarkLogic'")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl genpkey -algorithm RSA -out ../test_data/dnode_zero_certs/tls.key")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl req -new -key ../test_data/dnode_zero_certs/tls.key -config ../test_data/dnode_zero_certs/server.cnf -out ../test_data/dnode_zero_certs/tls.csr")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl x509 -req -CA ../test_data/ca_certs/cacert.pem -CAkey ../test_data/ca_certs/ca-private-key.pem -CAcreateserial -CAserial ../test_data/dnode_zero_certs/cacert.srl -in ../test_data/dnode_zero_certs/tls.csr -out ../test_data/dnode_zero_certs/tls.crt -days 365")
+	//generate certificates for dnode pod zero
+	err = GenerateCertificates("../test_data/dnode_zero_certs", "../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
@@ -411,33 +416,14 @@ func TestTlsOnEDnode(t *testing.T) {
 		ValuesFiles:    []string{"../test_data/values/tls_enode_values.yaml"},
 	}
 
-	//generate certificates for enodes
-	err = GenerateCertificates("openssl genpkey -algorithm RSA -out ../test_data/enode_zero_certs/tls.key")
+	//generate certificates for enode pod zero
+	err = GenerateCertificates("../test_data/enode_zero_certs", "../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
 
-	err = GenerateCertificates("openssl req -new -key ../test_data/enode_zero_certs/tls.key -config ../test_data/enode_zero_certs/server.cnf -out ../test_data/enode_zero_certs/tls.csr")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl x509 -req -CA ../test_data/ca_certs/cacert.pem -CAkey ../test_data/ca_certs/ca-private-key.pem -CAcreateserial -CAserial ../test_data/enode_zero_certs/cacert.srl -in ../test_data/enode_zero_certs/tls.csr -out ../test_data/enode_zero_certs/tls.crt -days 365")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl genpkey -algorithm RSA -out ../test_data/enode_one_certs/tls.key")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl req -new -key ../test_data/enode_one_certs/tls.key -config ../test_data/enode_one_certs/server.cnf -out ../test_data/enode_one_certs/tls.csr")
-	if err != nil {
-		t.Log("====Error: ", err)
-	}
-
-	err = GenerateCertificates("openssl x509 -req -CA ../test_data/ca_certs/cacert.pem -CAkey ../test_data/ca_certs/ca-private-key.pem -CAcreateserial -CAserial ../test_data/enode_one_certs/cacert.srl -in ../test_data/enode_one_certs/tls.csr -out ../test_data/enode_one_certs/tls.crt -days 365")
+	//generate certificates for enode pod one
+	err = GenerateCertificates("../test_data/enode_one_certs", "../test_data/ca_certs")
 	if err != nil {
 		t.Log("====Error: ", err)
 	}
