@@ -167,7 +167,8 @@ pipeline {
         parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * *''' : '')
     }
     environment {
-        timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
+        //timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
+        timeStamp = 'nightly'
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
         dockerVerDivider = getVersionDiv(params.ML_VERSION)
