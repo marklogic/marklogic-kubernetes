@@ -6,7 +6,7 @@
 import groovy.json.JsonSlurperClassic
 
 emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
-gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
+gitCredID = 'marklogic-builder'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /(?i)(CLD|DEVO|QAINF|BUG|DBI)-\d{3,4}/
 LINT_OUTPUT = ''
@@ -178,11 +178,11 @@ pipeline {
 
     parameters {
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
-        choice(name: 'ML_VERSION', choices: '11.2\n12.0\n10.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
+        choice(name: 'ML_VERSION', choices: '11.2\n12.0\n10.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         string(name: 'dockerReleaseVer', defaultValue: '1.1.1', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
-        choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
+        choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0\n11.2', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
         string(name: 'prevDockerReleaseVer', defaultValue: '1.1.1', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
         choice(name: 'K8_VERSION', choices: 'v1.25.8\nv1.26.3\nv1.24.12\nv1.23.17', description: 'Test Kubernetes version. (e.g. v1.25.8)')
     }
