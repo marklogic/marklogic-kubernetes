@@ -94,29 +94,24 @@ license:
 
 ## Configure Affinity property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-## Preferred anti affinity rule to schedule one marklogic pod per worker node
-affinity: 
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app.kubernetes.io/name
-            operator: In
-            values:
-            - marklogic
-        topologyKey: kubernetes.io/hostname
+affinity: {}
 
-## Configure POD Topology Spread Constraints to spread Pods across cluster
+## Configure POD Topology Spread Constraints to spread pods across cluster
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-topologySpreadConstraints: []
-  # - maxSkew: 1
-  #   topologyKey: topology.kubernetes.io/zone
-  #   whenUnsatisfiable: ScheduleAnyway
-  #   labelSelector:
-  #     matchLabels:
-  #       app.kubernetes.io/name: marklogic
+## Preferred Topology Spread Constraints rule to evenly distribute Marklogic pods across worker nodes and zones
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: marklogic
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: marklogic
 
 ## Configure NodeSelector property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
