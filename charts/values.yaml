@@ -37,7 +37,7 @@ initContainers:
     image: "curlimages/curl:8.4.0"
     pullPolicy: IfNotPresent
   copyCerts:
-    image: "finalgene/openssh:9.1"
+    image: "redhat/ubi9:9.3"
     pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
