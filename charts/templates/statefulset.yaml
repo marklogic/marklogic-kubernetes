@@ -89,8 +89,8 @@ spec:
                   break
                 fi
               done
-              if [[ $foundMatchingCert == "false" ]] then
-                if [[ $POD_NAME = *"-0" ]] ; then
+              if [[ $foundMatchingCert == "false" ]]; then
+                if [[ $POD_NAME = *"-0" ]]; then
                   log "Error: [copy-certs] Failed to find matching certificate for the bootstrap server. Exiting."
                   exit 1
                 else 
