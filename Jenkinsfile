@@ -131,7 +131,7 @@ void publishTestResults() {
 }
 
 void pullImage() {
-    withCredentials([usernamePassword(credentialsId: '8c2e0b38-9e97-4953-aa60-f2851bb70cc8', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
+    withCredentials([usernamePassword(credentialsId: 'builder-credentials-artifactory', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
         sh """
             echo "\$docker_password" | docker login --username \$docker_user --password-stdin ${dockerRegistry}
             docker pull ${dockerRepository}:${dockerVersion}
@@ -168,7 +168,7 @@ pipeline {
     }
     environment {
         timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
-        dockerRegistry = 'ml-docker-dev.marklogic.com'
+        dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
         dockerVerDivider = getVersionDiv(params.ML_VERSION)
         prevDockerVerDivider = getVersionDiv(params.PREV_ML_VERSION)
