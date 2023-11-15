@@ -31,7 +31,7 @@ void preBuildCheck() {
     if (env.CHANGE_ID) {
         if (prDraftCheck()) { sh 'exit 1' }
         if (getReviewState().equalsIgnoreCase('CHANGES_REQUESTED')) {
-            println(reviewState)
+            echo 'PR changes requested. (' + reviewState + ') Aborting.'
             sh 'exit 1'
         }
     }
@@ -51,11 +51,11 @@ def extractJiraID() {
         match = env.GIT_BRANCH =~ JIRA_ID_PATTERN
     }
     else {
-        echo 'Warning: Jira ticket number not detected.'
+        echo 'Warning: No Git title or branch available.'
         return ''
     }
     try {
-        return match[0]
+        return match[0][0]
     } catch (any) {
         echo 'Warning: Jira ticket number not detected.'
         return ''
