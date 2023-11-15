@@ -114,10 +114,10 @@ func GenerateCACertificate(caPath string) error {
 func GenerateCertificates(path string, caPath string) error {
 	var err error
 	fmt.Println("====Generating TLS Certificates")
-	genTlsKeyCmd := strings.Replace("openssl genpkey -algorithm RSA -out path/tls.key", "path", path, -1)
+	genTLSKeyCmd := strings.Replace("openssl genpkey -algorithm RSA -out path/tls.key", "path", path, -1)
 	genCsrCmd := strings.Replace("openssl req -new -key path/tls.key -config path/server.cnf -out path/tls.csr", "path", path, -1)
 	genCrtCmd := strings.Replace(strings.Replace("openssl x509 -req -CA caPath/cacert.pem -CAkey caPath/ca-private-key.pem -CAcreateserial -CAserial path/cacert.srl -in path/tls.csr -out path/tls.crt -days 365", "path", path, -1), "caPath", caPath, -1)
-	rvariable := []string{genTlsKeyCmd, genCsrCmd, genCrtCmd}
+	rvariable := []string{genTLSKeyCmd, genCsrCmd, genCrtCmd}
 	for _, j := range rvariable {
 		cmd := exec.Command("bash", "-c", j)
 		err = cmd.Run()
@@ -252,7 +252,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defaultCertTemplId := gjson.Get(string(body), `certificate-template-default.id`)
+	defaultCertTemplID := gjson.Get(string(body), `certificate-template-default.id`)
 
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/certificates?format=json")
@@ -262,9 +262,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	cert_Id := (gjson.Get(string(body), `certificate-default-list.list-items.list-item.1.idref`))
+	certID := (gjson.Get(string(body), `certificate-default-list.list-items.list-item.1.idref`))
 
-	endpoint := strings.Replace("https://localhost:8002/manage/v2/certificates/certId?format=json", "certId", cert_Id.Str, -1)
+	endpoint := strings.Replace("https://localhost:8002/manage/v2/certificates/certId?format=json", "certId", certID.Str, -1)
 	resp, err = client.R().
 		Get(endpoint)
 	defer resp.Body.Close()
@@ -274,12 +274,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	certTemplId := gjson.Get(string(body), `certificate-default.template-id`)
+	certTemplID := gjson.Get(string(body), `certificate-default.template-id`)
 	isCertTemporary := gjson.Get(string(body), `certificate-default.temporary`)
 	certHostName := gjson.Get(string(body), `certificate-default.host-name`)
 
 	//verify named certificate is configured for default certificate template
-	if defaultCertTemplId.Str != certTemplId.Str {
+	if defaultCertTemplID.Str != certTemplID.Str {
 		t.Errorf("Named certificates not configured for defaultTemplate")
 	}
 
