@@ -27,7 +27,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "11.0.20230307-centos-1.0.2"
+		imageTag = "11.0.nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
