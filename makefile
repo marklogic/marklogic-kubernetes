@@ -91,7 +91,7 @@ e2e-test: prepare
 
 	@echo "=====Installing minikube cluster"
 	export MINIKUBE_IN_STYLE=false
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=max --cpus=max
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=16000mb --cpus=2
 
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
@@ -118,7 +118,7 @@ hc-test:
 
 	@echo "=====Installing minikube cluster"
 	export MINIKUBE_IN_STYLE=false
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=max --cpus=max
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=16000mb --cpus=2
 
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
