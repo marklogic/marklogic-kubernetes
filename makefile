@@ -90,7 +90,9 @@ e2e-test: prepare
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+	export MINIKUBE_IN_STYLE=false
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=max --cpus=max
+
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
@@ -115,7 +117,9 @@ hc-test:
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+	export MINIKUBE_IN_STYLE=false
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=max --cpus=max
+
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
