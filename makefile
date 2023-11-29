@@ -90,7 +90,6 @@ e2e-test: prepare
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	export MINIKUBE_IN_STYLE=false
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=16000mb --cpus=2
 
 
@@ -117,7 +116,6 @@ hc-test:
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	export MINIKUBE_IN_STYLE=false
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=16000mb --cpus=2
 
 
