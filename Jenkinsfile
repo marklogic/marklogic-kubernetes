@@ -213,7 +213,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export MINIKUBE_IN_STYLE=false; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true
                 """
             }
         }
@@ -223,7 +223,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export MINIKUBE_IN_STYLE=false; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION}
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION}
                 """
             }
         }
@@ -236,7 +236,7 @@ pipeline {
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                export MINIKUBE_HOME=/space; export MINIKUBE_IN_STYLE=false; minikube delete --all --purge
+                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; minikube delete --all --purge
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
