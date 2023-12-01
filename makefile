@@ -1,5 +1,5 @@
-dockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
-prevDockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
+dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
+prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 ## System requirement:
 ## - Go 
@@ -90,7 +90,8 @@ e2e-test: prepare
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=16000mb --cpus=2
+
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
@@ -115,7 +116,8 @@ hc-test:
 	minikube delete
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=16000mb --cpus=2
+
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
