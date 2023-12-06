@@ -17,7 +17,7 @@ func TestChartTemplateTopologySpreadConstraintClass(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-topologyspreadconstraint-test"
+	releaseName := "topology"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
