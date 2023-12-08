@@ -32,10 +32,13 @@ image:
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
-initContainerImage:
-  repository: curlimages/curl
-  tag: 7.87.0
-  pullPolicy: IfNotPresent
+initContainers:
+  configureGroup:
+    image: "curlimages/curl:8.4.0"
+    pullPolicy: IfNotPresent
+  copyCerts:
+    image: "redhat/ubi9:9.3"
+    pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
 imagePullSecrets: []
@@ -83,6 +86,12 @@ auth:
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
+
+# Add comment mention that if certSecretNames is empty. 
+tls:
+  enableOnDefaultAppServers: false
+  certSecretNames: []
+  caSecretName: ""
 
 ## Optionally install converters package on MarkLogic
 enableConverters: false

@@ -26,7 +26,7 @@ func HelmInstall(t *testing.T, options map[string]string, releaseName string, ku
 
 	helm.Install(t, helmOptions, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOpt, podName, 10, 15*time.Second)
 	return podName
