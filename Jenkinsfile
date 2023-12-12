@@ -213,7 +213,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
@@ -223,7 +223,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION}
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
                 """
             }
         }
