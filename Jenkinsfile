@@ -6,9 +6,9 @@
 import groovy.json.JsonSlurperClassic
 
 emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
-gitCredID = '550650ab-ee92-4d31-a3f4-91a11d5388a3'
+gitCredID = 'marklogic-builder-github'
 JIRA_ID = ''
-JIRA_ID_PATTERN = /CLD-\d{3,4}/
+JIRA_ID_PATTERN = /(?i)(CLD|DEVO|QAINF|BUG|DBI)-\d{3,4}/
 LINT_OUTPUT = ''
 SCAN_OUTPUT = ''
 IMAGE_INFO = 0
@@ -31,7 +31,7 @@ void preBuildCheck() {
     if (env.CHANGE_ID) {
         if (prDraftCheck()) { sh 'exit 1' }
         if (getReviewState().equalsIgnoreCase('CHANGES_REQUESTED')) {
-            println(reviewState)
+            echo 'PR changes requested. (' + reviewState + ') Aborting.'
             sh 'exit 1'
         }
     }
@@ -51,11 +51,11 @@ def extractJiraID() {
         match = env.GIT_BRANCH =~ JIRA_ID_PATTERN
     }
     else {
-        echo 'Warning: Jira ticket number not detected.'
+        echo 'Warning: No Git title or branch available.'
         return ''
     }
     try {
-        return match[0]
+        return match[0][0]
     } catch (any) {
         echo 'Warning: Jira ticket number not detected.'
         return ''
@@ -131,7 +131,7 @@ void publishTestResults() {
 }
 
 void pullImage() {
-    withCredentials([usernamePassword(credentialsId: '8c2e0b38-9e97-4953-aa60-f2851bb70cc8', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
+    withCredentials([usernamePassword(credentialsId: 'builder-credentials-artifactory', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
         sh """
             echo "\$docker_password" | docker login --username \$docker_user --password-stdin ${dockerRegistry}
             docker pull ${dockerRepository}:${dockerVersion}
@@ -167,8 +167,9 @@ pipeline {
         parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * *''' : '')
     }
     environment {
-        timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
-        dockerRegistry = 'ml-docker-dev.marklogic.com'
+        //timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
+        timeStamp = 'nightly'
+        dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
         dockerVerDivider = getVersionDiv(params.ML_VERSION)
         prevDockerVerDivider = getVersionDiv(params.PREV_ML_VERSION)
@@ -178,12 +179,12 @@ pipeline {
 
     parameters {
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
-        choice(name: 'ML_VERSION', choices: '11.1\n12.0\n10.0\n9.0', description: 'MarkLogic version. used to pick appropriate docker image')
+        choice(name: 'ML_VERSION', choices: '11.2\n12.0\n10.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
-        string(name: 'dockerReleaseVer', defaultValue: '1.1.0', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
-        choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
-        string(name: 'prevDockerReleaseVer', defaultValue: '1.1.0', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
+        string(name: 'dockerReleaseVer', defaultValue: '1.1.1', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
+        choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0\n11.2', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
+        string(name: 'prevDockerReleaseVer', defaultValue: '1.1.1', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
         choice(name: 'K8_VERSION', choices: 'v1.25.8\nv1.26.3\nv1.24.12\nv1.23.17', description: 'Test Kubernetes version. (e.g. v1.25.8)')
     }
 
@@ -212,8 +213,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space
-                    make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
@@ -223,8 +223,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space;
-                    make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION}
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
                 """
             }
         }
@@ -237,7 +236,7 @@ pipeline {
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                export MINIKUBE_HOME=/space; minikube delete --all --purge
+                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; minikube delete --all --purge
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
