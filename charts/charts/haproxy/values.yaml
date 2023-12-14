@@ -49,6 +49,9 @@ stats:
     username: ''
     password: ''
 
+pathbased:
+  enabled: false
+
 ## open the port for LB and service
 ports: []
 

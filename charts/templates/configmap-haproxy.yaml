@@ -4,6 +4,7 @@
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
 {{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
+{{- $haproxyPathEnabled := .Values.haproxy.pathbased.enabled }}
 {{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
 {{- $certFileName := .Values.haproxy.tls.certFileName }}
 
@@ -69,10 +70,13 @@ data:
       stats refresh 10s
       stats admin if LOCALHOST
     {{- end }}
+  
+
 
     {{- range $_, $v := .Values.haproxy.ports }}
     {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
     {{ $portType := upper (printf "%s" $v.type) }}
+    {{ $path := printf "%v" ($v.path) }}
 
     {{- if eq $portType "TCP"  -}}
       listen odbc
@@ -83,6 +87,40 @@ data:
         server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
         {{- end }}
     {{- else if eq $portType "HTTP" }}
+
+    {{- if $haproxyPathEnabled }}
+    frontend marklogic-{{$portNumber}}
+      mode http
+      option httplog
+      {{- if $haproxyTlsEnabled }}
+      bind :443 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :443
+      {{- end }}
+      use backend marklogic-{{$portNumber}} if { path {{ $path }} } || { path_beg {{ $path }}/ }
+      http-request set-header Host {{ $releaseName }}:80
+      http-request set-header REFERER http://{{ $releaseName }}:80
+
+    backend marklogic-{{$portNumber}}
+      mode http
+      balance leastconn
+      option forwardfor
+      http-request replace-path {{ $path }}(/)?(.*) /\2
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      {{- end }}
+      {{- end }}
+    {{- else }}
 
     frontend marklogic-{{$portNumber}}
       mode http
@@ -114,5 +152,7 @@ data:
       {{- end }}
     {{- end }}
     {{- end }}
+    {{- end }}
+
 
 {{- end }}

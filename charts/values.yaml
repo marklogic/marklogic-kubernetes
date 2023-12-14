@@ -333,7 +333,7 @@ logCollection:
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
 ## It also support multi-statement transaction and ODBC connections.  
 haproxy:
-  enabled: false
+  enabled: true
 
   ## Name of an existing configmap with configuration for HAProxy
   existingConfigmap: marklogic-haproxy
@@ -361,23 +361,30 @@ haproxy:
     ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
     type: ClusterIP
 
+  pathbased: 
+    enabled: true
+
   ## Ports and load balancing type configuration for HAproxy
   ## There are three types of backends supported:
   ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
   ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
+
   ports:
     - name: app-service
       type: HTTP
       port: 8000
       targetPort: 8000
+      path: /app-service
     - name: admin
       type: HTTP
       port: 8001
       targetPort: 8001
+      path: /admin
     - name: manage
       type: HTTP
       port: 8002
       targetPort: 8002
+      path: /manage
     # - name: odbc
     #   type: TCP
     #   port: 5432
