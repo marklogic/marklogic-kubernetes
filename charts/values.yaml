@@ -1,7 +1,7 @@
 ## Default values for marklogic server.
 
 ## Number of Marklogic nodes
-replicaCount: 1
+replicaCount: 3
 
 ## update strategy for MarkLogic and Helm chart upgrades
 ## It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
@@ -28,7 +28,7 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.0.2-centos-1.0.2
+  tag: 11.1.0-centos-1.1.1
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
@@ -82,7 +82,7 @@ fullnameOverride: ""
 ## If no secret is specified and the admin credentials are not provided, a secret will be automatically
 ## generated with random admin and wallet passwords.
 auth:
-  secretName: ""
+  secretName: "ml1"
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
@@ -349,42 +349,63 @@ haproxy:
   ## Stats page for HAproxy
   ## ref: https://www.haproxy.com/blog/exploring-the-haproxy-stats-page/
   stats:
-    enabled: false
+    enabled: true
     port: 1024
     auth:
-      enabled: false
-      username: ''
-      password: ''
+      enabled: true
+      username: 'ml-admin'
+      password: 'ml-admin-2023'
 
   ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
   service:
     ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
     type: ClusterIP
 
+# Used if MarkLogic Default APP-Servers are meant to be exposed under subpath different from /
+
+#######################################################################
+#  IMPORTANT NOTE:                                                    #
+#  This feature is only available starting MarkLogic 11.1 and higher. #
+#######################################################################
+
   pathbased: 
     enabled: true
 
-  ## Ports and load balancing type configuration for HAproxy
-  ## There are three types of backends supported:
+  frontendPort:
+    port: 443
+
+  DefaultAppServerPath:
+##################################################################################
+#  IMPORTANT NOTE:                                                               #
+#  path used here should be the same as the path used in the port section below. #
+##################################################################################
+    appservices: /ml8000
+    admin: /ml8001
+    manage: /ml8002
+
+
+  ## Ports, load balancing type and path configuration for HAproxy
+  ## There are two types of backends supported:
   ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
   ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
+  ## path define the path to be used to expose the APP-Servers.
 
   ports:
-    - name: app-service
+    - name: app-services
       type: HTTP
       port: 8000
       targetPort: 8000
-      path: /app-service
+      path: /ml8000
     - name: admin
       type: HTTP
       port: 8001
       targetPort: 8001
-      path: /admin
+      path: /ml8001
     - name: manage
       type: HTTP
       port: 8002
       targetPort: 8002
-      path: /manage
+      path: /ml8002
     # - name: odbc
     #   type: TCP
     #   port: 5432

@@ -1,10 +1,14 @@
-{{- if .Values.haproxy.enabled }}
+{{- if .Values.haproxy.enabled }} 
+{{- if .Values.haproxy.pathbased.enabled }}
 {{- $replicas := int .Values.replicaCount }}
 {{- $releaseName := include "marklogic.fullname" . }}
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
 {{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
-{{- $haproxyPathEnabled := .Values.haproxy.pathbased.enabled }}
+{{- $appservicesPath := .Values.haproxy.DefaultAppServerPath.appservices }}
+{{- $adminPath := .Values.haproxy.DefaultAppServerPath.admin }}
+{{- $managePath := .Values.haproxy.DefaultAppServerPath.manage }}
+{{- $frontendPort := .Values.haproxy.frontendPort.port }}
 {{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
 {{- $certFileName := .Values.haproxy.tls.certFileName }}
 
@@ -88,18 +92,18 @@ data:
         {{- end }}
     {{- else if eq $portType "HTTP" }}
 
-    {{- if $haproxyPathEnabled }}
-    frontend marklogic-{{$portNumber}}
-      mode http
-      option httplog
-      {{- if $haproxyTlsEnabled }}
-      bind :443 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
-      {{- else }}
-      bind :443
-      {{- end }}
-      use backend marklogic-{{$portNumber}} if { path {{ $path }} } || { path_beg {{ $path }}/ }
-      http-request set-header Host {{ $releaseName }}:80
-      http-request set-header REFERER http://{{ $releaseName }}:80
+    frontend marklogic    
+      mode http   
+      option httplog    
+      bind :443    
+      http-request set-header Host ml-cluster.ml-kube.com:80    
+      http-request set-header REFERER http://ml-cluster.ml-kube.com:80    
+      http-request set-header X-ML-ADM-Path "{{$adminPath}}"    
+      http-request set-header X-ML-QC-Path "{{$appservicesPath}}"    
+      http-request set-header X-ML-MNG-Path "{{$managePath}}"    
+      use_backend marklogic-8000 if { path {{$appservicesPath}} } || { path_beg {{$appservicesPath}}/ }   
+      use_backend marklogic-8001 if { path {{$adminPath}} } || { path_beg {{$adminPath}}/ }
+      use_backend marklogic-8002 if { path {{$managePath}} } || { path_beg {{$managePath}}/ }
 
     backend marklogic-{{$portNumber}}
       mode http
@@ -120,37 +124,6 @@ data:
       server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
       {{- end }}
-    {{- else }}
-
-    frontend marklogic-{{$portNumber}}
-      mode http
-      {{- if $haproxyTlsEnabled }}
-      bind :{{ $portNumber }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
-      {{- else }}
-      bind :{{ $portNumber }}
-      {{- end }}
-      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
-      default_backend marklogic-{{$portNumber}}
-
-    backend marklogic-{{$portNumber}}
-      mode http
-      balance leastconn
-      option forwardfor
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
-      stick-table type string len 32 size 10k expire 4h
-      stick store-response res.cook(HostId)
-      stick store-response res.cook(SessionId)
-      stick match req.cook(HostId)
-      stick match req.cook(SessionId)
-      default-server check
-      {{- range $i := until $replicas }}
-      {{- if $appServerTlsEnabled }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
-      {{- else }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
-      {{- end }}
-      {{- end }}
-    {{- end }}
     {{- end }}
     {{- end }}
 

@@ -50,6 +50,12 @@ spec:
   {{- toYaml . | nindent 2 }}
   {{- end }}
   ports:
+  {{- if .Values.pathbased.enabled }}
+    - name: frontendport
+      protocol: TCP
+      port: {{ .Values.frontendPort.port }}
+      targetPort: {{ .Values.frontendPort.port }}
+  {{- end }}
   {{- if .Values.stats.enabled }}
     - name: stats
       protocol: TCP

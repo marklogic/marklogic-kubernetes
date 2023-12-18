@@ -49,8 +49,18 @@ stats:
     username: ''
     password: ''
 
-pathbased:
-  enabled: false
+# Used if MarkLogic Default APP-Servers are meant to be exposed under subpath different from /
+
+#######################################################################
+#  IMPORTANT NOTE:                                                    #
+#  This feature is only available starting MarkLogic 11.1 and higher. #
+#######################################################################
+
+pathbased: 
+  enabled: true
+
+frontendPort:
+  port: 443
 
 ## open the port for LB and service
 ports: []
