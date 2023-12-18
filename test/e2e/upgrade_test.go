@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -29,12 +30,12 @@ func TestHelmUpgrade(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "11.0.20230307-centos-1.0.2"
+		imageTag = "11.0.nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -121,15 +122,15 @@ func TestMLupgrade(t *testing.T) {
 	prevImageTag, prevTagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 	if !tagPres {
-		imageTag = "11.0.20230307-centos-1.0.2"
+		imageTag = "11.0.nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 	if !prevTagPres {
-		prevImageTag = "10.0-20230307-centos-1.0.2"
+		prevImageTag = "10.0-nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + prevImageTag)
 	}
 
@@ -205,8 +206,11 @@ func TestMLupgrade(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	mlVersion := gjson.Get(string(body), `local-cluster-default.version`)
-	expectedMlVersion := strings.Split(imageTag, "-centos")[0]
+	mlVersionPattern := regexp.MustCompile(`(\d+\.\d+)`)
+	mlVersionResp := gjson.Get(string(body), `local-cluster-default.version`)
+	actualMlVersion := mlVersionPattern.FindStringSubmatch(mlVersionResp.Str)
+	expectedMlVersion := mlVersionPattern.FindStringSubmatch(imageTag)
+	//expectedMlVersion := strings.Split(imageTag, "-centos")[0]
 	// verify latest MarkLogic version after upgrade
-	assert.Equal(t, mlVersion.Str, expectedMlVersion)
+	assert.Equal(t, actualMlVersion, expectedMlVersion)
 }
