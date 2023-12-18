@@ -73,7 +73,7 @@ func TestSeparateEDnode(t *testing.T) {
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
@@ -269,7 +269,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)

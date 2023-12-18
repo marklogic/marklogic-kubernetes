@@ -90,7 +90,7 @@ func TestHelmScaleUp(t *testing.T) {
 
 	numOfHosts := 1
 	client := req.C()
-	resp, err := client.R().
+	_, err := client.R().
 		SetDigestAuth(username, password).
 		SetRetryCount(3).
 		SetRetryFixedInterval(10 * time.Second).
@@ -108,7 +108,6 @@ func TestHelmScaleUp(t *testing.T) {
 			return numOfHosts != 2
 		}).
 		Get("http://localhost:8002/manage/v2/hosts?view=status&format=json")
-	defer resp.Body.Close()
 
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -167,7 +166,7 @@ func TestHelmScaleDown(t *testing.T) {
 	podName1 := releaseName + "-marklogic-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 15, 20*time.Second)
 
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -194,7 +193,7 @@ func TestHelmScaleDown(t *testing.T) {
 
 	numOfHostsOffline := 1
 	client := req.C()
-	resp, err := client.R().
+	_, err := client.R().
 		SetDigestAuth(username, password).
 		SetRetryCount(3).
 		SetRetryFixedInterval(10 * time.Second).
@@ -212,7 +211,6 @@ func TestHelmScaleDown(t *testing.T) {
 			return numOfHostsOffline != 1
 		}).
 		Get("http://localhost:8002/manage/v2/hosts?view=status&format=json")
-	defer resp.Body.Close()
 
 	if err != nil {
 		t.Fatalf(err.Error())

@@ -58,7 +58,7 @@ func TestMlAdminSecrets(t *testing.T) {
 
 	podName := releaseName + "-marklogic-0"
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 
 	// get corev1.Pod to get logs of a pod
 	pod := k8s.GetPod(t, kubectlOptions, podName)
