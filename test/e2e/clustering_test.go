@@ -1,9 +1,7 @@
 package e2e
 
 import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +11,8 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
+	"github.com/imroc/req/v3"
+	"github.com/tidwall/gjson"
 )
 
 func TestClusterJoin(t *testing.T) {
@@ -29,18 +28,15 @@ func TestClusterJoin(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	var resp *http.Response
-	var body []byte
-	var err error
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
@@ -69,27 +65,52 @@ func TestClusterJoin(t *testing.T) {
 	podName := releaseName + "-marklogic-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s/manage/v2/hosts", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
 
-	dr := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	numOfHosts := 0
+	client := req.C()
+	_, err := client.R().
+		SetDigestAuth(username, password).
+		SetRetryCount(5).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
+			}
+			totalHosts := gjson.Get(string(body), `host-default-list.list-items.list-count.value`)
+			numOfHosts = int(totalHosts.Num)
+			if numOfHosts != 2 {
+				t.Log("Number of hosts: " + string(totalHosts.Raw))
+				t.Log("Waiting for MarkLogic count of MarkLogic hosts to be 2")
+			}
+			return numOfHosts != 2
+		}).
+		Get("http://localhost:8002/manage/v2/hosts?format=json")
 
-	if resp, err = dr.Execute(); err != nil {
+	if err != nil {
+		t.Error("Error getting hosts")
 		t.Fatalf(err.Error())
 	}
-	defer resp.Body.Close()
 
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	t.Logf("Response:\n" + string(body))
-	if !strings.Contains(string(body), "<list-count units=\"quantity\">2</list-count>") {
+	if numOfHosts != 2 {
 		t.Errorf("Wrong number of hosts")
 	}
 }

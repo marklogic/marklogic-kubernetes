@@ -67,7 +67,7 @@ func TestMarklogicReady(t *testing.T) {
 
 	podName := releaseName + "-marklogic-0"
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
 	defer tunnel.Close()

@@ -6,11 +6,15 @@ This repository contains a Helm Chart that can be used to deploy MarkLogic on a 
 
 ### Prerequisites
 
-[Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/)  must be installed locally in order to use this chart.
+[Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/)  must be installed locally in order to use this chart.
 
 For production environments, it is recommend to use a managed Kubenetes service such as AWS EKS. The [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) command line tool can be used to bring up a Kubernetes cluster on EKS. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
 
 For non-production deployments, please see [MiniKube Setup Guide](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4480543593867233593415017144) to create the Kubernetes cluster locally.
+
+### Kubernetes Version
+
+This Helm-chart currently support Kubernetes 1.23 or later.
  
 ### Installing MarkLogic Helm Chart
 
@@ -35,9 +39,18 @@ kubectl create secret generic ml-admin-secrets \
 Refer to the official Kubernetes documentation for detailed steps on how to [create a secret](https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/#create-a-secret).
 
 4. Create a `values.yaml` file to customize the settings. Specify the number of pods (one MarkLogic host in this case), add the secret name for the admin credentials (if not using the automatically generated one), and specify the resources that should be allocated to each MarkLiogic pod.
+
+Note: Please ensure to use the latest MarkLogic Docker image for the new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/marklogicdb/marklogic-db/tags](https://hub.docker.com/r/marklogicdb/marklogic-db/tags) for the latest image available.
 ```
 # Create a single MarkLogic pod
 replicaCount: 1
+
+# Marklogic image parameters
+# using the latest image 11.0.3-centos-1.0.2 
+image:
+  repository: marklogicdb/marklogic-db;
+  tag: 11.0.3-centos-1.0.2 
+  pullPolicy: IfNotPresent
 
 # Set the admin credentials secret. Leave this out or set to blank "" to use the automatically generated secret.
 auth:
@@ -98,10 +111,10 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `group.enableXdqpSsl`                               | SSL encryption for XDQP                                                                                                                                                                | `true`                     |
 | `bootstrapHostName`                                 | Host name of MarkLogic bootstrap host (to join a cluster)                                                                                                                              | `""`                       |
 | `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `marklogicdb/marklogic-db` |
-| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `11.0.2-centos-1.0.2`      |
+| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `11.0.3-centos-1.0.2`      |
 | `image.pullPolicy`                                  | Image pull policy for MarkLogic image                                                                                                                                                  | `IfNotPresent`             |
 | `initContainerImage.repository`                     | Repository for initContainer image                                                                                                                                                     | `curlimages/curl`          |
-| `initContainerImage.tag`                            | Image tag for initContainer image                                                                                                                                                      | `7.87.0`                   |
+| `initContainerImage.tag`                            | Image tag for initContainer image                                                                                                                                                      | `8.4.0`                    |
 | `initContainerImage.pullPolicy`                     | Pull policy for initContainer image                                                                                                                                                    | `IfNotPresent`             |
 | `imagePullSecrets`                                  | Registry secret names as an array                                                                                                                                                      | `[]`                       |
 | `resources`                                         | The resource requests and limits for MarkLogic container                                                                                                                               | `{}`                       |
@@ -115,6 +128,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `license.key`                                       | Set MarkLogic license key installed                                                                                                                                                    | `""`                       |
 | `license.licensee`                                  | Set MarkLogic licensee information                                                                                                                                                     | `""`                       |
 | `affinity`                                          | Affinity for MarkLogic pods assignment                                                                                                                                                 | `{}`                       |
+| `topologySpreadConstraints`                         | POD Topology Spread Constraints to spread Pods across cluster                                                                                                                                                    | `[]`                       |
 | `nodeSelector`                                      | Node labels for MarkLogic pods assignment                                                                                                                                              | `{}`                       |
 | `persistence.enabled`                               | Parameter to enable MarkLogic data persistence using Persistence Volume Claim (PVC). If set to false, EmptyDir will be used.                                                           | `true`                     |
 | `persistence.storageClass`                          | Storage class for MarkLogic data volume, leave empty to use the default storage class                                                                                                  | `""`                       |
@@ -140,25 +154,25 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `containerSecurityContext.runAsNonRoot`             | Indicates that the container must run as a non-root user                                                                                                                               | `true`                     |
 | `containerSecurityContext.allowPrivilegeEscalation` | Controls whether a process can gain more privileges than its parent process                                                                                                            | `true`                     |
 | `livenessProbe.enabled`                             | Parameter to enable the liveness probe                                                                                                                                                 | `true`                     |
-| `livenessProbe.initialDelaySeconds`                 | Initial delay seconds for liveness probe                                                                                                                                               | `30`                       |
-| `livenessProbe.periodSeconds`                       | Period seconds for liveness probe                                                                                                                                                      | `60`                       |
+| `livenessProbe.initialDelaySeconds`                 | Initial delay seconds for liveness probe                                                                                                                                               | `300`                       |
+| `livenessProbe.periodSeconds`                       | Period seconds for liveness probe                                                                                                                                                      | `20`                       |
 | `livenessProbe.timeoutSeconds`                      | Timeout seconds for liveness probe                                                                                                                                                     | `5`                        |
-| `livenessProbe.failureThreshold`                    | Failure threshold for liveness probe                                                                                                                                                   | `3`                        |
+| `livenessProbe.failureThreshold`                    | Failure threshold for liveness probe                                                                                                                                                   | `15`                        |
 | `livenessProbe.successThreshold`                    | Success threshold for liveness probe                                                                                                                                                   | `1`                        |
-| `readinessProbe.enabled`                            | Use this parameter to enable the readiness probe                                                                                                                                       | `true`                     |
+| `readinessProbe.enabled`                            | Use this parameter to enable the readiness probe. See [Known-Issues-and-Limitations](#known-issues-and-limitations) section                                                                                                                            | `true`                     |
 | `readinessProbe.initialDelaySeconds`                | Initial delay seconds for readiness probe                                                                                                                                              | `10`                       |
 | `readinessProbe.periodSeconds`                      | Period seconds for readiness probe                                                                                                                                                     | `60`                       |
 | `readinessProbe.timeoutSeconds`                     | Timeout seconds for readiness probe                                                                                                                                                    | `5`                        |
 | `readinessProbe.failureThreshold`                   | Failure threshold for readiness probe                                                                                                                                                  | `3`                        |
 | `readinessProbe.successThreshold`                   | Success threshold for readiness probe                                                                                                                                                  | `1`                        |
-| `startupProbe.enabled`                              | Parameter to enable startup probe                                                                                                                                                      | `true`                     |
+| `startupProbe.enabled`                              | Parameter to enable startup  probe. See [Known-Issues-and-Limitations](#known-issues-and-limitations) section                                                                                                                                                     | `true`                     |
 | `startupProbe.initialDelaySeconds`                  | Initial delay seconds for startup probe                                                                                                                                                | `10`                       |
 | `startupProbe.periodSeconds`                        | Period seconds for startup probe                                                                                                                                                       | `20`                       |
 | `startupProbe.timeoutSeconds`                       | Timeout seconds for startup probe                                                                                                                                                      | `1`                        |
 | `startupProbe.failureThreshold`                     | Failure threshold for startup probe                                                                                                                                                    | `30`                       |
 | `startupProbe.successThreshold`                     | Success threshold for startup probe                                                                                                                                                    | `1`                        |
 | `logCollection.enabled`                             | Parameter to enable cluster wide log collection of Marklogic server logs                                                                                                               | `false`                    |
-| `logCollection.image`                               | Image repository and tag for fluent-bit container                                                                                                                                      | `fluent/fluent-bit:2.0.6`  |
+| `logCollection.image`                               | Image repository and tag for fluent-bit container                                                                                                                                      | `fluent/fluent-bit:2.1.10` |
 | `logCollection.resources.requests.cpu`              | The requested cpu resource for the fluent-bit container                                                                                                                                | `100m`                     |
 | `logCollection.resources.requests.memory`           | The requested memory resource for the fluent-bit container                                                                                                                             | `128Mi`                    |
 | `logCollection.resources.limits.cpu`                | The cpu resource limit for the fluent-bit container                                                                                                                                    | `100m`                     |
@@ -197,3 +211,4 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 3. The latest released version of CentOS 7 has known security vulnerabilities with respect to glib2 CVE-2016-3191, CVE-2015-8385, CVE-2015-8387, CVE-2015-8390, CVE-2015-8394, CVE-2016-3191, glibc CVE-2019-1010022, pcre CVE-2015-8380, CVE-2015-8387, CVE-2015-8390, CVE-2015-8393, CVE-2015-8394, SQLite CVE-2019-5827. These libraries are included in the CentOS base image but, to-date, no fixes have been made available. Even though these libraries may be present in the base image that is used by MarkLogic Server, they are not used by MarkLogic Server itself, hence there is no impact or mitigation required.
 4. TLS cannot be turned on at the MarkLogic level for the Admin (port 8001) and Manage (port 8002) app servers. TLS can be configured for any/all other ports at the MarkLogic level and if the Admin and Manage ports need to be exposed outside of the Kubernetes network, TLS can be terminated at the load balancer. Alternatively, additional custom app servers can be configured to serve the Admin UI and Management REST API on custom ports with TLS configured.
 5. With respect to security context “allowPrivilegeEscalation” is set to TRUE by default in values.yaml file to run MarkLogic container. Work is in progress to run MarkLogic container as rootless user.
+6. The Readiness and Startup Probe are not compatible with HA deployment. At the moment these probes may fail in the case of Security database failover. As of the 1.0.2 helm chart release, the startup and readiness probes are disabled by default.

@@ -132,3 +132,41 @@ func TestChartTemplateLicenseValues(t *testing.T) {
 	require.Equal(t, actualLicenseKey, expectedLicenseKey)
 	require.Equal(t, actualLicensee, expectedLicensee)
 }
+
+func TestChartTemplateAuthRealmValue(t *testing.T) {
+
+	// Path to the helm chart we will test
+	helmChartPath, err := filepath.Abs("../../charts")
+	releaseName := "marklogic-container-env-test"
+	t.Log(helmChartPath, releaseName)
+	require.NoError(t, err)
+
+	// Set up the namespace; confirm that the template renders the expected value for the namespace.
+	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	t.Logf("Namespace: %s\n", namespaceName)
+
+	// Setup the args for helm install
+	options := &helm.Options{
+		SetValues: map[string]string{
+			"image.repository":    "marklogicdb/marklogic-db",
+			"image.tag":           "latest",
+			"persistence.enabled": "false",
+			"realm":               "public",
+		},
+		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+	}
+
+	// render the tempate
+	output := helm.RenderTemplate(t, options, helmChartPath, releaseName, []string{"templates/statefulset.yaml"})
+
+	var statefulset appsv1.StatefulSet
+	helm.UnmarshalK8SYaml(t, output, &statefulset)
+
+	// Verify the name and namespace matches
+	require.Equal(t, namespaceName, statefulset.Namespace)
+
+	// Verify the value of security realm
+	expectedRealm := "public"
+	actualRealm := statefulset.Spec.Template.Spec.Containers[0].Env[6].Value
+	require.Equal(t, actualRealm, expectedRealm)
+}

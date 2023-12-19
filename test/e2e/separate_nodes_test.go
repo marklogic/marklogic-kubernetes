@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
@@ -37,12 +39,12 @@ func TestSeparateEDnode(t *testing.T) {
 	}
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -71,7 +73,7 @@ func TestSeparateEDnode(t *testing.T) {
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
@@ -180,28 +182,45 @@ func TestSeparateEDnode(t *testing.T) {
 	// wait until the second enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
 
-	enodeEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode?format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, enodeEndpoint)
+	enodeHostCountJSON := 0
+	client := req.C()
+	_, reqErr := client.R().
+		SetDigestAuth(username, password).
+		SetRetryCount(3).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
+			}
+			totalHosts := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
+			enodeHostCountJSON = int(totalHosts.Num)
+			if enodeHostCountJSON != 2 {
+				t.Log("Waiting for hosts to join enode group")
+			}
+			return enodeHostCountJSON != 2
+		}).
+		Get("http://localhost:8002/manage/v2/groups/enode?format=json")
 
-	getEnodeDR := digestAuth.NewRequest(username, password, "GET", enodeEndpoint, "")
-
-	resp, err = getEnodeDR.Execute()
-	if err != nil {
-		t.Fatalf(err.Error())
+	if reqErr != nil {
+		t.Fatalf(reqErr.Error())
 	}
-	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	t.Logf("Get enode group response:\n" + string(body))
-
-	enodeHostCountJSON := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
-	t.Logf(`enodeHostCount: = %s`, enodeHostCountJSON)
 
 	// verify bootstrap host exists on the cluster
-	if enodeHostCountJSON.Num != 2 {
+	if enodeHostCountJSON != 2 {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
 }
@@ -262,7 +281,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)

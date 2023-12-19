@@ -1,8 +1,7 @@
 package e2e
 
 import (
-	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,8 +11,8 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmScaleUp(t *testing.T) {
@@ -71,38 +70,62 @@ func TestHelmScaleUp(t *testing.T) {
 			"logCollection.enabled": "false",
 		},
 	}
+	podZeroName := releaseName + "-marklogic-0"
+
+	// wait until second pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 30, 10*time.Second)
 
 	t.Logf("====Upgrading Helm Chart")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-1"
+	podOneName := releaseName + "-marklogic-1"
 
 	// wait until second pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
-	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, hostsEndpoint)
+	numOfHosts := 1
+	client := req.C()
+	_, err := client.R().
+		SetDigestAuth(username, password).
+		SetRetryCount(3).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
+			}
+			totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
+			numOfHosts = int(totalHosts.Num)
+			if numOfHosts != 2 {
+				t.Log("Waiting for second host to join MarkLogic cluster")
+			}
+			return numOfHosts != 2
+		}).
+		Get("http://localhost:8002/manage/v2/hosts?view=status&format=json")
 
-	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-
-	resp, err := getHostsDR.Execute()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
-
 	// verify total number of hosts on the clsuter after scaling up
-	if totalHosts.Num != 2 {
+	if numOfHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
 }
@@ -155,7 +178,7 @@ func TestHelmScaleDown(t *testing.T) {
 	podName1 := releaseName + "-marklogic-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName1, 15, 20*time.Second)
 
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -180,25 +203,45 @@ func TestHelmScaleDown(t *testing.T) {
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
-	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, hostsEndpoint)
+	numOfHostsOffline := 1
+	client := req.C()
+	_, err := client.R().
+		SetDigestAuth(username, password).
+		SetRetryCount(3).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
+			}
+			totalOfflineHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts-offline.value`)
+			numOfHostsOffline = int(totalOfflineHosts.Num)
+			if numOfHostsOffline != 1 {
+				t.Log("Waiting for second host to shutdown")
+			}
+			return numOfHostsOffline != 1
+		}).
+		Get("http://localhost:8002/manage/v2/hosts?view=status&format=json")
 
-	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-
-	resp, err := getHostsDR.Execute()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
 
-	totalHostsOffline := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts-offline.value`)
-
-	//verify there is a offline host after scaling down
-	if totalHostsOffline.Num != 1 {
+	// verify total number of hosts on the clsuter after scaling up
+	if numOfHostsOffline != 1 {
 		t.Errorf("Incorrect number of offline hosts")
 	}
 }

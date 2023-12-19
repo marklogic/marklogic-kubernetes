@@ -28,13 +28,13 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.0.2-centos-1.0.2
+  tag: 11.1.0-centos-1.1.1
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
 initContainerImage:
   repository: curlimages/curl
-  tag: 7.87.0
+  tag: 8.4.0
   pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
@@ -92,6 +92,16 @@ affinity:
             values:
             - marklogic
         topologyKey: kubernetes.io/hostname
+
+## Configure POD Topology Spread Constraints to spread Pods across cluster
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+topologySpreadConstraints: []
+  # - maxSkew: 1
+  #   topologyKey: topology.kubernetes.io/zone
+  #   whenUnsatisfiable: ScheduleAnyway
+  #   labelSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: marklogic
 
 ## Configure NodeSelector property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
@@ -205,7 +215,20 @@ networkPolicy:
       endPort: 8020
       protocol: TCP
     
-## Below are the security configurations for container, by default security will be enabled
+## Below are the security configuration at POD level, by default security will be enabled
+## https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods
+  #######################################################################################
+  ## NOTE : The POD Security context should be set when using additional volume.       ##
+  ## This will ensure that additional volume created is set with the right ownership.  ##
+  #######################################################################################
+
+podSecurityContext:
+  enabled: true
+  ## group id of user owning the MarkLogic service
+  fsGroup: 2 
+  fsGroupChangePolicy: "OnRootMismatch" 
+
+## Below are the security configurations for markLogic container, by default security will be enabled
 containerSecurityContext:
   enabled: true
   runAsUser: 1000
@@ -218,16 +241,21 @@ containerSecurityContext:
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-http-request
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 30
-  periodSeconds: 60
+  initialDelaySeconds: 300
+  periodSeconds: 20
   timeoutSeconds: 5
-  failureThreshold: 3
+  failureThreshold: 15
   successThreshold: 1
 
 ## Configure options for readiness probe
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+
+################################################################
+## NOTE: See Limitations and known Issues in the README file  ##
+################################################################
+
 readinessProbe:
-  enabled: true
+  enabled: false
   initialDelaySeconds: 10
   periodSeconds: 60
   timeoutSeconds: 5
@@ -236,8 +264,13 @@ readinessProbe:
 
 ## Configure options for startup probe
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
+
+################################################################
+## NOTE: See Limitations and known Issues in the README file  ##
+################################################################
+
 startupProbe:
-  enabled: true
+  enabled: false
   initialDelaySeconds: 10
   periodSeconds: 20
   timeoutSeconds: 1
@@ -249,7 +282,7 @@ startupProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.0.6
+  image: fluent/fluent-bit:2.1.10
   resources:
     requests:
       cpu: "100m"

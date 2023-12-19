@@ -27,7 +27,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	username := "admin"
-	password := "admin"
+	password := "AdminPa$s_with@!#%^&*()"
 	var resp *http.Response
 	var body []byte
 	var err error
@@ -47,7 +47,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -72,7 +72,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 
 	podName := releaseName + "-marklogic-0"
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
 	defer tunnel.Close()
