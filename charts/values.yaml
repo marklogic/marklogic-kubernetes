@@ -28,7 +28,7 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.0.2-centos-1.0.2
+  tag: 11.1.0-centos-1.1.1
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
@@ -303,7 +303,7 @@ startupProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.0.6
+  image: fluent/fluent-bit:2.1.10
   resources:
     requests:
       cpu: "100m"

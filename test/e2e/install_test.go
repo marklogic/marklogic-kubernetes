@@ -60,7 +60,7 @@ func TestHelmInstall(t *testing.T) {
 
 	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
 	defer tunnel7997.Close()
 	tunnel7997.ForwardPort(t)
