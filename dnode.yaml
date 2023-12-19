@@ -1,0 +1,25 @@
+replicaCount: 2
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+terminationGracePeriod: 10
+
+group:
+  name: dnode
+
+persistence:
+  enabled: false
+
+image:
+  repository: marklogic-centos/marklogic-server-centos
+  tag: 10-internal
+
+tls:
+  enableOnDefaultAppServers: true
+  certSecretNames:
+    - "dnode-0-cert"
+    - "dnode-1-cert"
+  caSecretName: "ca-cert-ed"
+

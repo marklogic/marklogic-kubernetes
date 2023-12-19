@@ -1,0 +1,27 @@
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+group:
+  name: enode
+  enableXdqpSsl: false
+
+bootstrapHostName: "dnode-0.dnode.marklogic-tlsednode.svc.cluster.local"
+
+terminationGracePeriod: 10
+
+replicaCount: 2
+
+persistence:
+  enabled: true
+
+image:
+  repository: marklogicdb/marklogic-db
+  tag: latest
+
+tls:
+  enableOnDefaultAppServers: true
+  certSecretNames:
+    - "enode-0-cert"
+    - "enode-1-cert" 
+  caSecretName: "ca-cert"

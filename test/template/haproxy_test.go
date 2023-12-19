@@ -15,7 +15,7 @@ import (
 
 func TestTemplateTestHAproxyDisabled(t *testing.T) {
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-haproxy-test"
+	releaseName := "haproxy"
 	require.NoError(t, err)
 
 	options := &helm.Options{
@@ -40,7 +40,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-haproxy-test"
+	releaseName := "haproxy"
 	require.NoError(t, err)
 
 	{
@@ -94,7 +94,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 func TestTemplateTestHAproxyService(t *testing.T) {
 
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-haproxy-test"
+	releaseName := "haproxy"
 	require.NoError(t, err)
 
 	{
@@ -145,7 +145,7 @@ func TestTemplateTestHAproxyService(t *testing.T) {
 func TestTemplateTestHAproxyConfigmap(t *testing.T) {
 
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "marklogic-haproxy-test"
+	releaseName := "haproxy"
 	require.NoError(t, err)
 
 	{

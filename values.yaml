@@ -1,0 +1,38 @@
+replicaCount: 1
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+terminationGracePeriod: 10
+
+# group:
+#   name: dnode
+
+persistence:
+  enabled: true
+
+image:
+  repository: marklogicdb/marklogic-db
+  tag: 11.1.0-centos-1.1.1
+
+tls:
+  enableOnDefaultAppServers: true
+  # certSecretNames:
+  #   - "marklogic-0-cert"
+  #   - "marklogic-1-cert"
+  # caSecretName: "ca-cert"
+
+haproxy:
+  enabled: false
+  stats:
+    enabled: true
+
+# resources: 
+#   requests:
+#     memory: "2800Mi"
+#     cpu: "1000m"
+#   limits:
+#     memory: "2800Mi"
+#     cpu: "1000m"
+
