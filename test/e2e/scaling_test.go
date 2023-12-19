@@ -95,10 +95,22 @@ func TestHelmScaleUp(t *testing.T) {
 		SetRetryCount(3).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
-
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Logf("error: %s", err.Error())
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
 			}
 			totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
 			numOfHosts = int(totalHosts.Num)
@@ -198,10 +210,22 @@ func TestHelmScaleDown(t *testing.T) {
 		SetRetryCount(3).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
-
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Logf("error: %s", err.Error())
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
 			}
 			totalOfflineHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts-offline.value`)
 			numOfHostsOffline = int(totalOfflineHosts.Num)
