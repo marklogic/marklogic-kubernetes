@@ -1,7 +1,7 @@
 ## Default values for marklogic server.
 
 ## Number of Marklogic nodes
-replicaCount: 3
+replicaCount: 1
 
 ## update strategy for MarkLogic and Helm chart upgrades
 ## It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
@@ -82,7 +82,7 @@ fullnameOverride: ""
 ## If no secret is specified and the admin credentials are not provided, a secret will be automatically
 ## generated with random admin and wallet passwords.
 auth:
-  secretName: "ml1"
+  secretName: ""
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
@@ -333,13 +333,13 @@ logCollection:
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
 ## It also support multi-statement transaction and ODBC connections.  
 haproxy:
-  enabled: true
+  enabled: false
 
   ## Name of an existing configmap with configuration for HAProxy
   existingConfigmap: marklogic-haproxy
 
   ## Number of HAProxy Deployment
-  replicaCount: 2
+  replicaCount: 1
 
   ## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
   ## ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
@@ -349,12 +349,12 @@ haproxy:
   ## Stats page for HAproxy
   ## ref: https://www.haproxy.com/blog/exploring-the-haproxy-stats-page/
   stats:
-    enabled: true
+    enabled: false
     port: 1024
     auth:
-      enabled: true
-      username: 'ml-admin'
-      password: 'ml-admin-2023'
+      enabled: false
+      username: ''
+      password: ''
 
   ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
   service:
@@ -369,46 +369,62 @@ haproxy:
 #######################################################################
 
   pathbased: 
-    enabled: true
+    enabled: false
 
-  frontendPort:
-    port: 443
+# This the default listening port in the Front-End section of the HAProxy when using Path based routing
+  frontendPort: 443
+
+
+#######################################################################################
+#  IMPORTANT NOTE:                                                                    #
+#  path used here should be the same as the path used in the httpports section below. #
+#######################################################################################
 
   DefaultAppServerPath:
-##################################################################################
-#  IMPORTANT NOTE:                                                               #
-#  path used here should be the same as the path used in the port section below. #
-##################################################################################
     appservices: /ml8000
     admin: /ml8001
     manage: /ml8002
 
 
-  ## Ports, load balancing type and path configuration for HAproxy
-  ## There are two types of backends supported:
-  ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
-  ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
+  ## HTTP Ports, load balancing type and path configuration for HAproxy
+  ## HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections. 
   ## path define the path to be used to expose the APP-Servers.
 
-  ports:
+  httpports:
     - name: app-services
       type: HTTP
       port: 8000
       targetPort: 8000
-      path: /ml8000
+      # path: /ml8000
     - name: admin
       type: HTTP
       port: 8001
       targetPort: 8001
-      path: /ml8001
+      # path: /ml8001
     - name: manage
       type: HTTP
       port: 8002
       targetPort: 8002
-      path: /ml8002
-    # - name: odbc
-    #   type: TCP
-    #   port: 5432
+      # path: /ml8002
+    
+  ## To add new ports to be exposed using HTTP just uncoment the following lines and adapt the configuration
+
+    # - name: DHF-Jobs
+    #   type: HTTP
+    #   port: 8010
+    #   targetPort: 8010
+    #   path: /DHF-jobs
+
+  ## TCP Ports, load balancing configuration for HAproxy
+  ## TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.   
+
+  tcpports:
+  # TCP port has to be explicitely enabled
+    enabled: false
+    # ports:
+    #   - name: odbc
+    #     type: TCP
+    #     port: 5432
 
   ## Configure TLS for HAProxy
   ## Put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
