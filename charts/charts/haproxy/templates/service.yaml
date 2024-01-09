@@ -53,8 +53,8 @@ spec:
   {{- if .Values.pathbased.enabled }}
     - name: frontendport
       protocol: TCP
-      port: {{ .Values.frontendPort.port }}
-      targetPort: {{ .Values.frontendPort.port }}
+      port: {{ .Values.frontendPort }}
+      targetPort: {{ .Values.frontendPort }}
   {{- end }}
   {{- if .Values.stats.enabled }}
     - name: stats

@@ -1,7 +1,7 @@
 ## Default values for marklogic server.
 
 ## Number of Marklogic nodes
-replicaCount: 1
+replicaCount: 3
 
 ## update strategy for MarkLogic and Helm chart upgrades
 ## It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
@@ -82,7 +82,7 @@ fullnameOverride: ""
 ## If no secret is specified and the admin credentials are not provided, a secret will be automatically
 ## generated with random admin and wallet passwords.
 auth:
-  secretName: ""
+  secretName: "ml1"
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
@@ -333,7 +333,7 @@ logCollection:
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
 ## It also support multi-statement transaction and ODBC connections.  
 haproxy:
-  enabled: false
+  enabled: true
 
   ## Name of an existing configmap with configuration for HAProxy
   existingConfigmap: marklogic-haproxy
@@ -349,12 +349,12 @@ haproxy:
   ## Stats page for HAproxy
   ## ref: https://www.haproxy.com/blog/exploring-the-haproxy-stats-page/
   stats:
-    enabled: false
+    enabled: true
     port: 1024
     auth:
-      enabled: false
-      username: ''
-      password: ''
+      enabled: true
+      username: 'ml-admin'
+      password: 'ml-admin-2023'
 
   ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
   service:
@@ -369,7 +369,7 @@ haproxy:
 #######################################################################
 
   pathbased: 
-    enabled: false
+    enabled: true
 
 # This the default listening port in the Front-End section of the HAProxy when using Path based routing
   frontendPort: 443

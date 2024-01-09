@@ -57,10 +57,9 @@ stats:
 #######################################################################
 
 pathbased: 
-  enabled: true
+  enabled: false
 
-frontendPort:
-  port: 443
+frontendPort: 443
 
 ## open the port for LB and service
 ports: []
