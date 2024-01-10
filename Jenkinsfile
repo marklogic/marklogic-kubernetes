@@ -8,7 +8,7 @@ import groovy.json.JsonSlurperClassic
 emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
 gitCredID = 'marklogic-builder-github'
 JIRA_ID = ''
-JIRA_ID_PATTERN = /(?i)(CLD|DEVO|QAINF|BUG|DBI)-\d{3,4}/
+JIRA_ID_PATTERN = /(?i)(MLE)-\d{3,6}/
 LINT_OUTPUT = ''
 SCAN_OUTPUT = ''
 IMAGE_INFO = 0
