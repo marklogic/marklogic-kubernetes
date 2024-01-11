@@ -35,6 +35,9 @@ void preBuildCheck() {
             sh 'exit 1'
         }
     }
+
+    // our VMs sometime disable bridge traffic. this should help to restore it.
+    sh 'sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"'
 }
 
 @NonCPS
@@ -130,17 +133,6 @@ void publishTestResults() {
     archiveArtifacts artifacts: '**/test/test_results/*.xml', allowEmptyArchive: true
 }
 
-void pullImage() {
-    withCredentials([usernamePassword(credentialsId: 'builder-credentials-artifactory', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
-        sh """
-            echo "\$docker_password" | docker login --username \$docker_user --password-stdin ${dockerRegistry}
-            docker pull ${dockerRepository}:${dockerVersion}
-            docker pull ${dockerRepository}:${dockerVersion}
-            docker pull ${dockerRepository}:${prevDockerVersion}
-        """
-    }
-}
-
 String getVersionDiv(mlVersion) {
     switch (mlVersion) {
         case '10.0':
@@ -195,12 +187,6 @@ pipeline {
             }
         }
 
-        stage('Pull-Image') {
-            steps {
-                pullImage()
-            }
-        }
-
         stage('Lint') {
             steps {
                 lint()
@@ -213,7 +199,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
@@ -223,7 +209,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
                 """
             }
         }
@@ -233,10 +219,11 @@ pipeline {
         always {
             publishTestResults()
             sh '''
+                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; minikube delete --all --purge
+                sudo rm -rf /space/.minikube /space/go /space/.kube-config
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }

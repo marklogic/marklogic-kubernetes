@@ -59,6 +59,7 @@ help:
 prepare:
 	go mod tidy
 
+
 #***************************************************************************
 # lint
 #***************************************************************************
@@ -88,11 +89,10 @@ lint:
 .PHONY: e2e-test
 e2e-test: prepare
 	@echo "=====Delete if there are existing minikube cluster"
-	minikube delete
+	minikube delete --all --purge
 
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
-
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
@@ -114,7 +114,7 @@ e2e-test: prepare
 hc-test: 
  	
 	@echo "=====Delete if there are existing minikube cluster"
-	minikube delete
+	minikube delete --all --purge
 
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
