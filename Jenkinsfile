@@ -133,17 +133,6 @@ void publishTestResults() {
     archiveArtifacts artifacts: '**/test/test_results/*.xml', allowEmptyArchive: true
 }
 
-void pullImage() {
-    withCredentials([usernamePassword(credentialsId: 'builder-credentials-artifactory', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
-        sh """
-            echo "\$docker_password" | docker login --username \$docker_user --password-stdin ${dockerRegistry}
-            docker pull ${dockerRepository}:${dockerVersion}
-            docker pull ${dockerRepository}:${dockerVersion}
-            docker pull ${dockerRepository}:${prevDockerVersion}
-        """
-    }
-}
-
 String getVersionDiv(mlVersion) {
     switch (mlVersion) {
         case '10.0':
