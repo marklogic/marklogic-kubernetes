@@ -35,6 +35,9 @@ void preBuildCheck() {
             sh 'exit 1'
         }
     }
+
+    // our VMs sometime disable bridge traffic. this should help to restore it.
+    sh 'sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"'
 }
 
 @NonCPS
