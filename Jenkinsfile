@@ -234,7 +234,7 @@ pipeline {
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                rm -rf /space/.minikube /space/go /space/.kube-config
+                sudo rm -rf /space/.minikube /space/go /space/.kube-config
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
