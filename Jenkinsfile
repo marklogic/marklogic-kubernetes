@@ -197,7 +197,7 @@ pipeline {
 
         stage('Pull-Image') {
             steps {
-                pullImage()
+                //pullImage()
             }
         }
 
