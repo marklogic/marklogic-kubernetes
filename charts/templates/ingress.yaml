@@ -1,18 +1,10 @@
 {{- if .Values.ingress.enabled -}}
 {{- $haproxyServiceName := include "marklogic.haproxy.servicename" . -}}
 {{- $svcPort := .Values.ingress.servicePort -}}
-{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
-  {{- end }}
+{{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
+{{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
 {{- end }}
-{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: networking.k8s.io/v1
-{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1beta1
-{{- else -}}
-apiVersion: extensions/v1beta1
-{{- end }}
 kind: Ingress
 metadata:
   name: {{ include "marklogic.ingress" . }}
@@ -27,28 +19,24 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
-  ingressClassName: {{ .Values.ingress.className }}
-  {{- end }}  
+  ingressClassName: {{ .Values.ingress.className }}  
   rules:
-    - http:
+    {{- range .Values.ingress.rules }}
+    - {{- if .host }}
+      host: {{ .host | quote }}
+      {{- end }}
+      http:
         paths:
-          {{- range .Values.ingress.rules.paths }}
+          {{- range .paths }}
           - path: {{ .path }}
-            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
             pathType: {{ .pathType }}
-            {{- end }}
             backend:
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
                 name: {{ $haproxyServiceName }}
                 port:
                   number: {{ $svcPort }}
-              {{- else }}
-              serviceName: {{ $haproxyServiceName }}
-              servicePort: {{ $svcPort }}
-              {{- end }}
           {{- end }}
+    {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- toYaml .Values.ingress.tls | nindent 4 }}

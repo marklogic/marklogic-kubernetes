@@ -487,14 +487,19 @@ ingress:
   ## Ingress hosts
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
   rules:
-    paths:
-      - path: /ml_8001/
-        pathType: Prefix
-      - path: /ml_8002/
-        pathType: Prefix
-      - path: /ml_8000/
-        pathType: Prefix
+    - host: ""
+      paths:
+        - path: /ml_8001/
+          pathType: Prefix
+        - path: /ml_8002/
+          pathType: Prefix
+        - path: /ml_8000/
+          pathType: Prefix
 
   ## Ingress TLS
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
-  tls: []
+  tls:
+      []
+      # - secretName: your-certificate-name
+      #   hosts:
+      #     - argocd.example.com
