@@ -195,12 +195,6 @@ pipeline {
             }
         }
 
-        stage('Pull-Image') {
-            steps {
-                //pullImage()
-            }
-        }
-
         stage('Lint') {
             steps {
                 lint()
