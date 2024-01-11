@@ -233,10 +233,11 @@ pipeline {
         always {
             publishTestResults()
             sh '''
+                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
-                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
+                rm -rf /space/.minikube /space/go /space/.kube-config
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
