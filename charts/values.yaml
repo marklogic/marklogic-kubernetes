@@ -369,51 +369,35 @@ haproxy:
 #######################################################################
 
   pathbased: 
-    enabled: true
+    enabled: false
 
 # This the default listening port in the Front-End section of the HAProxy when using Path based routing
   frontendPort: 443
 
 
-#######################################################################################
-#  IMPORTANT NOTE:                                                                    #
-#  path used here should be the same as the path used in the httpports section below. #
-#######################################################################################
+# Path used to exposed Default App-Servers
 
-  DefaultAppServerPath:
-    appservices: /ml8000
-    admin: /ml8001
-    manage: /ml8002
+  defaultAppServers:
+    appservices:
+      path: /ml8000
+    admin:
+      path: /ml8001
+    manage:
+      path: /ml8002
 
 
   ## HTTP Ports, load balancing type and path configuration for HAproxy
   ## HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections. 
   ## path define the path to be used to expose the APP-Servers.
 
-  httpports:
-    - name: app-services
-      type: HTTP
-      port: 8000
-      targetPort: 8000
-      # path: /ml8000
-    - name: admin
-      type: HTTP
-      port: 8001
-      targetPort: 8001
-      # path: /ml8001
-    - name: manage
-      type: HTTP
-      port: 8002
-      targetPort: 8002
-      # path: /ml8002
-    
   ## To add new ports to be exposed using HTTP just uncoment the following lines and adapt the configuration
 
-    # - name: DHF-Jobs
-    #   type: HTTP
-    #   port: 8010
-    #   targetPort: 8010
-    #   path: /DHF-jobs
+  # additionalAppServers:    
+  #   - name: DHF-Jobs
+  #     type: HTTP
+  #     port: 8010
+  #     targetPort: 8010
+  #     path: /DHF-jobs
 
   ## TCP Ports, load balancing configuration for HAproxy
   ## TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.   

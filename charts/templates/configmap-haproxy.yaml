@@ -81,12 +81,99 @@ data:
         mode tcp
         balance leastconn
         {{- range $i := until $replicas }}
-        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
+        server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
         {{- end }}
       {{- end }}
     {{- end }}
 
-    {{- range $_, $v := .Values.haproxy.httpports }}
+    frontend marklogic-app-services
+      mode http
+      {{- if $haproxyTlsEnabled }}
+      bind :8000 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :8000
+      {{- end }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend marklogic-app-services
+
+    backend marklogic-app-services
+      mode http
+      balance leastconn
+      option forwardfor
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-8000-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-8000-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-8000-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-8000-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    frontend marklogic-admin
+      mode http
+      {{- if $haproxyTlsEnabled }}
+      bind :8001 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :8001
+      {{- end }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend marklogic-admin
+
+    backend marklogic-admin
+      mode http
+      balance leastconn
+      option forwardfor
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-8001-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-8001-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-8001-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-8001-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    frontend marklogic-manage
+      mode http
+      {{- if $haproxyTlsEnabled }}
+      bind :8002 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :8002
+      {{- end }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend marklogic-manage
+
+    backend marklogic-manage
+      mode http
+      balance leastconn
+      option forwardfor
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-8002-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-8002-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-8002-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-8002-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    {{- range $_, $v := .Values.haproxy.additionalAppServers }}
     {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
     {{ $portType := upper (printf "%s" $v.type) }}
 
@@ -113,9 +200,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
       {{- else }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
       {{- end }}
     {{- end }}
