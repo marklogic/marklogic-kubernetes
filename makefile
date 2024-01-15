@@ -1,6 +1,7 @@
-dockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
-prevDockerImage?=ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
+dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
+prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
+minikubeMemory?=10gb
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
@@ -58,6 +59,7 @@ help:
 prepare:
 	go mod tidy
 
+
 #***************************************************************************
 # lint
 #***************************************************************************
@@ -87,10 +89,10 @@ lint:
 .PHONY: e2e-test
 e2e-test: prepare
 	@echo "=====Delete if there are existing minikube cluster"
-	minikube delete
+	minikube delete --all --purge
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
@@ -99,7 +101,20 @@ e2e-test: prepare
 	minikube image load $(prevDockerImage)
 
 	@echo "=====Running e2e tests"
-	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 45m, go test -v -count=1 -timeout 45m ./test/e2e/...) 
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/...)
+
+	@echo "=====Configure huge pages"
+	sudo sysctl -w vm.nr_hugepages=1280
+
+	@echo "=====Restart minikube cluster"
+	minikube stop
+	minikube start
+
+	@echo "=====Running huge pages e2e test"
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/hugePages-tests.xml ./test/hugePages/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/hugePages/...)
+
+	@echo "=====Reset huge pages"
+	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
@@ -112,10 +127,11 @@ e2e-test: prepare
 hc-test: 
  	
 	@echo "=====Delete if there are existing minikube cluster"
-	minikube delete
+	minikube delete --all --purge
 
 	@echo "=====Installing minikube cluster"
-	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --cpus 2 --memory 10000
+	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
+
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)

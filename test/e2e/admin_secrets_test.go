@@ -22,16 +22,16 @@ func TestMlAdminSecrets(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-dev.marklogic.com/marklogic/marklogic-server-centos"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "11.0.20230307-centos-1.0.2"
+		imageTag = "11.0.nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -56,9 +56,9 @@ func TestMlAdminSecrets(t *testing.T) {
 	releaseName := "test-ml-secrets"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 
 	// get corev1.Pod to get logs of a pod
 	pod := k8s.GetPod(t, kubectlOptions, podName)

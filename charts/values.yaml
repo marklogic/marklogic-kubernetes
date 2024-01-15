@@ -28,14 +28,17 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.0.2-centos-1.0.2
+  tag: 11.1.0-centos-1.1.1
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
-initContainerImage:
-  repository: curlimages/curl
-  tag: 7.87.0
-  pullPolicy: IfNotPresent
+initContainers:
+  configureGroup:
+    image: "curlimages/curl:8.4.0"
+    pullPolicy: IfNotPresent
+  copyCerts:
+    image: "redhat/ubi9:9.3"
+    pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
 imagePullSecrets: []
@@ -84,6 +87,12 @@ auth:
 #  adminPassword: ""
 #  walletPassword: ""
 
+# Add comment mention that if certSecretNames is empty. 
+tls:
+  enableOnDefaultAppServers: false
+  certSecretNames: []
+  caSecretName: ""
+
 ## Optionally install converters package on MarkLogic
 enableConverters: false
 
@@ -94,29 +103,24 @@ license:
 
 ## Configure Affinity property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-## Preferred anti affinity rule to schedule one marklogic pod per worker node
-affinity: 
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app.kubernetes.io/name
-            operator: In
-            values:
-            - marklogic
-        topologyKey: kubernetes.io/hostname
+affinity: {}
 
-## Configure POD Topology Spread Constraints to spread Pods across cluster
+## Configure POD Topology Spread Constraints to spread pods across cluster
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-topologySpreadConstraints: []
-  # - maxSkew: 1
-  #   topologyKey: topology.kubernetes.io/zone
-  #   whenUnsatisfiable: ScheduleAnyway
-  #   labelSelector:
-  #     matchLabels:
-  #       app.kubernetes.io/name: marklogic
+## Preferred Topology Spread Constraints rule to evenly distribute Marklogic pods across worker nodes and zones
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: marklogic
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: marklogic
 
 ## Configure NodeSelector property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
@@ -299,7 +303,7 @@ startupProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.0.6
+  image: fluent/fluent-bit:2.1.10
   resources:
     requests:
       cpu: "100m"

@@ -13,25 +13,25 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 )
 
-func TestChartTemplateUpgradeStrategy(t *testing.T) {
+func TestChartTemplateHugePagesConfig(t *testing.T) {
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
-	releaseName := "upgrade-test"
+	releaseName := "hugepages"
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
-			"image.tag":           "latest",
-			"persistence.enabled": "false",
-			"updateStrategy.type": "RollingUpdate",
+			"image.repository":               "marklogicdb/marklogic-db",
+			"image.tag":                      "latest",
+			"persistence.enabled":            "true",
+			"logCollection.enabled":          "true",
+			"resources.limits.hugepages-2Mi": "1Gi",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -45,8 +45,19 @@ func TestChartTemplateUpgradeStrategy(t *testing.T) {
 	// Verify the name and namespace matches
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
-	// Verify the updateStrategy type set for upgrade
-	expectedUpgradeStrategy := "RollingUpdate"
-	actualUpgradeStrategy := statefulset.Spec.UpdateStrategy.Type
-	require.Equal(t, string(actualUpgradeStrategy), expectedUpgradeStrategy)
+	expectedHugePages := "1Gi"
+
+	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
+	resourceLimits := statefulSetContainers[0].Resources.Limits
+
+	var actualHugePages string
+	if value, exist := resourceLimits["hugepages-2Mi"]; exist {
+		t.Log("ActualHugePages: ", value.String())
+		actualHugePages = value.String()
+	} else {
+		t.Errorf("hugepages-2Mi not found")
+	}
+	// Verify the huge pages is configured
+	require.Equal(t, len(statefulSetContainers), 2)
+	require.Equal(t, actualHugePages, expectedHugePages)
 }

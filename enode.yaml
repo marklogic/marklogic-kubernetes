@@ -1,0 +1,28 @@
+replicaCount: 2
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+terminationGracePeriod: 10
+
+group:
+  name: enode
+
+bootstrapHostName: "dnode-0.dnode.default.svc.cluster.local"
+
+persistence:
+  enabled: false
+
+image:
+  repository: marklogic-centos/marklogic-server-centos
+  tag: 10-internal
+
+tls:
+  enableOnDefaultAppServers: true
+  certSecretNames:
+    - "enode-0-cert"
+    - "enode-1-cert"
+  caSecretName: "ca-cert-ed"
+
+
