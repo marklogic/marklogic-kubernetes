@@ -1,0 +1,44 @@
+{{- if .Values.ingress.enabled -}}
+{{- $haproxyServiceName := include "marklogic.haproxy.servicename" . -}}
+{{- $svcPort := .Values.ingress.servicePort -}}
+{{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
+{{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "marklogic.ingress" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "marklogic.selectorLabels" . | nindent 4 }}
+  {{- with .Values.ingress.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}  
+  rules:
+    {{- range .Values.ingress.rules }}
+    - {{- if .host }}
+      host: {{ .host | quote }}
+      {{- end }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ $haproxyServiceName }}
+                port:
+                  number: {{ $svcPort }}
+          {{- end }}
+    {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end -}}
+{{- end }}

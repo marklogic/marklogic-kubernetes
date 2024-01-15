@@ -437,3 +437,53 @@ haproxy:
     # limits:
     #   cpu: 250m
     #   memory: 128Mi
+
+## Configure Ingress
+## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  servicePort: 443
+
+  ## Ingress class
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+  className: ""
+
+  ## Ingress labels
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  labels: {}
+
+  ## Ingress annotations
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  annotations: {}
+    # alb.ingress.kubernetes.io/healthcheck-port: '8001'
+    # alb.ingress.kubernetes.io/healthcheck-path: /
+    # alb.ingress.kubernetes.io/success-codes: '200-401'
+    # alb.ingress.kubernetes.io/load-balancer-name: ml
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    # alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # alb.ingress.kubernetes.io/target-group-attributes: load_balancing.algorithm.type=least_outstanding_requests
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXXXXX:certificate/XXXXXXXXX-cdac-XXXXX-XXXXX-XXXXXXXXX
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/group.name: ml-group
+    # alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600,routing.http.xff_header_processing.mode=append
+
+  ## Ingress hosts
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
+  rules:
+    - host: ""
+      paths:
+        - path: /ml_8001/
+          pathType: Prefix
+        - path: /ml_8002/
+          pathType: Prefix
+        - path: /ml_8000/
+          pathType: Prefix
+
+  ## Ingress TLS
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+  tls:
+      []
+      # - secretName: your-certificate-name
+      #   hosts:
+      #     - argocd.example.com
