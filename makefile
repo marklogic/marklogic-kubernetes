@@ -2,6 +2,7 @@ dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/mar
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
+HUGEPAGES_PREV_VAL=$(shell sudo sysctl -a 2>/dev/null | grep 'vm.nr_hugepages' | cut -d'=' -f2 | xargs) 
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
@@ -100,9 +101,8 @@ e2e-test: prepare
 	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
 	minikube image load $(prevDockerImage)
 
-	@echo "=====Read default hugepages value"
-	HUGEPAGES_PREV_VAL=$(sudo sysctl -a 2>/dev/null | grep 'vm.nr_hugepages =' | cut -d'=' -f2 | xargs)
-	echo "HUGEPAGES_PREV_VAL = $(HUGEPAGES_PREV_VAL)"
+	@echo "=====Get default value for hugepages "
+	@echo "HUGEPAGES_PREV_VAL = $(HUGEPAGES_PREV_VAL)"
 
 	@echo "=====Running e2e tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/...)
