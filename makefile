@@ -100,21 +100,25 @@ e2e-test: prepare
 	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
 	minikube image load $(prevDockerImage)
 
+	@echo "=====Read default hugepages value"
+	HUGEPAGES_PREV_VAL=$(sudo sysctl -a 2>/dev/null | grep 'vm.nr_hugepages =' | cut -d'=' -f2 | xargs)
+	echo "HUGEPAGES_PREV_VAL = $(HUGEPAGES_PREV_VAL)"
+
 	@echo "=====Running e2e tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/...)
 
-	@echo "=====Configure huge pages"
+	@echo "=====Configure hugepages value"
 	sudo sysctl -w vm.nr_hugepages=1280
 
 	@echo "=====Restart minikube cluster"
 	minikube stop
 	minikube start
 
-	@echo "=====Running huge pages e2e test"
+	@echo "=====Running hugepages e2e test"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/hugePages-tests.xml ./test/hugePages/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/hugePages/...)
 
-	@echo "=====Reset huge pages"
-	sudo sysctl -w vm.nr_hugepages=0
+	@echo "=====Reset hugepages value to default"
+	sudo sysctl -w vm.nr_hugepages=$(HUGEPAGES_PREV_VAL)
 
 	@echo "=====Delete minikube cluster"
 	minikube delete

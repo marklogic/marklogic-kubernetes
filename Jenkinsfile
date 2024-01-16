@@ -219,7 +219,7 @@ pipeline {
         always {
             publishTestResults()
             sh '''
-	            sudo sysctl -w vm.nr_hugepages=0
+	            sudo sysctl -w vm.nr_hugepages=${HUGEPAGES_PREV_VAL}
                 export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
