@@ -82,7 +82,7 @@ fullnameOverride: ""
 ## If no secret is specified and the admin credentials are not provided, a secret will be automatically
 ## generated with random admin and wallet passwords.
 auth:
-  secretName: "ml1"
+  secretName: ""
 #  adminUsername: "admin"
 #  adminPassword: ""
 #  walletPassword: ""
@@ -333,7 +333,7 @@ logCollection:
 ## An out of box load balancer with configured to handle cookie based session affinity that required by most MarkLogic applications.
 ## It also support multi-statement transaction and ODBC connections.  
 haproxy:
-  enabled: true
+  enabled: false
 
   ## Name of an existing configmap with configuration for HAProxy
   existingConfigmap: marklogic-haproxy
@@ -349,10 +349,10 @@ haproxy:
   ## Stats page for HAproxy
   ## ref: https://www.haproxy.com/blog/exploring-the-haproxy-stats-page/
   stats:
-    enabled: true
+    enabled: false
     port: 1024
     auth:
-      enabled: true
+      enabled: false
       username: 'ml-admin'
       password: 'ml-admin-2023'
 
