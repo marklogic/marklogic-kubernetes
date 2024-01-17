@@ -397,12 +397,12 @@ haproxy:
   ## To add new ports to be exposed using HTTP just uncoment the following lines and adapt the configuration
 
   # additionalAppServers:    
-  #   - name: dhf-Jobs
+  #   - name: dhf-jobs
   #     type: HTTP
   #     port: 8010
   #     targetPort: 8010
   #     path: /DHF-jobs
-  #   - name: dhf-Final
+  #   - name: dhf-final
   #     type: HTTP
   #     port: 8011
   #     targetPort: 8011
