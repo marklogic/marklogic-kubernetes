@@ -339,7 +339,7 @@ haproxy:
   existingConfigmap: marklogic-haproxy
 
   ## Number of HAProxy Deployment
-  replicaCount: 1
+  replicaCount: 2
 
   ## Automatically Roll Deployments for every helm upgrade even there is no change to configMap.
   ## ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
