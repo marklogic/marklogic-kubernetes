@@ -365,7 +365,7 @@ haproxy:
 
 #######################################################################
 #  IMPORTANT NOTE:                                                    #
-#  This feature is only available starting MarkLogic 11.1 and higher. #
+#  This feature is only supported starting MarkLogic 11.1 and higher. #
 #######################################################################
 
   pathbased: 
@@ -375,20 +375,24 @@ haproxy:
   frontendPort: 443
 
 
-# Path used to exposed Default App-Servers
+# Path and port used on HAProxy 
+# The same path will be used on Ingress for Default AppServers 
 
   defaultAppServers:
     appservices:
-      path: /ml8000
+      # path: /console
+      port: 8000
     admin:
-      path: /ml8001
+      # path: /adminUI
+      port: 8001
     manage:
-      path: /ml8002
+      # path: /manage
+      port: 8002
 
 
   ## HTTP Ports, load balancing type and path configuration for HAproxy
   ## HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections. 
-  ## path define the path to be used to expose the APP-Servers.
+  ## path : define the path to be used to expose the APP-Server on HAProxy and Ingress
 
   ## To add new ports to be exposed using HTTP just uncoment the following lines and adapt the configuration
 
@@ -398,6 +402,11 @@ haproxy:
   #     port: 8010
   #     targetPort: 8010
   #     path: /DHF-jobs
+  #   - name: DHF-Final
+  #     type: HTTP
+  #     port: 8011
+  #     targetPort: 8011
+  #     path: /DHF-final
 
   ## TCP Ports, load balancing configuration for HAproxy
   ## TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.   
@@ -439,10 +448,15 @@ haproxy:
     #   memory: 128Mi
 
 ## Configure Ingress
+
+##################################################################
+#  IMPORTANT NOTE:                                               #
+#  Ingress is only supported starting MarkLogic 11.1 and higher. #
+##################################################################
+
 ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
-  servicePort: 443
 
   ## Ingress class
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
@@ -451,34 +465,30 @@ ingress:
   ## Ingress labels
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
   labels: {}
+    # app.kubernetes.io/instance: marklogic
+    # app.kubernetes.io/name: ml
 
   ## Ingress annotations
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
   annotations: {}
-    # alb.ingress.kubernetes.io/healthcheck-port: '8001'
-    # alb.ingress.kubernetes.io/healthcheck-path: /
+    # alb.ingress.kubernetes.io/healthcheck-port: '443'
+    # alb.ingress.kubernetes.io/healthcheck-path: /adminUI
     # alb.ingress.kubernetes.io/success-codes: '200-401'
     # alb.ingress.kubernetes.io/load-balancer-name: ml
     # alb.ingress.kubernetes.io/scheme: internet-facing
-    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    # alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     # alb.ingress.kubernetes.io/target-group-attributes: load_balancing.algorithm.type=least_outstanding_requests
-    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXXXXX:certificate/XXXXXXXXX-cdac-XXXXX-XXXXX-XXXXXXXXX
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXXXXXXX:certificate/XxXXXXXX-xxxx-XXXX-XXXX-XXXXXXXxxxxXXX
     # alb.ingress.kubernetes.io/target-type: ip
     # alb.ingress.kubernetes.io/group.name: ml-group
     # alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600,routing.http.xff_header_processing.mode=append
 
   ## Ingress hosts
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
-  rules:
-    - host: ""
-      paths:
-        - path: /ml_8001/
-          pathType: Prefix
-        - path: /ml_8002/
-          pathType: Prefix
-        - path: /ml_8000/
-          pathType: Prefix
+
+  host: ""
+  additionalHost: ""
+  
 
   ## Ingress TLS
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
@@ -486,4 +496,4 @@ ingress:
       []
       # - secretName: your-certificate-name
       #   hosts:
-      #     - argocd.example.com
+      #     - marklogic.example.com

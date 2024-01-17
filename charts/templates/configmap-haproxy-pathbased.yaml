@@ -119,9 +119,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-8000-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-8000-{{ $i }} ssl verify none
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-8000-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-8000-{{ $i }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -139,9 +139,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-8001-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-8001-{{ $i }} ssl verify none
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-8001-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-8001-{{ $i }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -159,9 +159,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-8002-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-8002-{{ $i }} ssl verify none
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-8002-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-8002-{{ $i }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
       {{- end }}
       {{- end }}
 

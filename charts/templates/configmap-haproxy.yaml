@@ -1,12 +1,12 @@
 {{- if .Values.haproxy.enabled }}
 {{- if not .Values.haproxy.pathbased.enabled -}}
-{{- $replicas := int .Values.replicaCount }}
-{{- $releaseName := include "marklogic.fullname" . }}
-{{- $namespace := .Release.Namespace }}
-{{- $clusterDomain := .Values.clusterDomain }}
-{{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
+{{- $replicas := int .Values.replicaCount -}}
+{{- $releaseName := include "marklogic.fullname" . -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $clusterDomain := .Values.clusterDomain -}}
+{{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled -}}
 {{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
-{{- $certFileName := .Values.haproxy.tls.certFileName }}
+{{- $certFileName := .Values.haproxy.tls.certFileName -}}
 
 apiVersion: v1
 kind: ConfigMap
@@ -86,17 +86,17 @@ data:
       {{- end }}
     {{- end }}
 
-    frontend marklogic-app-services
+    frontend marklogic-appservices
       mode http
       {{- if $haproxyTlsEnabled }}
-      bind :8000 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      bind :{{ .Values.haproxy.defaultAppServers.appservices.port }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
       {{- else }}
-      bind :8000
+      bind :{{ .Values.haproxy.defaultAppServers.appservices.port }}
       {{- end }}
       log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
-      default_backend marklogic-app-services
+      default_backend marklogic-appservices
 
-    backend marklogic-app-services
+    backend marklogic-appservices
       mode http
       balance leastconn
       option forwardfor
@@ -109,18 +109,18 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-8000-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-8000-{{ $i }} ssl verify none
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-8000-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-8000-{{ $i }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
       {{- end }}
       {{- end }}
 
     frontend marklogic-admin
       mode http
       {{- if $haproxyTlsEnabled }}
-      bind :8001 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      bind :{{ .Values.haproxy.defaultAppServers.admin.port }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
       {{- else }}
-      bind :8001
+      bind :{{ .Values.haproxy.defaultAppServers.admin.port }}
       {{- end }}
       log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
       default_backend marklogic-admin
@@ -138,18 +138,18 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-8001-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-8001-{{ $i }} ssl verify none
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-8001-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-8001-{{ $i }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
       {{- end }}
       {{- end }}
 
     frontend marklogic-manage
       mode http
       {{- if $haproxyTlsEnabled }}
-      bind :8002 ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      bind :{{ .Values.haproxy.defaultAppServers.manage.port }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
       {{- else }}
-      bind :8002
+      bind :{{ .Values.haproxy.defaultAppServers.manage.port }}
       {{- end }}
       log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
       default_backend marklogic-manage
@@ -167,9 +167,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-8002-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-8002-{{ $i }} ssl verify none
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-8002-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-8002-{{ $i }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
       {{- end }}
       {{- end }}
 

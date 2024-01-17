@@ -1,6 +1,6 @@
 {{- if .Values.ingress.enabled -}}
 {{- $haproxyServiceName := include "marklogic.haproxy.servicename" . -}}
-{{- $svcPort := .Values.ingress.servicePort -}}
+{{- $svcPort := .Values.haproxy.frontendPort -}}
 {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
 {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
 {{- end }}
@@ -21,22 +21,49 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className }}  
   rules:
-    {{- range .Values.ingress.rules }}
-    - {{- if .host }}
-      host: {{ .host | quote }}
-      {{- end }}
+    - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: {{ .Values.haproxy.defaultAppServers.appservices.path }}
+            pathType: Prefix
             backend:
               service:
                 name: {{ $haproxyServiceName }}
                 port:
                   number: {{ $svcPort }}
-          {{- end }}
-    {{- end }}
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.haproxy.defaultAppServers.admin.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $haproxyServiceName }}
+                port:
+                  number: {{ $svcPort }}
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.haproxy.defaultAppServers.manage.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $haproxyServiceName }}
+                port:
+                  number: {{ $svcPort }}
+    - host: {{ .Values.ingress.additionalHost | quote }}
+      {{- range $_, $v := .Values.haproxy.additionalAppServers }}
+      {{ $path := printf "%v" (default $v.path)}}
+      http:
+        paths:
+          - path: {{ $path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $haproxyServiceName }}
+                port:
+                  number: {{ $svcPort }}
+      {{- end -}}
   {{- if .Values.ingress.tls }}
   tls:
     {{- toYaml .Values.ingress.tls | nindent 4 }}
