@@ -2,7 +2,6 @@ dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/mar
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
-HUGEPAGES_PREV_VAL=$(shell sudo sysctl -a 2>/dev/null | grep 'vm.nr_hugepages' | cut -d'=' -f2 | xargs) 
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable saveOutput for testing commands)
@@ -101,13 +100,13 @@ e2e-test: prepare
 	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
 	minikube image load $(prevDockerImage)
 
-	@echo "=====Get default value for hugepages "
-	@echo "HUGEPAGES_PREV_VAL = $(HUGEPAGES_PREV_VAL)"
+	@echo "=====Setting hugepages values to 0 for e2e tests"
+	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Running e2e tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/...)
 
-	@echo "=====Configure hugepages value"
+	@echo "=====Setting hugepages value to 1280 for hugepages-e2e test"
 	sudo sysctl -w vm.nr_hugepages=1280
 
 	@echo "=====Restart minikube cluster"
@@ -117,8 +116,8 @@ e2e-test: prepare
 	@echo "=====Running hugepages e2e test"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/hugePages-tests.xml ./test/hugePages/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/hugePages/...)
 
-	@echo "=====Reset hugepages value to default"
-	sudo sysctl -w vm.nr_hugepages=$(HUGEPAGES_PREV_VAL)
+	@echo "=====Resetting hugepages value to 0"
+	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
