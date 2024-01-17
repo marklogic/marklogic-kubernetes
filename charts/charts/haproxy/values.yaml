@@ -61,8 +61,48 @@ pathbased:
 
 frontendPort: 443
 
-## open the port for LB and service
-ports: []
+# Path and port used on HAProxy 
+# The same path will be used on Ingress for Default AppServers 
+
+defaultAppServers:
+  appservices:
+    # path: /console
+    port: 8000
+  admin:
+    # path: /adminUI
+    port: 8001
+  manage:
+    # path: /manage
+    port: 8002
+
+## HTTP Ports, load balancing type and path configuration for HAproxy
+## HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections. 
+## path : define the path to be used to expose the APP-Server on HAProxy and Ingress
+
+## To add new ports to be exposed using HTTP just uncoment the following lines and adapt the configuration
+
+# additionalAppServers:    
+#   - name: dhf-jobs
+#     type: HTTP
+#     port: 8010
+#     targetPort: 8010
+#     path: /DHF-jobs
+#   - name: dhf-final
+#     type: HTTP
+#     port: 8011
+#     targetPort: 8011
+#     path: /DHF-final
+
+## TCP Ports, load balancing configuration for HAproxy
+## TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.   
+
+tcpports:
+# TCP port has to be explicitely enabled
+  enabled: false
+  # ports:
+  #   - name: odbc
+  #     type: TCP
+  #     port: 5432
 
 ## Automatically Roll Deployments
 # ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
