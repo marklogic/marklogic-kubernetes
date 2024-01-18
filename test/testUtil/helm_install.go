@@ -28,6 +28,6 @@ func HelmInstall(t *testing.T, options map[string]string, releaseName string, ku
 
 	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOpt, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOpt, podName, 15, 15*time.Second)
 	return podName
 }

@@ -73,7 +73,7 @@ func TestSeparateEDnode(t *testing.T) {
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
@@ -184,14 +184,27 @@ func TestSeparateEDnode(t *testing.T) {
 
 	enodeHostCountJSON := 0
 	client := req.C()
-	reqResp, reqErr := client.R().
+	_, reqErr := client.R().
 		SetDigestAuth(username, password).
 		SetRetryCount(3).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if resp == nil || err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp.Response == nil {
+				t.Log("Could not get the Response Object, Retrying...")
+				return true
+			}
+			if resp.Body == nil {
+				t.Log("Could not get the body for the response, Retrying...")
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Logf("error: %s", err.Error())
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
 			}
 			totalHosts := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
 			enodeHostCountJSON = int(totalHosts.Num)
@@ -201,7 +214,6 @@ func TestSeparateEDnode(t *testing.T) {
 			return enodeHostCountJSON != 2
 		}).
 		Get("http://localhost:8002/manage/v2/groups/enode?format=json")
-	defer reqResp.Body.Close()
 
 	if reqErr != nil {
 		t.Fatalf(reqErr.Error())
@@ -269,7 +281,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
