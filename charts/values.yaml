@@ -353,8 +353,8 @@ haproxy:
     port: 1024
     auth:
       enabled: false
-      username: 'ml-admin'
-      password: 'ml-admin-2023'
+      username: ''
+      password: ''
 
   ## The service type of the HAproxy Load Balancer. Could be ClusterIP or LoadBalancer.
   service:
