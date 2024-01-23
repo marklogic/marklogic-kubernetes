@@ -1,0 +1,23 @@
+# This is a custom values files for template tests specific to TLS parameters
+replicaCount: 1  
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+terminationGracePeriod: 10
+
+persistence:
+  enabled: false
+
+image:
+  repository: marklogicdb/marklogic-db
+  tag: latest
+
+tls:
+  enableOnDefaultAppServers: true
+  certSecretNames:
+    - "marklogic-0-cert"
+    - "marklogic-1-cert"
+    - "marklogic-wild-tls"
+  caSecretName: "ca-secret"

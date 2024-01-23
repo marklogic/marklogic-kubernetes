@@ -47,7 +47,7 @@ func TestHelmInstall(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-install"
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -60,7 +60,7 @@ func TestHelmInstall(t *testing.T) {
 
 	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
 	defer tunnel7997.Close()
 	tunnel7997.ForwardPort(t)
@@ -79,7 +79,7 @@ func TestHelmInstall(t *testing.T) {
 	)
 
 	t.Log("====Testing Generated Random Password====")
-	secretName := releaseName + "-marklogic-admin"
+	secretName := releaseName + "-admin"
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
 	passwordArr := secret.Data["password"]
 	password := string(passwordArr[:])

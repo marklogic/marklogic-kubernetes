@@ -22,7 +22,7 @@ func TestChartTemplateNoLogCollection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	t.Logf("Namespace: %s\n", namespaceName)
 
 	// Setup the args for helm install
@@ -61,7 +61,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 
 	// Setup the args for helm install
 	options := &helm.Options{
@@ -85,7 +85,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 
 	// Verify the image matches
 	expectedImage1 := "marklogicdb/marklogic-db:latest"
-	expectedImage2 := "fluent/fluent-bit:2.0.6"
+	expectedImage2 := "fluent/fluent-bit:2.1.10"
 
 	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
 	require.Equal(t, len(statefulSetContainers), 2)
@@ -101,7 +101,7 @@ func TestTemplatePersistence(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 
 	additionalVolumeClaimTemplatesName := "log-volume"
 	additionalVolumeClaimTemplatesAccessModes := "ReadWriteOnce"
