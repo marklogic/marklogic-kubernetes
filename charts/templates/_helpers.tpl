@@ -108,3 +108,18 @@ Validate values file
 {{- end }}
 {{- end }}
 
+{{/*
+Create the name of the Ingress to use.
+*/}}
+{{- define "marklogic.ingress" -}}
+{{- printf "%s-ingress" (include "marklogic.fullname" .) }}
+{{- end }}
+
+{{/*
+Name of the HAProxy Service name to use in Ingress.
+*/}}
+{{- define "marklogic.haproxy.servicename" -}}
+{{- printf "%s-haproxy" .Release.Name }}
+{{- end }}
+
+

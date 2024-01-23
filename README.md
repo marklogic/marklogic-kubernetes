@@ -193,7 +193,14 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.stats.auth.username`                       | Username for stats page                                                                                                                                                                | `""`                       |
 | `haproxy.stats.auth.password`                       | Password for stats page                                                                                                                                                                | `""`                       |
 | `haproxy.service.type`                              | The service type of the HAproxy                                                                                                                                                        | `ClusterIP`                |
-| `haproxy.ports`                                     | Ports and load balancing type configuration for HAproxy                                                                                                                                | `[]`                       |
+| `haproxy.pathbased.enabled`                         | Parameter to enable path based routing on the HAProxy Load Balancer for MarkLogic       | `false`                    |
+| `haproxy.frontendPort`                              | Listening port in the Front-End section of the HAProxy when using Path based routing | `443`                  |
+| `haproxy.DefaultAppappservices.path`         | Path used to expose MarkLogic App-Services App-Server                           | `""`                     |
+| `haproxy.DefaultAppadmin.path`               | Path used to expose MarkLogic Admin App-Server                                  | `""`                     |
+| `haproxy.DefaultAppmanage.path`              | Path used to expose the MarkLogic Manage App-Server                             | `""`                     |
+| `haproxy.additionalAppServers`                      | List of additional HTTP Ports configuration for HAproxy                         | `[]`                     |
+| `haproxy.tcpports.enabled`                          | Parameter to enable TCP port routing on HAProxy                              | `false`                  |
+| `haproxy.tcpports`                                  | TCP Ports and load balancing type configuration for HAproxy                  | `[]`                     |
 | `haproxy.tls.enabled`                               | Parameter to enable TLS for HAProxy                                                                                                                                                    | `false`                    |
 | `haproxy.tls.secretName`                            | Name of the secret that stores the certificate                                                                                                                                         | `""`                       |
 | `haproxy.tls.certFileName`                          | The name of the certificate file in the secret                                                                                                                                         | `""`                       |
@@ -203,6 +210,12 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.resources.requests.memory`                 | The requested memory resource for the HAProxy container                                                                                                                                | `128Mi`                    |
 | `haproxy.resources.limits.cpu`                      | The cpu resource limit for the HAProxy container                                                                                                                                       | `250m`                     |
 | `haproxy.resources.limits.memory`                   | The memory resource limit for the HAProxy container                                                                                                                                    | `128Mi`                    |
+| `ingress.enabled`                                   | Enable an ingress resource for the Argo CD server                                     | `false`| 
+| `ingress.className`                                 | Defines which ingress controller will implement the resource                          | `""` |
+| `ingress.labels`                                    | Additional ingress labels                                                             | `{}` |
+| `ingress.annotations`                               |  Additional ingress annotations                                                       | `{}` |
+| `ingress.hosts`                                     | List of ingress hosts                                                                 | `[]` |
+| `ingress.additionalHost`                            | List of ingress additional hosts                                                      | `[]` |
 
 ## Known Issues and Limitations
 
