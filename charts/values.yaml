@@ -1,7 +1,7 @@
 ## Default values for marklogic server.
 
 ## Number of Marklogic nodes
-replicaCount: 3
+replicaCount: 1
 
 ## update strategy for MarkLogic and Helm chart upgrades
 ## It is recommended to use OnDelete updateStrategy as MarkLogic bootstrap host (pod-0) needs to be upgraded first in the cluster
