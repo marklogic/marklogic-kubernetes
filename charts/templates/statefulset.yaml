@@ -361,7 +361,6 @@ spec:
                       log "Info: [poststart] Default App-Servers authentication set to basic auth"
                     else
                       log "Info: [poststart] This is not the boostrap host or path based routing is not set. Skipping authentication configuration"
-                      exit 0
                     fi
                     #End of authentication configuration
 
