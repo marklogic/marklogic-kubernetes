@@ -210,10 +210,10 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.resources.requests.memory`                 | The requested memory resource for the HAProxy container                                                                                                                                | `128Mi`                    |
 | `haproxy.resources.limits.cpu`                      | The cpu resource limit for the HAProxy container                                                                                                                                       | `250m`                     |
 | `haproxy.resources.limits.memory`                   | The memory resource limit for the HAProxy container                                                                                                                                    | `128Mi`                    |
-| `ingress.enabled`                                   | Enable an ingress resource for the Argo CD server                                     | `false`| 
+| `ingress.enabled`                                   | Enable an ingress resource for the MarkLogic cluster                                   | `false`| 
 | `ingress.className`                                 | Defines which ingress controller will implement the resource                          | `""` |
 | `ingress.labels`                                    | Additional ingress labels                                                             | `{}` |
-| `ingress.annotations`                               |  Additional ingress annotations                                                       | `{}` |
+| `ingress.annotations`                               | Additional ingress annotations                                                       | `{}` |
 | `ingress.hosts`                                     | List of ingress hosts                                                                 | `[]` |
 | `ingress.additionalHost`                            | List of ingress additional hosts                                                      | `[]` |
 
