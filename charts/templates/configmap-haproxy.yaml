@@ -1,12 +1,12 @@
 {{- if .Values.haproxy.enabled }}
-{{- if not .Values.haproxy.pathbased.enabled -}}
-{{- $replicas := int .Values.replicaCount -}}
-{{- $releaseName := include "marklogic.fullname" . -}}
-{{- $namespace := .Release.Namespace -}}
-{{- $clusterDomain := .Values.clusterDomain -}}
-{{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled -}}
-{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
-{{- $certFileName := .Values.haproxy.tls.certFileName -}}
+{{- if not .Values.haproxy.pathbased.enabled }}
+{{- $replicas := int .Values.replicaCount }}
+{{- $releaseName := include "marklogic.fullname" . }}
+{{- $namespace := .Release.Namespace }}
+{{- $clusterDomain := .Values.clusterDomain }}
+{{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
+{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers }}
+{{- $certFileName := .Values.haproxy.tls.certFileName }}
 
 apiVersion: v1
 kind: ConfigMap

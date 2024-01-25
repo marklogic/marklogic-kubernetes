@@ -5,7 +5,7 @@
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
 {{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
-{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
+{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers }}
 {{- $certFileName := .Values.haproxy.tls.certFileName }}
 {{- $appservicespath := .Values.haproxy.defaultAppServers.appservices.path }}
 {{- $adminpath := .Values.haproxy.defaultAppServers.admin.path }}
