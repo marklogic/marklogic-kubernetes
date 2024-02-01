@@ -13,7 +13,7 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
+	"github.com/marklogic/marklogic-kubernetes/test/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
@@ -56,7 +56,7 @@ func TestHelmInstall(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	podName = testutil.HelmInstall(t, options, releaseName, kubectlOptions)
 
 	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status

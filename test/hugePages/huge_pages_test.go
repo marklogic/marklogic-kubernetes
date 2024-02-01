@@ -1,4 +1,4 @@
-package hugePages
+package hugepages
 
 import (
 	"crypto/tls"
@@ -12,7 +12,7 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
+	"github.com/marklogic/marklogic-kubernetes/test/testutil"
 	"github.com/stretchr/testify/assert"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
@@ -64,7 +64,7 @@ func TestHugePagesSettings(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	podName = testutil.HelmInstall(t, options, releaseName, kubectlOptions)
 
 	t.Logf("====Describe pod for verifying huge pages")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
