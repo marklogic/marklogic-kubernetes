@@ -1,5 +1,5 @@
-// Package testutil contains utility functions for all the tests in this repo
-package testutil
+// Package testUtil contains utility functions for all the tests in this repo
+package testUtil
 
 import (
 	"path/filepath"
