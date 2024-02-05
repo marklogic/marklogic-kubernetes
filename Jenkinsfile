@@ -199,7 +199,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; go env; go clean -modcache; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
@@ -209,7 +209,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
                 """
             }
         }
@@ -220,7 +220,7 @@ pipeline {
             publishTestResults()
             sh '''
 	            sudo sysctl -w vm.nr_hugepages=0
-                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
+                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; minikube delete --all --purge
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
