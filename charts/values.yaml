@@ -380,13 +380,13 @@ haproxy:
 
   defaultAppServers:
     appservices:
-      # path: /console
+      path: /console
       port: 8000
     admin:
-      # path: /adminUI
+      path: /adminUI
       port: 8001
     manage:
-      # path: /manage
+      path: /manage
       port: 8002
 
 
