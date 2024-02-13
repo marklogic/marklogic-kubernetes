@@ -87,7 +87,8 @@ auth:
 #  adminPassword: ""
 #  walletPassword: ""
 
-# Add comment mention that if certSecretNames is empty. 
+## Configure TLS for default App Servers(8000, 8001, 8002)
+## If certSecretNames is not provided, self-signed temporary certificate will be generated.
 tls:
   enableOnDefaultAppServers: false
   certSecretNames: []
