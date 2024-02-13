@@ -10,14 +10,14 @@ terminationGracePeriod: 10
 #   name: dnode
 
 persistence:
-  enabled: true
+  enabled: false 
 
-image:
-  repository: marklogicdb/marklogic-db
-  tag: 11.1.0-centos-1.1.1
+# image:
+#   repository: local-dev/marklogic-server-centos
+#   tag: internal
 
 tls:
-  enableOnDefaultAppServers: true
+  enableOnDefaultAppServers: false
   # certSecretNames:
   #   - "marklogic-0-cert"
   #   - "marklogic-1-cert"
@@ -35,4 +35,5 @@ haproxy:
 #   limits:
 #     memory: "2800Mi"
 #     cpu: "1000m"
+
 
