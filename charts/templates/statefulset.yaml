@@ -277,7 +277,7 @@ spec:
               exec:
                 command:
                   - bash
-                  - '-c -x'
+                  - '-c'
                   - |
                     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
                     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
