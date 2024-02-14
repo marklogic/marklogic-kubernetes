@@ -108,3 +108,14 @@ Validate values file
 {{- end }}
 {{- end }}
 
+{{/*
+Name to distinguish marklogic image whether root or rootless
+*/}}
+{{- define "marklogic.imageType" -}}
+{{- if .Values.image.tag | contains "rootless" }}
+{{- printf "rootless" }}
+{{- else }}
+{{- printf "root" }}
+{{- end }}
+{{- end }}
+

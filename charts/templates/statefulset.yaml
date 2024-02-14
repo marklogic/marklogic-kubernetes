@@ -338,7 +338,11 @@ spec:
                         if [[ -n ${TIMESTAMP} ]]; then
                           restart_check ${TIMESTAMP}
                         fi
-                        sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                        if [[ $MARKLOGIC_IMAGE_TYPE == "rootless" ]]; then
+                          sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                        else
+                          sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                        fi
                         log "Info: [poststart] ${GROUP_CFG} saved"
                       else
                         log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.

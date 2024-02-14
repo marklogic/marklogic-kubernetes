@@ -24,6 +24,7 @@ data:
   MARKLOGIC_JOIN_CLUSTER: "true"
   MARKLOGIC_GROUP: {{ .Values.group.name }}
   XDQP_SSL_ENABLED: {{ quote .Values.group.enableXdqpSsl }}
+  MARKLOGIC_IMAGE_TYPE: {{ include "marklogic.imageType" . }}
 ---
 {{- if .Values.logCollection.enabled }}
 apiVersion: v1
