@@ -141,7 +141,7 @@ hc-test:
 
 	@echo "=====Deploy helm with a single MarkLogic node"
 	helm install hc charts --set auth.adminUsername=admin --set auth.adminPassword=admin --set persistence.enabled=false --wait
-	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-marklogic-0 --for=condition=ready pod --timeout=30m
+	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-0 --for=condition=ready pod --timeout=30m
 
 	@echo "=====Clone Data Hub repository"
 	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
