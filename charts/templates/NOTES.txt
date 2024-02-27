@@ -2,6 +2,16 @@ Thank you for installing {{ .Chart.Name }}.
 
 Your release is named {{ .Release.Name }}.
 
+{{- if eq (include "marklogic.imageType" .) "rootless" }}
+{{- if .Values.containerSecurityContext.allowPrivilegeEscalation }}
+WARNING
+   ***********************************************************************************************************
+   Setting "containerSecurityContext.allowPrivilegeEscalation" is set to true.
+   This is not recommended and is not a secure configuration while using rootless MarkLogic images.
+   ***********************************************************************************************************
+{{- end }}
+{{- end }}
+
 FQDN is {{ include "marklogic.fqdn" . }}
 {{- if gt (len (include "marklogic.fqdn" .)) 64 }}
 WARNING:    The hostname is greater than 64 characters

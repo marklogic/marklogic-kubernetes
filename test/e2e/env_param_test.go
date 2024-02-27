@@ -2,7 +2,7 @@ package e2e
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -42,12 +42,12 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "true",
+			"persistence.enabled":   "false",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -70,7 +70,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	releaseName := "test"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-marklogic-0"
+	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 	tunnel := k8s.NewTunnel(
@@ -86,7 +86,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	if resp, err = timestamp.Execute(); err != nil {
 		t.Fatalf(err.Error())
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
 

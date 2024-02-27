@@ -1,0 +1,24 @@
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+group:
+  name: dnode
+  enableXdqpSsl: true
+
+terminationGracePeriod: 10
+
+replicaCount: 1
+
+persistence:
+  enabled: true
+
+image:
+  repository: marklogicdb/marklogic-db
+  tag: latest
+
+tls:
+  enableOnDefaultAppServers: true
+  certSecretNames:
+    - "dnode-0-cert"
+  caSecretName: "ca-cert"

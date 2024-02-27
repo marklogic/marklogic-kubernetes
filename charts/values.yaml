@@ -28,29 +28,47 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.1.0-centos-1.1.1
+  tag: 11.1.0-centos-1.1.2
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
-initContainerImage:
-  repository: curlimages/curl
-  tag: 8.4.0
-  pullPolicy: IfNotPresent
+initContainers:
+  configureGroup:
+    image: "curlimages/curl:8.6.0"
+    pullPolicy: IfNotPresent
+  copyCerts:
+    image: "redhat/ubi9:9.3"
+    pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
 imagePullSecrets: []
 # - name: "your-secret-name-1"
 # - name: "your-secret-name-2"
 
+
+## Manage HugePages
+## ref: https://v1-23.docs.kubernetes.io/docs/tasks/manage-hugepages/scheduling-hugepages/
+  #####################################################
+  ## NOTE : MarkLogic only supports 2Mi huge pages   ##
+  #####################################################
+hugepages:
+  enabled: false
+  mountPath: /dev/hugepages
+
 ## Marklogic pods' resource requests and limits
 ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  ################################################################
+  ## NOTE : When using huge pages requests should equal limits  ##
+  ################################################################
 resources: {}
-# requests:
-#   memory: "3000Mi"
-#   cpu: "1000m"
-# limits:
-#   memory: "3000Mi"
-#   cpu: "1000m"
+#   requests:
+#     memory: "3000Mi"
+#     cpu: "1000m"
+#     hugepages-2Mi: 1Gi
+#   limits:
+#     memory: "3000Mi"
+#     cpu: "1000m"
+#     hugepages-2Mi: 1Gi
 
 nameOverride: ""
 fullnameOverride: ""
@@ -69,6 +87,13 @@ auth:
 #  adminPassword: ""
 #  walletPassword: ""
 
+## Configure TLS for default App Servers(8000, 8001, 8002)
+## If certSecretNames is not provided, self-signed temporary certificate will be generated.
+tls:
+  enableOnDefaultAppServers: false
+  certSecretNames: []
+  caSecretName: ""
+
 ## Optionally install converters package on MarkLogic
 enableConverters: false
 
@@ -79,29 +104,24 @@ license:
 
 ## Configure Affinity property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-## Preferred anti affinity rule to schedule one marklogic pod per worker node
-affinity: 
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app.kubernetes.io/name
-            operator: In
-            values:
-            - marklogic
-        topologyKey: kubernetes.io/hostname
+affinity: {}
 
-## Configure POD Topology Spread Constraints to spread Pods across cluster
+## Configure POD Topology Spread Constraints to spread pods across cluster
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-topologySpreadConstraints: []
-  # - maxSkew: 1
-  #   topologyKey: topology.kubernetes.io/zone
-  #   whenUnsatisfiable: ScheduleAnyway
-  #   labelSelector:
-  #     matchLabels:
-  #       app.kubernetes.io/name: marklogic
+## Preferred Topology Spread Constraints rule to evenly distribute Marklogic pods across worker nodes and zones
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: marklogic
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: marklogic
 
 ## Configure NodeSelector property for scheduling pods to nodes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node
@@ -122,18 +142,20 @@ persistence:
 
 ## Specify additional list of persistent volume claims
 additionalVolumeClaimTemplates: []
-# - metadata:
-#     name: "logsdir"
-#   spec:
-#     accessModes:
-#       - ReadWriteOnce
-#     resources:
-#       requests:
-#         storage: 10Gi
+  # - metadata:
+  #     name: "logsdir"
+  #     annotations: {}
+  #   spec:
+  #     accessModes:
+  #       - ReadWriteOnce
+  #     storageClassName: ""
+  #     resources:
+  #       requests:
+  #         storage: 10Gi
 
 ## specify additional list of volumes
 additionalVolumes: []
-# - name: additional-vol
+# - name: "logsdir"
 #   emptyDir: {}
 
 ## specify additional list of volumeMounts
@@ -282,7 +304,7 @@ startupProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.1.10
+  image: fluent/fluent-bit:2.2.2
   resources:
     requests:
       cpu: "100m"
