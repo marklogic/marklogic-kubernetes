@@ -264,7 +264,7 @@ containerSecurityContext:
 livenessProbe:
   enabled: true
   initialDelaySeconds: 300
-  periodSeconds: 20
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 15
   successThreshold: 1
@@ -279,7 +279,7 @@ livenessProbe:
 readinessProbe:
   enabled: false
   initialDelaySeconds: 10
-  periodSeconds: 60
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
   successThreshold: 1
