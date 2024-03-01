@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Namespace }}-scripts
+  name: {{ .Release.Name }}-scripts
 data:
   liveness-probe.sh: |
     #!/bin/bash
