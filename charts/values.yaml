@@ -366,6 +366,7 @@ haproxy:
 #######################################################################
 #  IMPORTANT NOTE:                                                    #
 #  This feature is only supported starting MarkLogic 11.1 and higher. #
+#  See Limitations and known Issues in the README file.               #
 #######################################################################
 
   pathbased: 
@@ -449,10 +450,11 @@ haproxy:
 
 ## Configure Ingress
 
-##################################################################
-#  IMPORTANT NOTE:                                               #
-#  Ingress is only supported starting MarkLogic 11.1 and higher. #
-##################################################################
+#######################################################################
+#  IMPORTANT NOTE:                                                    #
+#  Ingress is only supported starting MarkLogic 11.1 and higher.      #
+#  See Limitations and known Issues in the README file.               #
+#######################################################################
 
 ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
