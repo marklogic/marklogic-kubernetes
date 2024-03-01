@@ -225,8 +225,8 @@ spec:
             - name: huge-pages
               mountPath: {{ .Values.hugepages.mountPath }}
             {{- end }} 
-            - name: probe-scripts
-              mountPath: /tmp/ml-probe-scripts           
+            - name: scripts
+              mountPath: /tmp/scripts           
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
               value: "ml-secrets/username"
@@ -581,7 +581,7 @@ spec:
             exec:
               command:
                 - /bin/bash
-                - /tmp/ml-probe-scripts/liveness-probe.sh
+                - /tmp/scripts/liveness-probe.sh
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
@@ -658,9 +658,9 @@ spec:
         - name: mladmin-secrets
           secret:
             secretName: {{ include "marklogic.authSecretNameToMount" . }}
-        - name: probe-scripts
+        - name: scripts
           configMap:
-            name: monitor-liveness-probe
+            name: {{ .Release.Namespace }}-scripts
             defaultMode: 0755
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
