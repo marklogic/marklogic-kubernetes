@@ -365,7 +365,7 @@ haproxy:
 
 #######################################################################
 #  IMPORTANT NOTE:                                                    #
-#  This feature is only supported starting MarkLogic 11.1 and higher. #
+#  This feature is only supported with MarkLogic 11.1 and higher.     #
 #  See Limitations and known Issues in the README file.               #
 #######################################################################
 
@@ -452,7 +452,7 @@ haproxy:
 
 #######################################################################
 #  IMPORTANT NOTE:                                                    #
-#  Ingress is only supported starting MarkLogic 11.1 and higher.      #
+#  Ingress is only supported with MarkLogic 11.1 and higher.          #
 #  See Limitations and known Issues in the README file.               #
 #######################################################################
 
