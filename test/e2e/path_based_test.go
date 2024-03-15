@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
@@ -31,12 +29,12 @@ func TestPathBasedRouting(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "11.0.nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -45,14 +43,17 @@ func TestPathBasedRouting(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
-			"replicaCount":          "2",
-			"image.repository":      "marklogicdb/marklogic-db",
-			"image.tag":             "11.1.0-centos-1.1.2",
-			"auth.adminUsername":    imageRepo,
-			"auth.adminPassword":    imageTag,
-			"logCollection.enabled": "false",
-			"pathbased.enabled":     "true",
+			"persistence.enabled":       "false",
+			"replicaCount":              "3",
+			"image.repository":          imageRepo,
+			"image.tag":                 imageTag,
+			"auth.adminUsername":        username,
+			"auth.adminPassword":        password,
+			"logCollection.enabled":     "false",
+			"haproxy.enabled":           "true",
+			"haproxy.replicaCount":      "1",
+			"haproxy.frontendPort":      "80",
+			"haproxy.pathbased.enabled": "true",
 		},
 	}
 
@@ -66,83 +67,81 @@ func TestPathBasedRouting(t *testing.T) {
 	releaseName := "test-path"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podZeroName := releaseName + "-0"
-	podOneName := releaseName + "-1"
+	podName := releaseName + "-2"
+	svcName := releaseName + "-haproxy"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
+
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypeService, svcName, 8080, 80)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
-	numOfHosts := 0
-	client := req.C()
+	client := req.C().
+		SetCommonBasicAuth(username, password).
+		SetCommonRetryCount(15).
+		SetCommonRetryFixedInterval(15 * time.Second)
 
-	//verify manage AppServer is acessible when pathbased routing is enabled
-	_, err := client.R().
-		SetBasicAuth(username, password).
-		SetRetryCount(5).
-		SetRetryFixedInterval(10 * time.Second).
-		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if resp == nil || err != nil {
-				t.Logf("error in AddRetryCondition: %s", err.Error())
-				return true
-			}
-			if resp.Response == nil {
-				t.Log("Could not get the Response Object, Retrying...")
-				return true
-			}
-			if resp.Body == nil {
-				t.Log("Could not get the body for the response, Retrying...")
-				return true
-			}
-			body, err := io.ReadAll(resp.Body)
-			if body == nil || err != nil {
-				t.Logf("error in read response body: %s", err.Error())
-				return true
-			}
-			totalHosts := gjson.Get(string(body), `host-default-list.list-items.list-count.value`)
-			numOfHosts = int(totalHosts.Num)
-			if numOfHosts != 2 {
-				t.Log("Number of hosts: " + string(totalHosts.Raw))
-				t.Log("Waiting for MarkLogic count of MarkLogic hosts to be 2")
-			}
-			return numOfHosts != 2
-		}).
-		Get("http://localhost:8002/manage/v2/hosts?format=json")
+	paths := [3]string{"adminUI", "manage/dashboard", "console/qconsole/"}
+	// using loop to verify path based routing
+	for i := 0; i < len(paths); i++ {
+		endpoint := fmt.Sprintf("http://localhost:8080/%s", paths[i])
+		t.Logf("Verifying path based routing using %s", endpoint)
+		resp, err := client.R().
+			AddRetryCondition(func(resp *req.Response, err error) bool {
+				if err != nil {
+					t.Logf("error: %s", err.Error())
+				}
+				if resp.GetStatusCode() != 200 {
+					t.Log("Waiting for MarkLogic cluster to be ready")
+				}
+				return resp.GetStatusCode() != 200
+			}).
+			Get(endpoint)
 
-	if err != nil {
-		t.Error("Error getting hosts")
-		t.Fatalf(err.Error())
+		if err != nil {
+			t.Errorf("Error routing to %s", paths[i])
+			t.Fatalf(err.Error())
+		}
+		defer resp.Body.Close()
 	}
 
-	if numOfHosts != 2 {
-		t.Errorf("Wrong number of hosts")
-	}
+	appServers := [3]string{"Admin", "Manage", "App-Services"}
+	// using loop to verify authentication for all 3 AppServers
+	for i := 0; i < len(appServers); i++ {
+		endpoint := fmt.Sprintf("http://localhost:8080/manage/manage/v2/servers/%s/properties?group-id=Default&format=json", appServers[i])
+		t.Logf("Endpoint for %s AppServer is %s", appServers[i], endpoint)
+		resp, err := client.R().
+			AddRetryCondition(func(resp *req.Response, err error) bool {
+				if err != nil {
+					t.Logf("error: %s", err.Error())
+				}
+				t.Logf("StatusCode: %d", resp.GetStatusCode())
+				if resp.GetStatusCode() != 200 {
+					t.Log("Waiting for MarkLogic cluster to be ready")
+				}
+				return resp.GetStatusCode() != 200
+			}).
+			Get(endpoint)
 
-	resp, err := client.R().
-		SetBasicAuth(username, password).
-		SetRetryCount(5).
-		SetRetryFixedInterval(10 * time.Second).
-		Get("http://localhost:8002/manage/v2/servers/Manage/properties?group-id=Default&format=json")
+		if err != nil {
+			t.Errorf("Error getting AppServer properties")
+			t.Fatalf(err.Error())
+		}
+		defer resp.Body.Close()
 
-	if err != nil {
-		t.Errorf("Error getting AppServer properties")
-		t.Fatalf(err.Error())
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	serverAuthentication := gjson.Get(string(body), `authentication`)
-
-	//verify basic authentication is configured for AppServer
-	if serverAuthentication.Str != "basic" {
-		t.Errorf("basic authentication not configured for AppServer")
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		serverAuthentication := gjson.Get(string(body), `authentication`)
+		t.Logf("serverAuthentication: %s", serverAuthentication)
+		//verify basic authentication is configured for AppServer
+		t.Logf("Verifying authentication for %s AppServer", appServers[i])
+		if serverAuthentication.Str != "basic" {
+			t.Errorf("basic authentication is not configured for %s AppServer", appServers[i])
+		}
 	}
 }
 
@@ -159,12 +158,12 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "11.0.nightly-centos-1.0.2"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -174,14 +173,17 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":           "false",
-			"replicaCount":                  "1",
+			"replicaCount":                  "3",
 			"image.repository":              imageRepo,
 			"image.tag":                     imageTag,
 			"auth.adminUsername":            username,
 			"auth.adminPassword":            password,
 			"logCollection.enabled":         "false",
 			"tls.enableOnDefaultAppServers": "true",
-			"pathbased.enabled":             "true",
+			"haproxy.enabled":               "true",
+			"haproxy.replicaCount":          "1",
+			"haproxy.frontendPort":          "80",
+			"haproxy.pathbased.enabled":     "true",
 		},
 	}
 
@@ -195,47 +197,78 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 	releaseName := "test-pb-tls"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-0"
-	tlsConfig := tls.Config{InsecureSkipVerify: true}
+	podName := releaseName + "-2"
+	svcName := releaseName + "-haproxy"
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
-
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, _ string) bool {
-			return statusCode == 200
-		},
-	)
 
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypeService, svcName, 8080, 80)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
-	endpointManage := fmt.Sprintf("https://%s/manage/v2", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpointManage)
 
-	client := req.C().EnableInsecureSkipVerify()
+	client := req.C().
+		EnableInsecureSkipVerify().
+		SetCommonBasicAuth(username, password).
+		SetCommonRetryCount(15).
+		SetCommonRetryFixedInterval(15 * time.Second)
 
-	// verify https is working when pathbased is enabled
-	resp, err := client.R().
-		SetBasicAuth(username, password).
-		Get("https://localhost:8002/manage/v2")
+	paths := [3]string{"adminUI", "manage/dashboard", "console/qconsole/"}
+	// using loop to verify path based routing
+	for i := 0; i < len(paths); i++ {
+		endpoint := fmt.Sprintf("http://localhost:8080/%s", paths[i])
+		t.Logf("Verifying path based routing using %s", endpoint)
+		resp, err := client.R().
+			AddRetryCondition(func(resp *req.Response, err error) bool {
+				if err != nil {
+					t.Logf("error: %s", err.Error())
+				}
+				if resp.GetStatusCode() != 200 {
+					t.Log("Waiting for MarkLogic cluster to be ready")
+				}
+				return resp.GetStatusCode() != 200
+			}).
+			Get(endpoint)
 
-	if err != nil {
-		t.Fatalf(err.Error())
+		if err != nil {
+			t.Errorf("Error routing to %s", paths[i])
+			t.Fatalf(err.Error())
+		}
+		defer resp.Body.Close()
 	}
 
-	if resp.GetStatusCode() != 200 {
-		t.Errorf("error returned")
+	appServers := [3]string{"Admin", "Manage", "App-Services"}
+	// using loop to verify authentication for all 3 AppServers
+	for i := 0; i < len(appServers); i++ {
+		endpoint := fmt.Sprintf("http://localhost:8080/manage/manage/v2/servers/%s/properties?group-id=Default&format=json", appServers[i])
+		t.Logf("Endpoint for %s AppServer is %s", appServers[i], endpoint)
+		resp, err := client.R().
+			Get(endpoint)
+
+		if err != nil {
+			t.Errorf("Error getting AppServer properties")
+			t.Fatalf(err.Error())
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+
+		serverAuthentication := gjson.Get(string(body), `authentication`)
+		//verify basic authentication is configured for AppServer
+		t.Logf("Verifying authentication for %s AppServer", appServers[i])
+		if serverAuthentication.Str != "basic" {
+			t.Errorf("basic authentication is not configured for %s AppServer", appServers[i])
+		}
+
+		sslAllowTLS := gjson.Get(string(body), `ssl-allow-tls`)
+		//verify ssl is enabled for AppServer
+		t.Logf("Verifying ssl for %s AppServer", appServers[i])
+		if sslAllowTLS.Bool() != true {
+			t.Errorf("ssl is not enabled for %s AppServer", appServers[i])
+		}
 	}
 }
