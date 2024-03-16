@@ -6,8 +6,9 @@ Your release is named {{ .Release.Name }}.
 {{- if .Values.containerSecurityContext.allowPrivilegeEscalation }}
 WARNING
    ***********************************************************************************************************
-   Setting "containerSecurityContext.allowPrivilegeEscalation" is set to true.
-   This is not recommended and is not a secure configuration while using rootless MarkLogic images.
+   The rootless MarkLogic container image is in use but containerSecurityContext.allowPrivilegeEscalation is set to true.
+   Privilege escalation is not required to run the rootless MarkLogic container image. It is recommended to set 
+   containerSecurityContext.allowPrivilegeEscalation to false to secure this configuration.
    ***********************************************************************************************************
 {{- end }}
 {{- end }}

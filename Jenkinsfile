@@ -6,6 +6,7 @@
 import groovy.json.JsonSlurperClassic
 
 emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
+emailSecList = 'Rangan.Doreswamy@progress.com, Mahalakshmi.Srinivasan@progress.com'
 gitCredID = 'marklogic-builder-github'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /(?i)(MLE)-\d{3,6}/
@@ -104,7 +105,7 @@ void resultNotification(message) {
         emailList = params.emailList
     }
     jira_link = "https://project.marklogic.com/jira/browse/${JIRA_ID}"
-    email_body = "<b>Jenkins pipeline for</b> ${env.JOB_NAME} <br><b>Build Number: </b>${env.BUILD_NUMBER} <b><br><br>Lint Output: <br></b><pre><code>${LINT_OUTPUT}</code></pre><br><br><b>Build URL: </b><br>${env.BUILD_URL}"
+    email_body = "<b>Jenkins pipeline for</b> ${env.JOB_NAME} <br><b>Build Number: </b>${env.BUILD_NUMBER} <br><br><b>Lint Output: </b><br><pre><code>${LINT_OUTPUT}</code></pre><br><br><b>Scan Output: </b><br><pre><code>${SCAN_OUTPUT}</code></pre><br><br><b>Build URL: </b><br>${env.BUILD_URL}"
     jira_email_body = "${email_body} <br><br><b>Jira URL: </b><br>${jira_link}"
 
     if (JIRA_ID) {
@@ -126,6 +127,18 @@ void lint() {
     sh '''
         rm -f helm-lint-output.txt test-lint-output.txt
     '''
+}
+
+void imageScan() {
+    sh "make image-scan saveOutput=true"
+
+    SCAN_OUTPUT = sh(returnStdout: true, script:'cat dep-image-scan.txt')
+    hasCriticalOrHigh = SCAN_OUTPUT.contains("High") || SCAN_OUTPUT.contains("Critical")
+    if (hasCriticalOrHigh) {
+        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailSecList}", body: "<br>Jenkins pipeline for ${env.JOB_NAME} <br>Build Number: ${env.BUILD_NUMBER} <br>Vulnerabilities: <pre><code>${SCAN_OUTPUT}</code></pre>", subject: "Critical or High Security Vulnerabilities Found: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+    }
+
+    sh '''rm -f dep-image-scan.txt'''
 }
 
 void publishTestResults() {
@@ -156,7 +169,7 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * *''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true''' : '')
     }
     environment {
         //timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
@@ -174,9 +187,10 @@ pipeline {
         choice(name: 'ML_VERSION', choices: '11.2\n12.0\n10.0', description: 'MarkLogic version. used to pick appropriate docker image')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
-        string(name: 'dockerReleaseVer', defaultValue: '1.1.1', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
+        booleanParam(name: 'IMAGE_SCAN', defaultValue: false, description: 'Find and scan dependent Docker images for security vulnerabilities')
+        string(name: 'dockerReleaseVer', defaultValue: '1.1.2', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
         choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0\n11.2', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
-        string(name: 'prevDockerReleaseVer', defaultValue: '1.1.1', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
+        string(name: 'prevDockerReleaseVer', defaultValue: '1.1.2', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
         choice(name: 'K8_VERSION', choices: 'v1.25.8\nv1.26.3\nv1.24.12\nv1.23.17', description: 'Test Kubernetes version. (e.g. v1.25.8)')
     }
 
@@ -190,6 +204,15 @@ pipeline {
         stage('Lint') {
             steps {
                 lint()
+            }
+        }
+
+        stage('Image-Scan') {
+            when {
+                expression { return params.IMAGE_SCAN }
+            }
+            steps {
+                imageScan()
             }
         }
 

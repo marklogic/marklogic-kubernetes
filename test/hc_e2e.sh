@@ -5,7 +5,7 @@
 [[ $USER = 'builder' ]] && { export PATH=/home/builder/java/jdk1.8.0_201/bin:/home/builder/nodeJs/node-v14.15.4-linux-x64/bin/:$PATH; unset JAVA_HOME; }
 
 echo "---- start port forwarding ----"
-kubectl port-forward hc-marklogic-0 8000 8001 8002 8010 8011 8013 &> /dev/null &
+kubectl port-forward hc-0 8000 8001 8002 8010 8011 8013 &> /dev/null &
 forwarderPID=$!
 
 echo "---- configure environment ----"
