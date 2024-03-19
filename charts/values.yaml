@@ -28,13 +28,13 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.1.0-centos-1.1.1
+  tag: 11.1.0-centos-1.1.2
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
 initContainers:
   configureGroup:
-    image: "curlimages/curl:8.4.0"
+    image: "curlimages/curl:8.6.0"
     pullPolicy: IfNotPresent
   copyCerts:
     image: "redhat/ubi9:9.3"
@@ -87,7 +87,8 @@ auth:
 #  adminPassword: ""
 #  walletPassword: ""
 
-# Add comment mention that if certSecretNames is empty. 
+## Configure TLS for default App Servers(8000, 8001, 8002)
+## If certSecretNames is not provided, self-signed temporary certificate will be generated.
 tls:
   enableOnDefaultAppServers: false
   certSecretNames: []
@@ -263,7 +264,7 @@ containerSecurityContext:
 livenessProbe:
   enabled: true
   initialDelaySeconds: 300
-  periodSeconds: 20
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 15
   successThreshold: 1
@@ -278,24 +279,9 @@ livenessProbe:
 readinessProbe:
   enabled: false
   initialDelaySeconds: 10
-  periodSeconds: 60
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
-  successThreshold: 1
-
-## Configure options for startup probe
-## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes
-
-################################################################
-## NOTE: See Limitations and known Issues in the README file  ##
-################################################################
-
-startupProbe:
-  enabled: false
-  initialDelaySeconds: 10
-  periodSeconds: 20
-  timeoutSeconds: 1
-  failureThreshold: 30
   successThreshold: 1
 
 ## Configure options for log collection
@@ -303,7 +289,7 @@ startupProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.1.10
+  image: fluent/fluent-bit:2.2.2
   resources:
     requests:
       cpu: "100m"

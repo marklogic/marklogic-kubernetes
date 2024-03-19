@@ -4,7 +4,7 @@ kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
 ## System requirement:
 ## - Go 
-## 		- gotestsum (if you want to enable saveOutput for testing commands)
+## 		- gotestsum (if you want to enable output saving for testing commands)
 ## 		- golangci-lint
 ## - Helm 
 ## - Minikube
@@ -141,7 +141,7 @@ hc-test:
 
 	@echo "=====Deploy helm with a single MarkLogic node"
 	helm install hc charts --set auth.adminUsername=admin --set auth.adminPassword=admin --set persistence.enabled=false --wait
-	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-marklogic-0 --for=condition=ready pod --timeout=30m
+	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-0 --for=condition=ready pod --timeout=30m
 
 	@echo "=====Clone Data Hub repository"
 	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
@@ -181,3 +181,19 @@ template-test: prepare
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
 test: template-test e2e-test
+
+#***************************************************************************
+# image-scan
+#***************************************************************************
+## Find and scan dependent Docker images for security vulnerabilities
+## Options:
+## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
+.PHONY: image-scan
+image-scan:
+
+	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
+	@for depImage in $(shell grep -E "^.*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
+		echo " - $${depImage}" $(if $(saveOutput), | tee -a dep-image-scan.txt,) ; \
+		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype:latest $${depImage} | grep 'High\|Critical' $(if $(saveOutput), | tee -a dep-image-scan.txt,);\
+		echo $(if $(saveOutput), | tee -a dep-image-scan.txt,) ;\
+	done
