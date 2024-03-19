@@ -4,9 +4,11 @@
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
 {{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
-{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers -}}
+{{- $appServerTlsEnabled := .Values.tls.enableOnDefaultAppServers }}
 {{- $certFileName := .Values.haproxy.tls.certFileName }}
-
+{{- $appservicespath := .Values.haproxy.defaultAppServers.appservices.path }}
+{{- $adminpath := .Values.haproxy.defaultAppServers.admin.path }}
+{{- $managepath := .Values.haproxy.defaultAppServers.manage.path }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,9 +25,9 @@ data:
     defaults
       log global
       option forwardfor
-      timeout client 60s
-      timeout connect 60s
-      timeout server 60s
+      timeout client 600s
+      timeout connect 600s
+      timeout server 600s
 
     resolvers dns
       # add nameserver from /etc/resolv.conf
@@ -56,6 +58,7 @@ data:
       # How long to wait for a successful resolution
       timeout resolve 5s
 
+
     {{- if .Values.haproxy.stats.enabled }}
     frontend stats
       mode http
@@ -70,11 +73,9 @@ data:
       stats admin if LOCALHOST
     {{- end }}
 
-    {{- range $_, $v := .Values.haproxy.ports }}
-    {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
-    {{ $portType := upper (printf "%s" $v.type) }}
-
-    {{- if eq $portType "TCP"  -}}
+    {{- if .Values.haproxy.tcpports.enabled }}
+      {{- range $_, $v := .Values.haproxy.tcpports.ports }}
+      {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
       listen odbc
         bind :{{ $portNumber }}
         mode tcp
@@ -82,7 +83,207 @@ data:
         {{- range $i := until $replicas }}
         server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
         {{- end }}
-    {{- else if eq $portType "HTTP" }}
+      {{- end }}
+    {{- end }}
+
+    {{- if .Values.haproxy.pathbased.enabled }}    
+
+    frontend marklogic
+      mode http
+      option httplog
+      bind :{{ .Values.haproxy.frontendPort }}
+      http-request set-header Host {{ $releaseName }}:80
+      http-request set-header REFERER http://{{ $releaseName }}:80   
+      http-request set-header X-ML-QC-Path "{{ $appservicespath }}"
+      http-request set-header X-ML-ADM-Path "{{ $adminpath }}"     
+      http-request set-header X-ML-MNG-Path "{{ $managepath }}" 
+      use_backend marklogic-app-services if { path {{ $appservicespath }} } || { path_beg {{ $appservicespath }}/ }
+      use_backend marklogic-admin if { path {{ $adminpath }} } || { path_beg {{ $adminpath }}/ }
+      use_backend marklogic-manage if { path {{ $managepath }} } || { path_beg {{ $managepath }}/ }
+    {{- range $_, $v := .Values.haproxy.additionalAppServers }}
+    {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
+    {{ $path := printf "%v" (default $v.path)}}
+      use_backend marklogic-{{$portNumber}} if { path {{ $path }} } || { path_beg {{ $path }}/ }
+    {{- end }}
+
+    backend marklogic-app-services
+      mode http
+      balance leastconn
+      option forwardfor
+      http-request replace-path {{ $appservicespath }}(/)?(.*) /\2
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    backend marklogic-admin
+      mode http
+      balance leastconn
+      option forwardfor
+      http-request replace-path {{ $adminpath }}(/)?(.*) /\2
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    backend marklogic-manage
+      mode http
+      balance leastconn
+      option forwardfor
+      http-request replace-path {{ $managepath }}(/)?(.*) /\2
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    {{- range $_, $v := .Values.haproxy.additionalAppServers }}
+    {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
+    {{ $portType := upper (printf "%s" $v.type) }}
+    {{ $path := printf "%v" (default $v.path)}}
+
+    backend marklogic-{{$portNumber}}
+      mode http
+      balance leastconn
+      option forwardfor
+      http-request replace-path {{$path}}(/)?(.*) /\2
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    
+    {{- else }}
+
+    frontend marklogic-appservices
+      mode http
+      {{- if $haproxyTlsEnabled }}
+      bind :{{ .Values.haproxy.defaultAppServers.appservices.port }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :{{ .Values.haproxy.defaultAppServers.appservices.port }}
+      {{- end }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend marklogic-appservices
+
+    backend marklogic-appservices
+      mode http
+      balance leastconn
+      option forwardfor
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    frontend marklogic-admin
+      mode http
+      {{- if $haproxyTlsEnabled }}
+      bind :{{ .Values.haproxy.defaultAppServers.admin.port }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :{{ .Values.haproxy.defaultAppServers.admin.port }}
+      {{- end }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend marklogic-admin
+
+    backend marklogic-admin
+      mode http
+      balance leastconn
+      option forwardfor
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    frontend marklogic-manage
+      mode http
+      {{- if $haproxyTlsEnabled }}
+      bind :{{ .Values.haproxy.defaultAppServers.manage.port }} ssl crt /usr/local/etc/ssl/{{ $certFileName }}
+      {{- else }}
+      bind :{{ .Values.haproxy.defaultAppServers.manage.port }}
+      {{- end }}
+      log-format "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+      default_backend marklogic-manage
+
+    backend marklogic-manage
+      mode http
+      balance leastconn
+      option forwardfor
+      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      stick-table type string len 32 size 10k expire 4h
+      stick store-response res.cook(HostId)
+      stick store-response res.cook(SessionId)
+      stick match req.cook(HostId)
+      stick match req.cook(SessionId)
+      default-server check
+      {{- range $i := until $replicas }}
+      {{- if $appServerTlsEnabled }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
+      {{- else }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
+      {{- end }}
+      {{- end }}
+
+    {{- range $_, $v := .Values.haproxy.additionalAppServers }}
+    {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
+    {{ $portType := upper (printf "%s" $v.type) }}
 
     frontend marklogic-{{$portNumber}}
       mode http
@@ -107,9 +308,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
       {{- else }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
       {{- end }}
     {{- end }}

@@ -196,7 +196,14 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.stats.auth.username`                       | Username for stats page                                                                                                                                                                | `""`                       |
 | `haproxy.stats.auth.password`                       | Password for stats page                                                                                                                                                                | `""`                       |
 | `haproxy.service.type`                              | The service type of the HAproxy                                                                                                                                                        | `ClusterIP`                |
-| `haproxy.ports`                                     | Ports and load balancing type configuration for HAproxy                                                                                                                                | `[]`                       |
+| `haproxy.pathbased.enabled`                         | Parameter to enable path based routing on the HAProxy Load Balancer for MarkLogic       | `false`                    |
+| `haproxy.frontendPort`                              | Listening port in the Front-End section of the HAProxy when using Path based routing | `443`                  |
+| `haproxy.defaultAppServers.appservices.path`        | Path used to expose MarkLogic App-Services App-Server                           | `""`                     |
+| `haproxy.defaultAppServers.admin.path`              | Path used to expose MarkLogic Admin App-Server                                  | `""`                     |
+| `haproxy.defaultAppServers.manage.path`             | Path used to expose the MarkLogic Manage App-Server                             | `""`                     |
+| `haproxy.additionalAppServers`                      | List of additional HTTP Ports configuration for HAproxy                         | `[]`                     |
+| `haproxy.tcpports.enabled`                          | Parameter to enable TCP port routing on HAProxy                              | `false`                  |
+| `haproxy.tcpports`                                  | TCP Ports and load balancing type configuration for HAproxy                  | `[]`                     |
 | `haproxy.tls.enabled`                               | Parameter to enable TLS for HAProxy                                                                                                                                                    | `false`                    |
 | `haproxy.tls.secretName`                            | Name of the secret that stores the certificate                                                                                                                                         | `""`                       |
 | `haproxy.tls.certFileName`                          | The name of the certificate file in the secret                                                                                                                                         | `""`                       |
@@ -206,6 +213,12 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.resources.requests.memory`                 | The requested memory resource for the HAProxy container                                                                                                                                | `128Mi`                    |
 | `haproxy.resources.limits.cpu`                      | The cpu resource limit for the HAProxy container                                                                                                                                       | `250m`                     |
 | `haproxy.resources.limits.memory`                   | The memory resource limit for the HAProxy container                                                                                                                                    | `128Mi`                    |
+| `ingress.enabled`                                   | Enable an ingress resource for the MarkLogic cluster                                   | `false`| 
+| `ingress.className`                                 | Defines which ingress controller will implement the resource                          | `""` |
+| `ingress.labels`                                    | Additional ingress labels                                                             | `{}` |
+| `ingress.annotations`                               | Additional ingress annotations                                                       | `{}` |
+| `ingress.hosts`                                     | List of ingress hosts                                                                 | `[]` |
+| `ingress.additionalHost`                            | List of ingress additional hosts                                                      | `[]` |
 
 ## Known Issues and Limitations
 
@@ -215,3 +228,5 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 4. The latest released version of fluent/fluent-bit:2.2.2 has known security vulnerabilities with respect to libcom-err2 CVE-2022-1304, libgcrypt20 CVE-2021-33560, libgnutls30 CVE-2024-0567, libldap-2.4-2 CVE-2023-2953, libzstd1 CVE-2022-4899, zlib1g CVE-2023-45853. These libraries are included in the Debian base image but, to-date, no fixes have been made available. For libpq5 CVE-2024-0985, we wait for a future upgrade of the fluent-bit image to include the fix. We will provide updates and mitigation strategies as soon as more information becomes available.
 5. The latest released version of redhat/ubi9:9.3 has known security vulnerabilities with respect to setuptools GHSA-r9hx-vwmv-q579, we wait for a future upgrade of the redhad ubi image to include the fix.
 6. The security context “allowPrivilegeEscalation” is set to TRUE by default in values.yaml file and cannot be changed to run the current MarkLogic container. Work is in progress to run MarkLogic container in "rootless" mode.
+7. The Readiness and Startup Probe are not compatible with HA deployment. At the moment these probes may fail in the case of Security database failover. As of the 1.0.2 helm chart release, the startup and readiness probes are disabled by default.
+8. Path based routing and Ingress features are only supported with MarkLogic 11.1 and higher.
