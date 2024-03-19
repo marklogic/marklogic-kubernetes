@@ -46,6 +46,7 @@ data:
     info() {
       log "Info" "$@"
     }
+    
     error() {
       log "Error" "$1"
       local EXIT_STATUS="$2"
@@ -399,33 +400,28 @@ data:
                 info "current_group: $current_group"
                 info "group_cfg: $group_cfg"
 
-                # Check if the group needs to change
-                if [ "${current_group}" = "${MARKLOGIC_GROUP}" ]; then
-                    info "current group is the same as the target group \"${MARKLOGIC_GROUP}\""
+                # curl retry doesn't work in the lower version
+                response_code=$( \
+                    curl -s --anyauth \
+                    --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} \
+                    -w '%{http_code}' \
+                    -X PUT \
+                    -H "Content-type: application/json" \
+                    -d "${group_cfg}" \
+                    http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${current_group}/properties \
+                )
+
+                info "response_code: $response_code"
+
+                if [[ "${response_code}" = "204" ]]; then
+                    info "group \"${current_group}\" updated"
+                elif [[ "${response_code}" = "202" ]]; then
+                    # Note: THIS SHOULD NOT HAPPEN WITH THE CURRENT GROUP CONFIG
+                    info "group \"${current_group}\" updated and a restart of all hosts in the group was triggered"
                 else
-                    # curl retry doesn't work in the lower version
-                    response_code=$( \
-                        curl -s --anyauth \
-                        --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} \
-                        -w '%{http_code}' \
-                        -X PUT \
-                        -H "Content-type: application/json" \
-                        -d "${group_cfg}" \
-                        http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${current_group}/properties \
-                    )
-
-                    info "response_code: $response_code"
-
-                    if [[ "${response_code}" = "204" ]]; then
-                        info "group \"${current_group}\" updated"
-                    elif [[ "${response_code}" = "202" ]]; then
-                        # Note: THIS SHOULD NOT HAPPEN WITH THE CURRENT GROUP CONFIG
-                        # TODO: add logic if we add properties to the group config that could trigger a restart
-                        info "group \"${current_group}\" updated and a restart of all hosts in the group was triggered"
-                    else
-                        info "unexpected response when updating group \"${current_group}\": ${response_code}"
-                    fi
+                    info "unexpected response when updating group \"${current_group}\": ${response_code}"
                 fi
+            
             fi
 
             if [[ "$MARKLOGIC_CLUSTER_TYPE" == "non-bootstrap" ]]; then
@@ -652,8 +648,20 @@ data:
         join_cluster $HOST_FQDN
     fi
 
-    info "after init_security_db"
     sleep 5s 
+
+    # Authentication configuration when path based is used
+    if [[ $POD_NAME == *-0 ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
+        log "Info: [poststart] path based routing is set. Adapting authentication method"
+        $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP}
+        $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/App-Services/properties?group-id=${MARKLOGIC_GROUP}
+        $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Manage/properties?group-id=${MARKLOGIC_GROUP}
+        log "Info: [poststart] Default App-Servers authentication set to basic auth"
+    else
+        log "Info: [poststart] This is not the boostrap host or path based routing is not set. Skipping authentication configuration"
+    fi
+    #End of authentication configuration
+
     if [[ $MARKLOGIC_JOIN_TLS_ENABLED == "true" ]]; then
         configure_tls
     fi
