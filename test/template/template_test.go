@@ -70,6 +70,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 			"image.tag":             "latest",
 			"persistence.enabled":   "true",
 			"logCollection.enabled": "true",
+			"logCollection.image":   "fluent/fluent-bit:2.2.2",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -85,7 +86,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 
 	// Verify the image matches
 	expectedImage1 := "marklogicdb/marklogic-db:latest"
-	expectedImage2 := "fluent/fluent-bit:2.1.10"
+	expectedImage2 := "fluent/fluent-bit:2.2.2"
 
 	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
 	require.Equal(t, len(statefulSetContainers), 2)

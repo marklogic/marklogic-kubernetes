@@ -109,6 +109,17 @@ Validate values file
 {{- end }}
 
 {{/*
+Name to distinguish marklogic image whether root or rootless
+*/}}
+{{- define "marklogic.imageType" -}}
+{{- if .Values.image.tag | contains "rootless" }}
+{{- printf "rootless" }}
+{{- else }}
+{{- printf "root" }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create the name of the Ingress to use.
 */}}
 {{- define "marklogic.ingress" -}}
@@ -121,5 +132,3 @@ Name of the HAProxy Service name to use in Ingress.
 {{- define "marklogic.haproxy.servicename" -}}
 {{- printf "%s-haproxy" .Release.Name }}
 {{- end }}
-
-
