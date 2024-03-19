@@ -224,7 +224,9 @@ spec:
             {{- if .Values.hugepages.enabled }}
             - name: huge-pages
               mountPath: {{ .Values.hugepages.mountPath }}
-            {{- end }}            
+            {{- end }} 
+            - name: scripts
+              mountPath: /tmp/scripts           
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
               value: "ml-secrets/username"
@@ -338,7 +340,13 @@ spec:
                         if [[ -n ${TIMESTAMP} ]]; then
                           restart_check ${TIMESTAMP}
                         fi
-                        sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${PATH_BASED_ROUTING}"' > /var/opt/MarkLogic/group_cfg'
+                        
+                        if [[ $MARKLOGIC_IMAGE_TYPE == "rootless" ]]; then
+                          sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                        else
+                          sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                        fi
+
                         log "Info: [poststart] ${GROUP_CFG} saved"
                       else
                         log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.
@@ -546,14 +554,19 @@ spec:
 
                     my_host=$(hostname -f)
 
+                    HTTP_PROTOCOL="http"
+                    HTTPS_OPTION=""
+                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                      HTTP_PROTOCOL="https"
+                      HTTPS_OPTION="-k"
+                    fi
                     log "Info: [prestop] MarkLogic Pod Hostname: "$my_host
-
                     for ((i = 0; i < 5; i = i + 1)); do
                         res_code=$(curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
                             -o /dev/null -m 10 -s -w %{http_code} \
-                            -i -X POST --data "state=shutdown&failover=true" \
+                            -i -X POST ${HTTPS_OPTION} --data "state=shutdown&failover=true" \
                             -H "Content-type: application/x-www-form-urlencoded" \
-                            http://localhost:8002/manage/v2/hosts/$my_host?format=json)
+                            ${HTTP_PROTOCOL}://localhost:8002/manage/v2/hosts/$my_host?format=json)
 
                         if [[ ${res_code} -eq 202 ]]; then
                             log "Info: [prestop] Host shut down response code: "$res_code
@@ -581,9 +594,10 @@ spec:
           {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /
-              port: health-check
+            exec:
+              command:
+                - /bin/bash
+                - /tmp/scripts/liveness-probe.sh
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
@@ -600,17 +614,6 @@ spec:
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
             successThreshold: {{ .Values.readinessProbe.successThreshold }}
-          {{- end }}
-          {{- if .Values.startupProbe.enabled }}
-          startupProbe:
-            exec:
-              command:
-                - ls
-                - /var/opt/MarkLogic/ready
-            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
-            successThreshold: {{ .Values.startupProbe.successThreshold }}
-            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
           {{- end }}
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 12 }}
@@ -671,6 +674,10 @@ spec:
         - name: mladmin-secrets
           secret:
             secretName: {{ include "marklogic.authSecretNameToMount" . }}
+        - name: scripts
+          configMap:
+            name: {{ .Release.Name }}-scripts
+            defaultMode: 0755
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
           configMap:

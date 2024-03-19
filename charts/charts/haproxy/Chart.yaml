@@ -17,7 +17,7 @@ name: haproxy
 description: A Helm chart for HAProxy on Kubernetes
 type: application
 version: 1.18.0
-appVersion: 2.6.9
+appVersion: 2.9.4
 kubeVersion: ">=1.17.0-0"
 keywords:
   - haproxy
@@ -31,7 +31,7 @@ maintainers:
 engine: gotpl
 annotations:
   artifacthub.io/changes: |
-    - Update base image to HAProxy 2.6.9
+    - Update base image to HAProxy 2.9.4
     - Update HPA API version (#172)
     - Fix HPA spec (#173)
     - Ensure api version capabilities of PodDisruptionBudget (#175)
