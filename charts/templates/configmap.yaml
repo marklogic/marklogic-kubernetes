@@ -23,8 +23,8 @@ data:
   MARKLOGIC_JOIN_TLS_ENABLED: "false"
 {{- end }}
   MARKLOGIC_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
-  MARKLOGIC_INIT: "true"
-  MARKLOGIC_JOIN_CLUSTER: "true"
+  MARKLOGIC_INIT: "false"
+  MARKLOGIC_JOIN_CLUSTER: "false"
   MARKLOGIC_GROUP: {{ .Values.group.name }}
   XDQP_SSL_ENABLED: {{ quote .Values.group.enableXdqpSsl }}
 ---

@@ -11,6 +11,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   updateStrategy:
     type: {{ .Values.updateStrategy.type }}
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       {{- include "marklogic.selectorLabels" . | nindent 6 }}
@@ -224,7 +225,9 @@ spec:
             {{- if .Values.hugepages.enabled }}
             - name: huge-pages
               mountPath: {{ .Values.hugepages.mountPath }}
-            {{- end }}            
+            {{- end }} 
+            - name: helm-scripts
+              mountPath: /tmp/helm-scripts   
           env:
             - name: MARKLOGIC_ADMIN_USERNAME_FILE
               value: "ml-secrets/username"
@@ -272,257 +275,9 @@ spec:
               {{- toYaml .Values.additionalContainerPorts | nindent 12 }}
             {{- end }}
           lifecycle:
-            {{- if or (eq .Values.bootstrapHostName "") (eq .Values.tls.enableOnDefaultAppServers true) }}
             postStart:
               exec:
-                command:
-                  - bash
-                  - '-c'
-                  - |
-                    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
-                    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
-
-                    log () {
-                      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-                      pid=$(pgrep start.marklogic)
-                      # Check to make sure pod doesn't terminate if PID value is empty for any reason
-                      # If PID value is empty postStart hook logs are not recorded
-                      if [ -n "$pid" ]; then
-                          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-                      fi
-                    }
-
-                    log "Info: [poststart] Poststart Hook Execution"
-
-                    restart_check () {
-                      local retry_count LAST_START timestamp=$1
-                      LAST_START=$(curl -s --anyauth --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp")
-                      for ((retry_count = 0; retry_count < 5; retry_count = retry_count + 1)); do
-                        if [[ "${timestamp}" == "${LAST_START}" ]] || [[ -z "${LAST_START}" ]]; then
-                            sleep 10
-                            LAST_START=$(curl -s --anyauth --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" "http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/timestamp")
-                        else
-                            log "Info: [poststart] MarkLogic host: ${MARKLOGIC_BOOTSTRAP_HOST} has restarted."
-                            return 0
-                        fi
-                      done
-                      log "Error: [poststart] Failed to restart MarkLogic host: ${MARKLOGIC_BOOTSTRAP_HOST}"
-                      exit 1
-                    }
-
-                    # Begin Group Configuration
-                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                      [ -f /var/opt/MarkLogic/group_cfg ] && current_group_cfg=$(cat /var/opt/MarkLogic/group_cfg)
-                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${PATH_BASED_ROUTING}" = "${current_group_cfg}" ]; then                        
-                          log "Info: [poststart] Group config has not changed, poststart hook complete"
-                          exit 0
-                      fi
-
-                      log "Info: [poststart] Begin group configuration."
-                      while [ ! -f /var/opt/MarkLogic/ready ]; do
-                        log "[poststart] waiting for MarkLogic server to be ready"
-                        sleep 5s
-                      done
-
-                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
-                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED")
-
-                      log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-                    
-                      # check whether MarkLogic has restarted
-                      if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
-                        log "Info: [poststart] Successfully configured properties for $MARKLOGIC_GROUP group on the MarkLogic cluster."
-                        TIMESTAMP=$(< /tmp/restart_payload.xml grep "last-startup" | sed 's%^.*<last-startup.*>\(.*\)</last-startup>.*$%\1%')
-                        rm  -f /tmp/restart_payload.xml
-                        if [[ -n ${TIMESTAMP} ]]; then
-                          restart_check ${TIMESTAMP}
-                        fi
-                        sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${PATH_BASED_ROUTING}"' > /var/opt/MarkLogic/group_cfg'
-                        log "Info: [poststart] ${GROUP_CFG} saved"
-                      else
-                        log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.
-                        log "Error: [poststart] Expected response code 202 or 204, got "${GROUP_RESP_CODE}"
-                        exit 1
-                      fi
-                    else
-                      log "Info: [poststart] This is not bootstrap host. Skipping group configuration."
-                    fi
-                    # End Group Configuration
-
-                    AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s"
-
-                    # Authentication configuration when path based is used
-                    if [[ $POD_NAME == *-0 ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
-                      log "Info: [poststart] path based routing is set. Adapting authentication method"
-                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP}
-                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/App-Services/properties?group-id=${MARKLOGIC_GROUP}
-                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Manage/properties?group-id=${MARKLOGIC_GROUP}
-                      log "Info: [poststart] Default App-Servers authentication set to basic auth"
-                    else
-                      log "Info: [poststart] This is not the boostrap host or path based routing is not set. Skipping authentication configuration"
-                    fi
-                    #End of authentication configuration
-
-                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
-                      https_error_message="You have attempted to access an HTTPS server using HTTP."
-                      resp=$(curl -s http://localhost:8001)
-                      if [[ "$resp" == *"$https_error_message"* ]]; then
-                          log "Info: [poststart] MarkLogic server has already configured HTTPS"
-                        exit 0
-                      else 
-                        log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
-                      fi
-                    else
-                      log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to false"
-                      log "Info: [poststart] Poststart Hook Execution Completed"
-                      exit 0
-                    fi
-
-                    while [ ! -f /var/opt/MarkLogic/ready ]; do
-                      log "[poststart] waiting for MarkLogic server to be ready"
-                      sleep 5s
-                    done
-
-                    cd ~ 
-                    if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
-                      log "Info: [poststart] Configuring named certificates on host"
-                      certType="named"
-                    else 
-                      log "Info: [poststart] Configuring self-signed certificates on host"
-                      certType="self-signed"
-                    fi
-                    log "Info: [poststart] certType in postStart: $certType"
-
-                    cat <<'EOF' > defaultCertificateTemplate.json
-                    {
-                      "template-name": "defaultTemplate",
-                      "template-description": "defaultTemplate",
-                      "key-type": "rsa",
-                      "key-options": {
-                        "key-length": "2048"
-                      },  
-                      "req": {
-                        "version": "0",
-                        "subject": {
-                          "organizationName": "MarkLogic"
-                        }
-                      }
-                    }
-                    EOF
-                    
-                    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                      log "Info: [poststart] creating default certificate Template"
-                      response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
-                      sleep 5s
-                      log "Info: [poststart] done creating default certificate Template"
-                    fi
-                    
-                    log "Info: [poststart] creating insert-host-certificates.json"
-                    cat <<'EOF' > insert-host-certificates.json
-                    {
-                      "operation": "insert-host-certificates",
-                      "certificates": [
-                        {
-                          "certificate": {
-                            "cert": "CERT",
-                            "pkey": "PKEY"
-                          }
-                        }
-                      ]
-                    }
-                    EOF
-
-                    log "Info: [poststart] creating generateCA.xqy"
-                    cat <<'EOF' > generateCA.xqy
-                    xquery=
-                        xquery version "1.0-ml"; 
-                        import module namespace pki = "http://marklogic.com/xdmp/pki" 
-                            at "/MarkLogic/pki.xqy";
-                        let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
-                        return
-                            pki:generate-template-certificate-authority($tid, 365)
-                    EOF
-
-                    log "Info: [poststart] creating createTempCert.xqy"
-                    cat <<'EOF' > createTempCert.xqy
-                    xquery= 
-                      xquery version "1.0-ml"; 
-                      import module namespace pki = "http://marklogic.com/xdmp/pki" 
-                          at "/MarkLogic/pki.xqy";
-                      import module namespace admin = "http://marklogic.com/xdmp/admin"
-                          at "/MarkLogic/admin.xqy";
-                      let $tid := pki:template-get-id(pki:get-template-by-name("defaultTemplate"))
-                      let $config := admin:get-configuration()
-                      let $hostname := admin:host-get-name($config, admin:host-get-id($config, xdmp:host-name()))
-                      return
-                        pki:generate-temporary-certificate-if-necessary($tid, 365, $hostname, (), ())
-                    EOF
-                    
-                    log "Info: [poststart] inserting certificates $certType"
-                    if [[ "$certType" == "named" ]]; then
-                      log "Info: [poststart] creating named certificate"
-                      cert_path="/run/secrets/marklogic-certs/tls.crt"
-                      pkey_path="/run/secrets/marklogic-certs/tls.key"
-                      cp insert-host-certificates.json insert_cert_payload.json
-                      cert="$(<$cert_path)"
-                      cert="${cert//$'\n'/}"
-                      pkey="$(<$pkey_path)"
-                      pkey="${pkey//$'\n'/}"
-
-                      sed -i "s|CERT|$cert|" insert_cert_payload.json
-                      sed -i "s|CERTIFICATE-----|CERTIFICATE-----\\\\n|" insert_cert_payload.json
-                      sed -i "s|-----END CERTIFICATE|\\\\n-----END CERTIFICATE|" insert_cert_payload.json
-                      sed -i "s|PKEY|$pkey|" insert_cert_payload.json
-                      sed -i "s|PRIVATE KEY-----|PRIVATE KEY-----\\\\n|" insert_cert_payload.json
-                      sed -i "s|-----END RSA|\\\\n-----END RSA|" insert_cert_payload.json
-                      sed -i "s|-----END PRIVATE|\\\\n-----END PRIVATE|" insert_cert_payload.json
-                      
-                      log "Info: [poststart] inserting following certificates for $cert_path for $MARKLOGIC_CLUSTER_TYPE"
-
-                      if [[ $POD_NAME == *-0 ]]; then
-                        res=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
-                      else 
-                        res=$($AUTH_CURL -k  -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
-                      fi
-                      log "Info: [poststart] $res"
-                      sleep 5s
-                    fi
-
-                    if [[ $POD_NAME == *-0 ]]; then
-                      if [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
-                        log "Info: [poststart] Generating Temporary CA Certificate"
-                        $AUTH_CURL -X POST -i -d @generateCA.xqy \
-                        -H "Content-type: application/x-www-form-urlencoded" \
-                        -H "Accept: multipart/mixed; boundary=BOUNDARY" \
-                        http://localhost:8000/v1/eval
-                        sleep 5s
-                      fi
-                    
-                      log "Info: [poststart] enabling app-servers for HTTPS"
-                      # Manage need be put in the last in the array to make sure http works for all the requests
-                      appServers=("App-Services" "Admin" "Manage")
-                      for appServer in ${appServers[@]}; do
-                        log "configuring SSL for App Server $appServer"
-                        curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
-                          -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
-                        http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP}
-                        sleep 5s
-                      done
-                      log "Info: [poststart] Configure HTTPS in App Server finished"
-
-                      if [[ "$certType" == "self-signed" ]]; then
-                        log "Info: [poststart] Generate temporary certificate if necessary"
-                        $AUTH_CURL -k -X POST -i -d @createTempCert.xqy -H "Content-type: application/x-www-form-urlencoded" \
-                        -H "Accept: multipart/mixed; boundary=BOUNDARY" https://localhost:8000/v1/eval
-                      fi
-                    fi
-                    
-                    log "Info: [poststart] removing cert keys"
-                    rm -f /run/secrets/marklogic-certs/*.key
-
-                    log "Info: [poststart] Poststart Hook Execution Completed"
-            {{- end }}
+                command: ["/bin/bash", "/tmp/helm-scripts/poststart-hook.sh"]
             preStop:
               exec:
                 command:
@@ -546,14 +301,19 @@ spec:
 
                     my_host=$(hostname -f)
 
+                    HTTP_PROTOCOL="http"
+                    HTTPS_OPTION=""
+                    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+                      HTTP_PROTOCOL="https"
+                      HTTPS_OPTION="-k"
+                    fi
                     log "Info: [prestop] MarkLogic Pod Hostname: "$my_host
-
                     for ((i = 0; i < 5; i = i + 1)); do
                         res_code=$(curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
                             -o /dev/null -m 10 -s -w %{http_code} \
-                            -i -X POST --data "state=shutdown&failover=true" \
+                            -i -X POST ${HTTPS_OPTION} --data "state=shutdown&failover=true" \
                             -H "Content-type: application/x-www-form-urlencoded" \
-                            http://localhost:8002/manage/v2/hosts/$my_host?format=json)
+                            ${HTTP_PROTOCOL}://localhost:8002/manage/v2/hosts/$my_host?format=json)
 
                         if [[ ${res_code} -eq 202 ]]; then
                             log "Info: [prestop] Host shut down response code: "$res_code
@@ -685,6 +445,10 @@ spec:
         - name: datadir
           emptyDir: {}
         {{- end }}
+        - name: helm-scripts
+          configMap:
+            name: {{ include "marklogic.fullname" . }}-scripts
+            defaultMode: 0755
         {{- if .Values.additionalVolumes }}
         {{- toYaml .Values.additionalVolumes | nindent 8 }}
         {{- end }}
