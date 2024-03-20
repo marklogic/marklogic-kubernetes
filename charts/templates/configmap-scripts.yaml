@@ -5,7 +5,6 @@ metadata:
 data:
   liveness-probe.sh: |
     #!/bin/bash
-
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
       # Check to make sure pod doesn't terminate if PID value is empty for any reason
@@ -50,10 +49,19 @@ data:
     #
     ###############################################################
     
-    # Values taken directy from documentation: https://docs.marklogic.com/guide/admin-api/cluster#id_10889
+    # Refer to https://docs.marklogic.com/guide/admin-api/cluster#id_10889 for cluster joining process
+    
     N_RETRY=60
     RETRY_INTERVAL=1
     HOST_FQDN="$(hostname).${MARKLOGIC_FQDN_SUFFIX}"
+
+    # HTTP_PROTOCOL could be http or https 
+    HTTP_PROTOCOL="http"
+    HTTPS_OPTION=""
+    if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+        HTTP_PROTOCOL="https"
+        HTTPS_OPTION="-k"
+    fi
 
     IS_BOOTSTRAP_HOST=false
     if [[ "$(hostname)" == *-0 ]]; then
@@ -87,8 +95,8 @@ data:
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
         # Check to make sure pod doesn't terminate if PID value is empty for any reason
-        # If PID value is empty preStart hook logs are not recorded
-        message="${TIMESTAMP} [preStart] $@"
+        # If PID value is empty postStart hook logs are not recorded
+        message="${TIMESTAMP} [postStart] $@"
         if [ -n "$pid" ]; then
             echo $message  > /proc/$pid/fd/1
         fi
@@ -267,12 +275,34 @@ data:
         fi
     }
 
-
     ################################################################
-    # Fucntion to wait for bootstrap host is ready
-    ################################################################    
+    # Fucntion to bootstrap host is ready:
+    #   1. If TLS is not enabled, wait until Security DB is installed.
+    #   2. If TLS is enabled, wait until TLS is turned on in App Server
+    # return values: 0 - admin user successfully initialized
+    ################################################################
+    function wait_bootstrap_ready {
+        resp=$(curl -w '%{http_code}' -o /dev/null http://$MARKLOGIC_BOOTSTRAP_HOST:8001/admin/v1/timestamp )
+        if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
+            # return 403 if tls is enabled
+            if [[ $resp -eq 403 ]]; then
+                info "Bootstrap host is ready with TLS enabled"
+            else
+                info "Timestamp response code:$resp. Bootstrap host is not ready with TLS enabled, try again in 10s"
+                sleep 10s
+                wait_bootstrap_ready
+            fi
+        else
+            if [[ $resp -eq 401 ]]; then
+                info "Bootstrap host is ready with no TLS"
+            else
+                info "Timestamp response code:$resp. Bootstrap host is not ready, try again in 10s"
+                sleep 10s
+                wait_bootstrap_ready
+            fi
+        fi
+    }
     
-
     ################################################################
     # Fucntion to initialize admin user and security DB
     # 
@@ -284,9 +314,9 @@ data:
         # check to see if the bootstrap host is already configured
         response_code=$( \
             curl -s --anyauth \
-            -w '%{http_code}' -o "/tmp/${MARKLOGIC_BOOSTRAP_HOST}.out" \
-            --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
-            http://$MARKLOGIC_BOOTSTRAP_HOST:8002/manage/v2/hosts/$MARKLOGIC_BOOTSTRAP_HOST/properties
+            -w '%{http_code}' -o "/tmp/${MARKLOGIC_BOOTSTRAP_HOST}.out" \
+            --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" $HTTPS_OPTION \
+            $HTTP_PROTOCOL://$MARKLOGIC_BOOTSTRAP_HOST:8002/manage/v2/hosts/$MARKLOGIC_BOOTSTRAP_HOST/properties
         )
 
         if [ "${response_code}" = "200" ]; then
@@ -330,8 +360,8 @@ data:
         # if Security DB not set or credential not correct return 401
         # if host is already in cluster, return 200
         response_code=$( curl -s --anyauth -o /dev/null -w '%{http_code}' \
-            --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
-            http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts/${hostname}/properties?format=xml \
+            --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" $HTTPS_OPTION \
+            $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts/${hostname}/properties?format=xml \
         )
 
         info "response_code: $response_code"
@@ -351,7 +381,7 @@ data:
         # Wait until the group is ready
         retry_count=10
         while [ $retry_count -gt 0 ]; do
-            GROUP_RESP_CODE=$( curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} )
+            GROUP_RESP_CODE=$( curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" $HTTPS_OPTION -X GET $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} )
             if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
                 info "Found the group, process to join the group"
                 break
@@ -374,15 +404,15 @@ data:
             "--anyauth --user \"${MARKLOGIC_ADMIN_USERNAME}\":\"${MARKLOGIC_ADMIN_PASSWORD}\" \
             -o /tmp/${hostname}.xml -X GET -H \"Accept: application/xml\""
 
-        curl_retry_validate "http://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/cluster-config" 200 \
-            "--anyauth --user \"${MARKLOGIC_ADMIN_USERNAME}\":\"${MARKLOGIC_ADMIN_PASSWORD}\" \
+        curl_retry_validate "$HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/cluster-config" 200 \
+            "--anyauth $HTTPS_OPTION --user \"${MARKLOGIC_ADMIN_USERNAME}\":\"${MARKLOGIC_ADMIN_PASSWORD}\" \
             -X POST -d \"${payload}\" \
             --data-urlencode \"server-config@/tmp/${hostname}.xml\" \
             -H \"Content-type: application/x-www-form-urlencoded\" \
             -o /tmp/${hostname}_cluster.zip"
 
         timestamp=$( \
-                curl -s --anyauth \
+                curl -s --anyauth $HTTPS_OPTION \
                 --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
                 "http://${hostname}:8001/admin/v1/timestamp" \
             )
@@ -394,7 +424,7 @@ data:
         
         # 202 causes restart
         info "${hostname} - restart triggered"
-        restart_check "${hostname}" "${timestamp}"
+        # restart_check "${hostname}" "${timestamp}"
 
         info "${hostname} - joined group ${MARKLOGIC_GROUP}"
     }
@@ -456,11 +486,11 @@ data:
                 info "creating group for other Helm Chart"
 
                 # Create a group if group is not already exits
-                GROUP_RESP_CODE=$( curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" -X GET http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} )
+                GROUP_RESP_CODE=$( curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" $HTTPS_OPTION -X GET $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} )
                 if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
                     info "Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
                 else 
-                    res_code=$(curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} -m 20 -s -w '%{http_code}' -X POST -d "${group_cfg}" -H "Content-type: application/json" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups)
+                    res_code=$(curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} $HTTPS_OPTION -m 20 -s -w '%{http_code}' -X POST -d "${group_cfg}" -H "Content-type: application/json" $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups)
                     if [[ ${res_code} -eq 201 ]]; then
                         log "Info: [initContainer] Successfully configured group $MARKLOGIC_GROUP on the MarkLogic cluster."
                     else
@@ -653,25 +683,19 @@ data:
     fi
 
     ###############################################################
-    info "Starting to Configuring MarkLogic"
-    info "HOST_FQDN: $HOST_FQDN"
-    info "MARKLOGIC_BOOTSTRAP_HOST: $MARKLOGIC_BOOTSTRAP_HOST"
+    info "Start configuring MarkLogic for $HOST_FQDN"
+    info "Bootstrap host: $MARKLOGIC_BOOTSTRAP_HOST"
 
     # Wait for current pod ready
     wait_until_marklogic_ready $HOST_FQDN
 
-    ###############################################################
-    # Installing admin user and init Security DB and objects
-    ###############################################################  
-
     # Only do this if the bootstrap host is in the statefulset we are configuring
-    info "target bootstrap host: ${MARKLOGIC_BOOTSTRAP_HOST}"
     if [[ "${MARKLOGIC_CLUSTER_TYPE}" = "bootstrap" && "${HOST_FQDN}" = "${MARKLOGIC_BOOTSTRAP_HOST}" ]]; then
         sleep 2s
         init_security_db
         configure_group
     else
-        # TODO: Finish here
+        wait_bootstrap_ready
         configure_group
         join_cluster $HOST_FQDN
     fi
