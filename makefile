@@ -100,6 +100,9 @@ e2e-test: prepare
 	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
 	minikube image load $(prevDockerImage)
 
+	@echo "=====Pull $(dockerImage) image for upgrade test"
+	docker pull $(dockerImage)
+
 	@echo "=====Setting hugepages values to 0 for e2e tests"
 	sudo sysctl -w vm.nr_hugepages=0
 
