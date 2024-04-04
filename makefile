@@ -124,6 +124,7 @@ e2e-test: prepare
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
+	docker image rm $(dockerImage)
 
 #***************************************************************************
 # hc-test
@@ -137,7 +138,6 @@ hc-test:
 
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
-
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
