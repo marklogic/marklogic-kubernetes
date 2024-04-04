@@ -26,6 +26,9 @@ allowLongHostnames: false
 ## It should remain true for all future upgrades. For new installations, this flag should be set to false.
 useLegacyHostnames: false
 
+# -- Annotations for the all deployed pods
+podAnnotations: {}
+
 ## Group related settings
 group:
   ## the group name of the current Marklogic Helm Deployment
