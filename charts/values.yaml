@@ -15,6 +15,9 @@ terminationGracePeriod: 120
 ## Kubernetes cluster domain name
 clusterDomain: cluster.local
 
+# -- Annotations for the all deployed pods
+podAnnotations: {}
+
 ## Group related settings
 group:
   ## the group name of the current Marklogic Helm Deployment
