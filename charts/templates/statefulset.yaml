@@ -148,7 +148,7 @@ spec:
             exec:
               command:
                 - /bin/bash
-                - /tmp/scripts/liveness-probe.sh
+                - /tmp/helm-scripts/liveness-probe.sh
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
