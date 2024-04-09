@@ -309,7 +309,7 @@ data:
     }
 
     ################################################################
-    # Fucntion to initialize a host
+    # Function to initialize a host
     # $1: The host name
     # return values: 0 - successfully initialized
     #                1 - host not reachable
@@ -357,7 +357,7 @@ data:
     }
 
     ################################################################
-    # Fucntion to initialize a host
+    # Function to initialize a host
     # $1: The host name
     # return values: 0 - successfully initialized
     #                1 - host not reachable
@@ -406,7 +406,7 @@ data:
     }
 
     ################################################################
-    # Fucntion to bootstrap host is ready:
+    # Function to bootstrap host is ready:
     #   1. If TLS is not enabled, wait until Security DB is installed.
     #   2. If TLS is enabled, wait until TLS is turned on in App Server
     # return values: 0 - admin user successfully initialized
@@ -434,7 +434,7 @@ data:
     }
     
     ################################################################
-    # Fucntion to initialize admin user and security DB
+    # Function to initialize admin user and security DB
     # 
     # return values: 0 - admin user successfully initialized
     ################################################################
@@ -476,7 +476,7 @@ data:
     }
 
     ################################################################
-    # Fucntion to join marklogic host to cluster
+    # Function to join marklogic host to cluster
     # 
     # return values: 0 - admin user successfully initialized
     ################################################################
@@ -560,7 +560,7 @@ data:
     }
 
     ################################################################
-    # Fucntion to configure MarkLogic Group
+    # Function to configure MarkLogic Group
     # 
     # return 
     ################################################################
@@ -835,9 +835,12 @@ data:
     # Authentication configuration when path based is used
     if [[ $POD_NAME == *-0 ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
         log "Info:  path based routing is set. Adapting authentication method"
-        $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP}
-        $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/App-Services/properties?group-id=${MARKLOGIC_GROUP}
-        $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Manage/properties?group-id=${MARKLOGIC_GROUP}
+        resp=$(curl --anyauth -w "%{http_code}" --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP})
+        log "Info:  Admin-Servers response code: $resp"
+        resp=$(curl --anyauth -w "%{http_code}" --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/App-Services/properties?group-id=${MARKLOGIC_GROUP})
+        log "Info:  App Service response code: $resp"
+        resp=$(curl --anyauth -w "%{http_code}" --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Manage/properties?group-id=${MARKLOGIC_GROUP})
+        log "Info:  Manage response code: $resp"
         log "Info:  Default App-Servers authentication set to basic auth"
     else
         log "Info:  This is not the boostrap host or path based routing is not set. Skipping authentication configuration"

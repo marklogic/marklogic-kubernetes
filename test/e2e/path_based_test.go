@@ -94,6 +94,7 @@ func TestPathBasedRouting(t *testing.T) {
 					t.Logf("error: %s", err.Error())
 				}
 				if resp.GetStatusCode() != 200 {
+					t.Logf("Server with response code: %d", resp.GetStatusCode())
 					t.Log("Waiting for MarkLogic cluster to be ready")
 				}
 				return resp.GetStatusCode() != 200
