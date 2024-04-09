@@ -166,19 +166,7 @@ data:
     done
 
   poststart-hook.sh: |
-    #! /bin/bash
-    ###############################################################
-    #
-    #   Copyright 2023 MarkLogic Corporation.  All Rights Reserved.
-    #
-    ###############################################################
-    #   Group Configuration MarkLogic server
-    #
-    #   ex.
-    #   > marklogic-setup.sh
-    #
-    ###############################################################
-    
+    #! /bin/bash    
     # Refer to https://docs.marklogic.com/guide/admin-api/cluster#id_10889 for cluster joining process
     
     N_RETRY=60
