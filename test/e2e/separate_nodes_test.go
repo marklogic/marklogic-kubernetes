@@ -26,8 +26,8 @@ func TestSeparateEDnode(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
-	dnodeReleaseName := "test-dnode-group"
-	enodeReleaseName := "test-enode-group"
+	dnodeReleaseName := "dnode"
+	enodeReleaseName := "enode"
 	dnodePodName := dnodeReleaseName + "-0"
 	enodePodName0 := enodeReleaseName + "-0"
 	enodePodName1 := enodeReleaseName + "-1"
@@ -112,11 +112,11 @@ func TestSeparateEDnode(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-
+	t.Log(string(body))
 	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
 	// verify xdqp-ssl-enabled is set to trues
 	assert.Equal(t, true, xdqpSSLEnabled.Bool(), "xdqp-ssl-enabled should be set to true")
@@ -232,8 +232,8 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
-	dnodeReleaseName := "test-dnode-group"
-	enodeReleaseName := "test-enode-group"
+	dnodeReleaseName := "dnode"
+	enodeReleaseName := "enode"
 	dnodePodName := dnodeReleaseName + "-0"
 
 	// Incorrect boostrap hostname for negative test
