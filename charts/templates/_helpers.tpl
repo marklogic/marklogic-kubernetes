@@ -5,16 +5,46 @@ Expand the name of the chart.
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{/* 
+newFullname is the name used after 1.1.x release, in an effort to make the release name shorter.
+*/}}
+{{- define "marklogic.newFullname" -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/* 
+oldFullname is the name used before 1.1.x release
+*/}}
+{{- define "marklogic.oldFullname" -}}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+
 {{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-The release name will be used as full name
+To surrport the upgrade from 1.0.x to 1.1.x, we keep the old name when doing upgrade from 1.0.x.
+For the new install, we use the new name, which is the release name.
 */}}
 {{- define "marklogic.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- if .Release.IsInstall -}}
+{{- include "marklogic.newFullname" . }}
+{{- else }}
+{{- $newCm := (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "marklogic.newFullname" .)) }}
+{{- if $newCm  }}
+{{- include "marklogic.newFullname" . }}
+{{- else }}
+{{- include "marklogic.oldFullname" . }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -102,8 +132,8 @@ Validate values file
 */}}
 {{- define "marklogic.checkInputError" -}}
 {{- $fqdn := include "marklogic.fqdn" . }}
-{{- if gt (len $fqdn) 64}}
-{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again."  }}
+{{- if and (gt (len $fqdn) 64) (not .Values.allowLongHostname) }}
+{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again. MarkLogic App Server does not support turning on SSL with FQDN over 64 characters. If you still want to install with an FQDN longer than 64 characters, you can override this restriction by setting allowLongHostname: true in your Helm values file." }}
 {{- fail $errorMessage }}
 {{- end }}
 {{- end }}
