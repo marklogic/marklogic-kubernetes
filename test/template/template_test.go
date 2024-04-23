@@ -155,17 +155,17 @@ func TestAllowLongHostname(t *testing.T) {
 
 	longReleaseName := "very-long-hostname-test-that-should-fail"
 
-	_, error := helm.RenderTemplateE(t, options, helmChartPath, longReleaseName, []string{"templates/statefulset.yaml"})
-	require.Error(t, error, "Expected error due to long release name")
+	_, err = helm.RenderTemplateE(t, options, helmChartPath, longReleaseName, []string{"templates/statefulset.yaml"})
+	require.Error(t, err, "Expected error due to long release name")
 
 	shortReleaseName := "short-hostname"
-	_, error = helm.RenderTemplateE(t, options, helmChartPath, shortReleaseName, []string{"templates/statefulset.yaml"})
-	require.NoError(t, error, "Expected no error due to short release name")
+	_, err = helm.RenderTemplateE(t, options, helmChartPath, shortReleaseName, []string{"templates/statefulset.yaml"})
+	require.NoError(t, err, "Expected no error due to short release name")
 
 	options.SetValues = map[string]string{
 		"allowLongHostname": "true",
 	}
-	_, error = helm.RenderTemplateE(t, options, helmChartPath, longReleaseName, []string{"templates/statefulset.yaml"})
-	require.NoError(t, error, "Expected no error with longReleaseName due to set allowLongHostname to true")
+	_, err = helm.RenderTemplateE(t, options, helmChartPath, longReleaseName, []string{"templates/statefulset.yaml"})
+	require.NoError(t, err, "Expected no error with longReleaseName due to set allowLongHostname to true")
 
 }
