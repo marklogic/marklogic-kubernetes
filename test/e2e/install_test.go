@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
@@ -58,25 +56,14 @@ func TestHelmInstall(t *testing.T) {
 
 	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
 
-	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
 
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	t.Log("====Testing Generated Random Password====")
 	secretName := releaseName + "-admin"
