@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -55,12 +56,13 @@ func TestHelmInstall(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	tlsConfig := tls.Config{}
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 
 	// verify MarkLogic is ready
-	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName)
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
 	}

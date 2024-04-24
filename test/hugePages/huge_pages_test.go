@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
@@ -73,22 +72,12 @@ func TestHugePagesSettings(t *testing.T) {
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
 
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
+	// verify MarkLogic is ready
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
 	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel8002.Close()
 	tunnel8002.ForwardPort(t)
