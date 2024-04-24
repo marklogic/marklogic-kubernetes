@@ -73,7 +73,7 @@ func TestHugePagesSettings(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
 
 	// verify MarkLogic is ready
-	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, tlsConfig)
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
 	}

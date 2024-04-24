@@ -12,7 +12,7 @@ import (
 )
 
 // MLReadyCheck : testUtil function to check if MarkLogic is ready for e2e tests
-func MLReadyCheck(t *testing.T, kubectlOpt *k8s.KubectlOptions, podName string, tlsConfig tls.Config) (bool, error) {
+func MLReadyCheck(t *testing.T, kubectlOpt *k8s.KubectlOptions, podName string, tlsConfig *tls.Config) (bool, error) {
 
 	tunnel7997 := k8s.NewTunnel(kubectlOpt, k8s.ResourceTypePod, podName, 7997, 7997)
 	defer tunnel7997.Close()
@@ -23,7 +23,7 @@ func MLReadyCheck(t *testing.T, kubectlOpt *k8s.KubectlOptions, podName string, 
 	err := http_helper.HttpGetWithRetryWithCustomValidationE(
 		t,
 		endpoint7997,
-		&tlsConfig,
+		tlsConfig,
 		10,
 		15*time.Second,
 		func(statusCode int, body string) bool {
