@@ -50,13 +50,41 @@ spec:
   {{- toYaml . | nindent 2 }}
   {{- end }}
   ports:
+    - name: qconsole
+      protocol: TCP
+      port: {{ .Values.defaultAppServers.appservices.port }}
+      targetPort: {{ .Values.defaultAppServers.appservices.port }}
+    - name: admin
+      protocol: TCP
+      port: {{ .Values.defaultAppServers.admin.port }}
+      targetPort: {{ .Values.defaultAppServers.admin.port }}
+    - name: manage
+      protocol: TCP
+      port: {{ .Values.defaultAppServers.manage.port }}
+      targetPort: {{ .Values.defaultAppServers.manage.port }}
+  {{- if .Values.pathbased.enabled }}
+    - name: frontendport
+      protocol: TCP
+      port: {{ .Values.frontendPort }}
+      targetPort: {{ .Values.frontendPort }}
+  {{- end }}
   {{- if .Values.stats.enabled }}
     - name: stats
       protocol: TCP
       port: {{ .Values.stats.port }}
       targetPort: {{ .Values.stats.port }}
   {{- end }}
-  {{- with .Values.ports }}
+  {{- if .Values.tcpports.enabled }}
+  {{- range .Values.tcpports.ports }}
+    - name: {{ .name }}
+      protocol: TCP
+      port: {{ .port }}
+      {{- if .targetPort }}
+      targetPort: {{ .targetPort }}
+      {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- with .Values.additionalAppServers }}
   {{- range $_, $v := . }}
     - name: {{ $v.name }}
       protocol: TCP

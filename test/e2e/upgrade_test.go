@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/docker/client"
 	"github.com/gruntwork-io/terratest/modules/helm"
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
@@ -235,6 +237,7 @@ func TestMLupgrade(t *testing.T) {
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
+	// Get MarkLogic version for a running instance
 	clusterEndpoint := fmt.Sprintf("http://%s/manage/v2?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, clusterEndpoint)
 
@@ -249,11 +252,28 @@ func TestMLupgrade(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	mlVersionPattern := regexp.MustCompile(`(\d+\.\d+)`)
 	mlVersionResp := gjson.Get(string(body), `local-cluster-default.version`)
+	t.Logf("MarkLogic version: %s", mlVersionResp.Str)
+
+	// Get MarkLogic version from the image metadata
+	// Connect to Docker
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	// Get image details
+	imageDetails, _, err := cli.ImageInspectWithRaw(ctx, imageRepo+":"+imageTag)
+	if err != nil {
+		panic(err)
+	}
+	mlVersionInImage := imageDetails.Config.Labels["com.marklogic.release-version"]
+
+	// extract ML version from server response (actual) and image metadata (expected)
+	mlVersionPattern := regexp.MustCompile(`(\d+\.\d+)`)
 	actualMlVersion := mlVersionPattern.FindStringSubmatch(mlVersionResp.Str)
-	expectedMlVersion := mlVersionPattern.FindStringSubmatch(imageTag)
-	// expectedMlVersion := strings.Split(imageTag, "-centos")[0]
+	expectedMlVersion := mlVersionPattern.FindStringSubmatch(mlVersionInImage)
+
 	// verify latest MarkLogic version after upgrade
 	assert.Equal(t, actualMlVersion, expectedMlVersion)
 }

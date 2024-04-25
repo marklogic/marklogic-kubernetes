@@ -13,6 +13,9 @@ data:
   MARKLOGIC_CLUSTER_TYPE: "bootstrap"
   MARKLOGIC_BOOTSTRAP_HOST: {{ include "marklogic.fqdn" . }}
 {{- end }}
+{{- if .Values.haproxy.pathbased.enabled }}
+  PATH_BASED_ROUTING: "true"
+{{- end }}
 {{- if .Values.tls.enableOnDefaultAppServers }}
   MARKLOGIC_JOIN_TLS_ENABLED: "true"
   MARKLOGIC_JOIN_CACERT_FILE: "marklogic-certs/cacert.pem"

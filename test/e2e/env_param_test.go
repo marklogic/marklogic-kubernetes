@@ -102,5 +102,5 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	// Verify that the license is getting installed
 	assert.Contains(t, logs, "LICENSE_KEY and LICENSEE are defined")
 	// Verify that converters are getting installed
-	assert.Contains(t, logs, "converters.rpm to be installed")
+	assert.Contains(t, logs, "INSTALL_CONVERTERS is true, installing converters.")
 }
