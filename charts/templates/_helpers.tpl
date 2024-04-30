@@ -24,6 +24,18 @@ oldFullname is the name used before 1.1.x release
 {{- end }}
 {{- end }}
 
+{{- define "marklogic.shouldUseNewName" -}}
+{{- if .Release.IsInstall -}}
+{{- true }}
+{{- else }}
+{{- $newCm := (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "marklogic.newFullname" .)) }}
+{{- if $newCm  }}
+{{- true }}
+{{- else }}
+{{- false }}
+{{- end }}
+{{- end }}
+{{- end }}
 
 {{/*
 Create a default fully qualified app name.
@@ -35,15 +47,10 @@ For the new install, we use the new name, which is the release name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- if .Release.IsInstall -}}
-{{- include "marklogic.newFullname" . }}
-{{- else }}
-{{- $newCm := (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "marklogic.newFullname" .)) }}
-{{- if $newCm  }}
+{{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
 {{- include "marklogic.newFullname" . }}
 {{- else }}
 {{- include "marklogic.oldFullname" . }}
-{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -59,7 +66,13 @@ Create chart name and version as used by the chart label.
 Create headless service name for statefulset
 */}}
 {{- define "marklogic.headlessServiceName" -}}
-{{- include "marklogic.fullname" . }}
+{{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
+{{- include "marklogic.newFullname" . }}
+{{- else }}
+{{- printf "%s-headless" (include "marklogic.oldFullname" .) }}
+{{- end }}
+{{- end }}
+{{/*
 {{- end}}
 
 
