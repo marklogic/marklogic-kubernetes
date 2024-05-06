@@ -25,9 +25,9 @@ data:
     defaults
       log global
       option forwardfor
-      timeout client 600s
-      timeout connect 600s
-      timeout server 600s
+      timeout client {{ .Values.haproxy.timeout.client }}
+      timeout connect {{ .Values.haproxy.timeout.connect }}
+      timeout server {{ .Values.haproxy.timeout.server }}
 
     resolvers dns
       # add nameserver from /etc/resolv.conf

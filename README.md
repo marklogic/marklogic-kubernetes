@@ -205,6 +205,9 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.additionalAppServers`                      | List of additional HTTP Ports configuration for HAproxy                         | `[]`                     |
 | `haproxy.tcpports.enabled`                          | Parameter to enable TCP port routing on HAProxy                              | `false`                  |
 | `haproxy.tcpports`                                  | TCP Ports and load balancing type configuration for HAproxy                  | `[]`                     |
+| `haproxy.timemout.client`                           | Timeout client measures inactivity during periods that we would expect the client to be speaking  | `600s`  |
+| `haproxy.timeout.connect`                           | Timeout connect configures the time that HAProxy will wait for a TCP connection to a backend server to be established  | `600s`  |
+| `haproxy.timeout.server`                            | Timeout server measures inactivity when we’d expect the backend server to be speaking | `600s`  |
 | `haproxy.tls.enabled`                               | Parameter to enable TLS for HAProxy                                                                                                                                                    | `false`                    |
 | `haproxy.tls.secretName`                            | Name of the secret that stores the certificate                                                                                                                                         | `""`                       |
 | `haproxy.tls.certFileName`                          | The name of the certificate file in the secret                                                                                                                                         | `""`                       |
