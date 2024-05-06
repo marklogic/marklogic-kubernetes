@@ -17,7 +17,6 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 )
@@ -180,22 +179,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
 
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	// wait until pods are in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
@@ -226,10 +215,10 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 			return totalHosts != 2
 		}).
 		Get("https://localhost:8002/manage/v2/hosts?view=status&format=json")
-	defer resp.Body.Close()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 
 	if totalHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
@@ -237,6 +226,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/certificate-templates/defaultTemplate?format=json")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -247,6 +239,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/certificates?format=json")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
@@ -258,6 +253,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	endpoint := strings.Replace("https://localhost:8002/manage/v2/certificates/certId?format=json", "certId", certID.Str, -1)
 	resp, err = client.R().
 		Get(endpoint)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
@@ -378,11 +376,11 @@ func TestTlsOnEDnode(t *testing.T) {
 			return totalHosts != 1
 		}).
 		Get("https://localhost:8002/manage/v2/hosts?format=json")
-	defer resp.Body.Close()
 
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 
 	// verify bootstrap host exists on the cluster
 	t.Log("====Verifying bootstrap host exists on the cluster")
@@ -393,12 +391,15 @@ func TestTlsOnEDnode(t *testing.T) {
 	t.Log("====Verifying xdqp-ssl-enabled is set to true for dnode group")
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/groups/dnode/properties?format=json")
-	defer resp.Body.Close()
-
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
+
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`).Bool()
 
 	// verify xdqp-ssl-enabled is set to true
@@ -452,7 +453,9 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/groups")
-
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())

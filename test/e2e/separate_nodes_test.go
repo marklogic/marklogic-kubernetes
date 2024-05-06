@@ -3,7 +3,6 @@ package e2e
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestSeparateEDnode(t *testing.T) {
@@ -83,14 +81,18 @@ func TestSeparateEDnode(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	resp, err := getHostsDR.Execute()
+	resp, err := client.R().
+		Get(hostsEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -106,13 +108,13 @@ func TestSeparateEDnode(t *testing.T) {
 	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/dnode/properties?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint for group properties: %s`, endpoint)
 
-	request := digestAuth.NewRequest(username, password, "GET", endpoint, "")
-	resp, err = request.Execute()
+	resp, err = client.R().
+		Get(endpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -146,13 +148,13 @@ func TestSeparateEDnode(t *testing.T) {
 	endpoint = fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint for group properties: %s`, endpoint)
 
-	request = digestAuth.NewRequest(username, password, "GET", endpoint, "")
-	resp, err = request.Execute()
+	resp, err = client.R().
+		Get(endpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -164,13 +166,14 @@ func TestSeparateEDnode(t *testing.T) {
 	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, groupEndpoint)
 
-	getGroupsDR := digestAuth.NewRequest(username, password, "GET", groupEndpoint, "")
-
-	if resp, err = getGroupsDR.Execute(); err != nil {
+	resp, err = client.R().
+		Get(groupEndpoint)
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -183,7 +186,7 @@ func TestSeparateEDnode(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
 
 	enodeHostCountJSON := 0
-	client := req.C()
+	client = req.C()
 	_, reqErr := client.R().
 		SetDigestAuth(username, password).
 		SetRetryCount(3).
@@ -292,15 +295,19 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	getHostsRequest := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-	resp, err := getHostsRequest.Execute()
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	resp, err := client.R().
+		Get(hostsEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -338,22 +345,30 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 
 	// Verify clustering failed given incorrect hostname
 	clusterStatusEndpoint := fmt.Sprintf("http://%s/manage/v2?view=status", tunnel.Endpoint())
-	clusterStatus := digestAuth.NewRequest(username, password, "GET", clusterStatusEndpoint, "")
 	t.Logf(`clusterStatusEndpoint: %s`, clusterStatusEndpoint)
-	resp, err = clusterStatus.Execute()
+
+	resp, err = client.R().
+		Get(clusterStatusEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// Verify enode group creation failed given incorrect hostname
 	enodeGroupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode", tunnel.Endpoint())
-	groupStatus := digestAuth.NewRequest(username, password, "GET", enodeGroupStatusEndpoint, "")
 	t.Logf(`enodeGroupStatusEndpoint: %s`, enodeGroupStatusEndpoint)
-	resp, err = groupStatus.Execute()
+	resp, err = client.R().
+		Get(enodeGroupStatusEndpoint)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
