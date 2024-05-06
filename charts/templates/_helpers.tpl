@@ -145,8 +145,8 @@ Validate values file
 */}}
 {{- define "marklogic.checkInputError" -}}
 {{- $fqdn := include "marklogic.fqdn" . }}
-{{- if and (gt (len $fqdn) 64) (not .Values.allowLongHostname) }}
-{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again. MarkLogic App Server does not support turning on SSL with FQDN over 64 characters. If you still want to install with an FQDN longer than 64 characters, you can override this restriction by setting allowLongHostname: true in your Helm values file." }}
+{{- if and (gt (len $fqdn) 64) (not .Values.allowLongHostnames) }}
+{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again. MarkLogic App Server does not support turning on SSL with FQDN over 64 characters. If you still want to install with an FQDN longer than 64 characters, you can override this restriction by setting allowLongHostnames: true in your Helm values file." }}
 {{- fail $errorMessage }}
 {{- end }}
 {{- end }}

@@ -70,7 +70,7 @@ prepare:
 .PHONY: lint
 lint:
 	@echo "> Linting helm charts....."
-	helm lint --set allowLongHostname=true --with-subcharts charts/ $(if $(saveOutput),> helm-lint-output.txt,)
+	helm lint --set allowLongHostnames=true --with-subcharts charts/ $(if $(saveOutput),> helm-lint-output.txt,)
 
 	@echo "> Linting all tests....."
 	golangci-lint run --timeout=5m $(if $(saveOutput),> test-lint-output.txt,)
