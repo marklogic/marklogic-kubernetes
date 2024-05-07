@@ -104,6 +104,13 @@ tcpports:
   #     type: TCP
   #     port: 5432
 
+# Timeout configuration for HAProxy
+# See Ref: https://www.haproxy.com/blog/the-four-essential-sections-of-an-haproxy-configuration#timeout-connect-timeout-client-timeout-server
+  timeout:
+    client: 600s
+    connect: 600s
+    server: 600s
+
 ## Automatically Roll Deployments
 # ref: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
 checksumConfigMap:

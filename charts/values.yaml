@@ -409,6 +409,14 @@ haproxy:
     #     type: TCP
     #     port: 5432
 
+
+  # Timeout configuration for HAProxy. It is recommended to set the same timeout on HAproxy as it is on MarkLogic App-Server (default to 600 second).
+  # ref: https://www.haproxy.com/blog/the-four-essential-sections-of-an-haproxy-configuration#timeout-connect-timeout-client-timeout-server
+  timeout:
+    client: 600s
+    connect: 600s
+    server: 600s
+
   ## Configure TLS for HAProxy
   ## Put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
   ## The PEM-formatted SSL certificate should contain the private key and the certificate. For example: cat certificate.pem private-key.pem > mycert.pem
