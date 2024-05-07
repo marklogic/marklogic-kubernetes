@@ -138,7 +138,7 @@ func TestTemplatePersistence(t *testing.T) {
 	require.Equal(t, statefulset.Spec.VolumeClaimTemplates[1].Spec.Resources.Requests.Storage().String(), additionalVolumeClaimTemplatesResourcesRequestsStorage)
 }
 
-func TestAllowLongHostname(t *testing.T) {
+func TestAllowLongHostnames(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
 	require.NoError(t, err)
@@ -148,7 +148,7 @@ func TestAllowLongHostname(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"allowLongHostname": "false",
+			"allowLongHostnames": "false",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -163,9 +163,9 @@ func TestAllowLongHostname(t *testing.T) {
 	require.NoError(t, err, "Expected no error due to short release name")
 
 	options.SetValues = map[string]string{
-		"allowLongHostname": "true",
+		"allowLongHostnames": "true",
 	}
 	_, err = helm.RenderTemplateE(t, options, helmChartPath, longReleaseName, []string{"templates/statefulset.yaml"})
-	require.NoError(t, err, "Expected no error with longReleaseName due to set allowLongHostname to true")
+	require.NoError(t, err, "Expected no error with longReleaseName due to set allowLongHostnames to true")
 
 }

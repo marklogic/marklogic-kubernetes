@@ -15,11 +15,11 @@ terminationGracePeriod: 120
 ## Kubernetes cluster domain name
 clusterDomain: cluster.local
 
-## To allow deployment with hostname over 64 characters
+## Allow deployment with hostname over 64 characters
 ## This is not remmended as it may cause issues when turning on TLS on MarkLogic Server
 ## Because MarkLogic Server only supports using CN as hostname in the certificate
 ## There is a limit of 64 characters for CN in the certificate
-allowLongHostname: false
+allowLongHostnames: false
 
 ## Group related settings
 group:
