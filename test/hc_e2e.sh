@@ -27,7 +27,8 @@ sleep 10
 
 echo "---- start UI sanity tests on HC ----"
 cd marklogic-data-hub-central/ui/e2e
-npm run cy:run --reporter junit --reporter-options "toConsole=false"
+npm install
+npm run cy:run-sanity --reporter junit --reporter-options "toConsole=false"
 
 echo "---- cleanup resources ----"
 kill $bootRunPID $forwarderPID
