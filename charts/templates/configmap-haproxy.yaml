@@ -81,7 +81,7 @@ data:
         mode tcp
         balance leastconn
         {{- range $i := until $replicas }}
-        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
+        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
         {{- end }}
     {{- else if eq $portType "HTTP" }}
 
