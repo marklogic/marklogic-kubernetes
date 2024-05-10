@@ -9,13 +9,21 @@ Expand the name of the chart.
 newFullname is the name used after 1.1.x release, in an effort to make the release name shorter.
 */}}
 {{- define "marklogic.newFullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
+{{- end }}
+
 
 {{/* 
 oldFullname is the name used before 1.1.x release
 */}}
 {{- define "marklogic.oldFullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
 {{- $name := default .Chart.Name .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
@@ -23,16 +31,21 @@ oldFullname is the name used before 1.1.x release
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
+{{- end }}
 
 {{- define "marklogic.shouldUseNewName" -}}
 {{- if .Release.IsInstall -}}
 {{- true }}
+{{- else }}
+{{- if .Values.fullnameOverride  -}}
+{{- false }}
 {{- else }}
 {{- $newCm := (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "marklogic.newFullname" .)) }}
 {{- if $newCm  }}
 {{- true }}
 {{- else }}
 {{- false }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -44,14 +57,10 @@ To surrport the upgrade from 1.0.x to 1.1.x, we keep the old name when doing upg
 For the new install, we use the new name, which is the release name.
 */}}
 {{- define "marklogic.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
 {{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
 {{- include "marklogic.newFullname" . }}
 {{- else }}
 {{- include "marklogic.oldFullname" . }}
-{{- end }}
 {{- end }}
 {{- end }}
 
@@ -70,6 +79,20 @@ Create headless service name for statefulset
 {{- include "marklogic.newFullname" . }}
 {{- else }}
 {{- printf "%s-headless" (include "marklogic.oldFullname" .) }}
+{{- end }}
+{{- end }}
+{{/*
+{{- end}}
+
+
+{{/*
+Create cluster service name for statefulset
+*/}}
+{{- define "marklogic.clusterServiceName" -}}
+{{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
+{{- include "marklogic.newFullname" . }}-cluster
+{{- else }}
+{{- include "marklogic.oldFullname" . }}
 {{- end }}
 {{- end }}
 {{/*
