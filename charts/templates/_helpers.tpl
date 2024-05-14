@@ -38,8 +38,8 @@ oldFullname is the name used before 1.1.x release
 {{- true }}
 {{- else }}
 {{- if .Values.fullnameOverride  -}}
-{{- $overridenName := .Values.fullnameOverride -}}
-{{- $labels := (lookup "apps/v1" "StatefulSet" .Release.Namespace "ml").metadata.labels  -}}
+{{- $overridenName := trim .Values.fullnameOverride -}}
+{{- $labels := (lookup "apps/v1" "StatefulSet" .Release.Namespace $overridenName).metadata.labels  -}}
 {{- $chartVersionFull := get $labels "helm.sh/chart" -}}
 {{- $chartVersionString := trimPrefix "marklogic-" $chartVersionFull -}}
 {{- $chartVersionString := $chartVersionString | replace "." "" -}}
