@@ -76,7 +76,7 @@ data:
     {{- if .Values.haproxy.tcpports.enabled }}
       {{- range $_, $v := .Values.haproxy.tcpports.ports }}
       {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
-      listen odbc
+      listen marklogic-TCP-{{$portNumber}}
         bind :{{ $portNumber }}
         mode tcp
         balance leastconn
