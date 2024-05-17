@@ -315,7 +315,8 @@ spec:
                     # Begin Group Configuration
                     if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       [ -f /var/opt/MarkLogic/group_cfg ] && current_group_cfg=$(cat /var/opt/MarkLogic/group_cfg)
-                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}" = "${current_group_cfg}" ]; then
+                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}" = "${current_group_cfg}" ] || 
+                        [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}" = "${current_group_cfg}" ]; then
                           log "Info: [poststart] Group config has not changed, poststart hook complete"
                           exit 0
                       fi
