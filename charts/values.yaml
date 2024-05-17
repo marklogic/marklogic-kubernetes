@@ -21,6 +21,11 @@ clusterDomain: cluster.local
 ## There is a limit of 64 characters for CN in the certificate
 allowLongHostnames: false
 
+## This is flag to help upgrade from 1.0.x version of the chart to keep the use of legacy hostnames
+## When upgrade from 1.0.x version to version above 1.1.0, this flag needs to be set to true. This flag need to always set to true in future upgrades.
+## For new installation, the value of this flag need to be set to false.
+useLegacyHostnames: false
+
 ## Group related settings
 group:
   ## the group name of the current Marklogic Helm Deployment

@@ -37,26 +37,38 @@ oldFullname is the name used before 1.1.x release
 {{- if .Release.IsInstall -}}
 {{- true }}
 {{- else }}
+{{- if eq .Values.useLegacyHostnames true -}}
+{{- false }}
+{{- else }}
+{{- true }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "marklogic.checkUpgradeError" -}}
+{{- if and .Release.IsUpgrade (ne .Values.useLegacyHostnames true) -}}
+{{- $stsName := trim (include "marklogic.oldFullname" .) -}}
 {{- if .Values.fullnameOverride  -}}
-{{- $overridenName := trim .Values.fullnameOverride -}}
-{{- $labels := (lookup "apps/v1" "StatefulSet" .Release.Namespace $overridenName).metadata.labels  -}}
-{{- $chartVersionFull := get $labels "helm.sh/chart" -}}
-{{- $chartVersionString := trimPrefix "marklogic-" $chartVersionFull -}}
-{{- $chartVersionString := $chartVersionString | replace "." "" -}}
-{{- $chartVersionDigit := int $chartVersionString}}
-{{- if lt $chartVersionDigit 110  -}}
-{{- false }}
-{{- else }}
-{{- true }}
+{{- $stsName := trim .Values.fullnameOverride -}}
 {{- end }}
-{{- else }}
-{{- $newCm := (lookup "apps/v1" "StatefulSet" .Release.Namespace (include "marklogic.newFullname" .)) }}
-{{- if $newCm  }}
-{{- true }}
-{{- else }}
-{{- false }}
+{{- $sts := lookup "apps/v1" "StatefulSet" .Release.Namespace $stsName }}
+{{- if $sts }}
+{{- $labels := $sts.metadata.labels }}
+{{- $chartVersionFull := get $labels "helm.sh/chart" }}
+{{- if $chartVersionFull }}
+{{- $chartVersionWithDot := trimPrefix "marklogic-" $chartVersionFull }}
+{{- $chartVersionString := $chartVersionWithDot | replace "." "" }}
+{{- $chartVersionDigit := int $chartVersionString }}
+{{- if lt $chartVersionDigit 110 -}}
+{{- $errorMessage := printf "New hostnames has been introduced since version 1.1.0. You are upgrading from version %s to version %s. To make the upgrade successful, please set the following configuration in values file to keep using the legacy hostname: \n\nuseLegacyHostnames: true\n" $chartVersionWithDot .Chart.Version }}
+{{- fail $errorMessage }}
 {{- end }}
 {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 {{- end }}
 {{- end }}
 
