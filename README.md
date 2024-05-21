@@ -14,8 +14,14 @@ For non-production deployments, please see [MiniKube Setup Guide](https://docs.m
 
 ### Kubernetes Version
 
-This Helm-chart currently support Kubernetes 1.23 or later.
- 
+This Helm chart supports Kubernetes 1.23 or later.
+
+This Helm chart has been tested on EKS (Elastic Kubernetes Service on AWS) and AKS (Azure Kubernetes Service), nevertheless it is expected to work on GKE (Google Kubernetes Engine) and RedHat OpenShift.
+
+### MarkLogic Version
+
+This Helm chart supports MarkLogic starting release 10.0-10-2.
+
 ### Installing MarkLogic Helm Chart
 
 This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 20GB persistent volume, 2 vCPUs, and 4GB of RAM will be allocated for the pod.
