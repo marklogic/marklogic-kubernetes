@@ -316,7 +316,12 @@ spec:
                     # Begin Group Configuration
                     if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       [ -f /var/opt/MarkLogic/group_cfg ] && current_group_cfg=$(cat /var/opt/MarkLogic/group_cfg)
-                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}" = "${current_group_cfg}" ] || 
+                      colon_count=$(echo "$current_group_cfg" | awk -F':' '{print NF-1}')
+                      if [ "$colon_count" -eq 2 ]; then
+                        current_group_cfg="${current_group_cfg%:*}"
+                      fi
+                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:true" = "${current_group_cfg}" ] || 
+                          [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:false" = "${current_group_cfg}" ] ||
                         [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}" = "${current_group_cfg}" ]; then
                           log "Info: [poststart] Group config has not changed, skip group configuration"
                       else 
@@ -341,9 +346,9 @@ spec:
                             restart_check ${TIMESTAMP}
                           fi
                           if [[ $MARKLOGIC_IMAGE_TYPE == "rootless" ]]; then
-                            sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                            sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
                           else
-                            sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                            sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
                           fi
                           log "Info: [poststart] ${GROUP_CFG} saved"
                         else
