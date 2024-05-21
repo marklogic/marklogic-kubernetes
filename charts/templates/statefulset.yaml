@@ -661,7 +661,7 @@ spec:
             secretName: {{ include "marklogic.authSecretNameToMount" . }}
         - name: scripts
           configMap:
-            name: {{ .Release.Name }}-scripts
+            name: {{ include "marklogic.fullname" . }}-scripts
             defaultMode: 0755
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
