@@ -318,40 +318,39 @@ spec:
                       [ -f /var/opt/MarkLogic/group_cfg ] && current_group_cfg=$(cat /var/opt/MarkLogic/group_cfg)
                       if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}" = "${current_group_cfg}" ] || 
                         [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}" = "${current_group_cfg}" ]; then
-                          log "Info: [poststart] Group config has not changed, poststart hook complete"
-                          exit 0
-                      fi
+                          log "Info: [poststart] Group config has not changed, skip group configuration"
+                      else 
+                        log "Info: [poststart] Begin group configuration."
+                        while [ ! -f /var/opt/MarkLogic/ready ]; do
+                          log "[poststart] waiting for MarkLogic server to be ready"
+                          sleep 5s
+                        done
 
-                      log "Info: [poststart] Begin group configuration."
-                      while [ ! -f /var/opt/MarkLogic/ready ]; do
-                        log "[poststart] waiting for MarkLogic server to be ready"
-                        sleep 5s
-                      done
+                        GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
+                        GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED")
 
-                      GROUP_CFG_TEMPLATE='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
-                      GROUP_CFG=$(printf "$GROUP_CFG_TEMPLATE" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED")
-
-                      log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
-                      GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
-                    
-                      # check whether MarkLogic has restarted
-                      if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
-                        log "Info: [poststart] Successfully configured properties for $MARKLOGIC_GROUP group on the MarkLogic cluster."
-                        TIMESTAMP=$(< /tmp/restart_payload.xml grep "last-startup" | sed 's%^.*<last-startup.*>\(.*\)</last-startup>.*$%\1%')
-                        rm  -f /tmp/restart_payload.xml
-                        if [[ -n ${TIMESTAMP} ]]; then
-                          restart_check ${TIMESTAMP}
-                        fi
-                        if [[ $MARKLOGIC_IMAGE_TYPE == "rootless" ]]; then
-                          sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                        log "Info: [poststart] Updating group configuration: ${GROUP_CFG}"
+                        GROUP_RESP_CODE=`curl --retry 5 --retry-max-time 60 -o /tmp/restart_payload.xml -w "%{http_code}" --anyauth -m 20 -s -X PUT -H "Content-type: application/json" -d "${GROUP_CFG}" http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/Default/properties --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}`
+                      
+                        # check whether MarkLogic has restarted
+                        if [[ ${GROUP_RESP_CODE} -eq 202 ]] || [[ ${GROUP_RESP_CODE} -eq 204 ]]; then
+                          log "Info: [poststart] Successfully configured properties for $MARKLOGIC_GROUP group on the MarkLogic cluster."
+                          TIMESTAMP=$(< /tmp/restart_payload.xml grep "last-startup" | sed 's%^.*<last-startup.*>\(.*\)</last-startup>.*$%\1%')
+                          rm  -f /tmp/restart_payload.xml
+                          if [[ -n ${TIMESTAMP} ]]; then
+                            restart_check ${TIMESTAMP}
+                          fi
+                          if [[ $MARKLOGIC_IMAGE_TYPE == "rootless" ]]; then
+                            sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                          else
+                            sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                          fi
+                          log "Info: [poststart] ${GROUP_CFG} saved"
                         else
-                          sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                          log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.
+                          log "Error: [poststart] Expected response code 202 or 204, got "${GROUP_RESP_CODE}"
+                          exit 1
                         fi
-                        log "Info: [poststart] ${GROUP_CFG} saved"
-                      else
-                        log "Error: [poststart] Failed to configure properties for $MARKLOGIC_GROUP group.
-                        log "Error: [poststart] Expected response code 202 or 204, got "${GROUP_RESP_CODE}"
-                        exit 1
                       fi
                     else
                       log "Info: [poststart] This is not bootstrap host. Skipping group configuration."
