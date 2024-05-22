@@ -13,6 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 )
 
@@ -143,6 +144,110 @@ func TestPathBasedRouting(t *testing.T) {
 			t.Errorf("basic authentication is not configured for %s AppServer", appServers[i])
 		}
 	}
+}
+
+func TestPathBasedRoutAppServers(t *testing.T) {
+	// Path to the helm chart we will test
+	helmChartPath, e := filepath.Abs("../../charts")
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+	username := "admin"
+	password := "admin"
+
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+
+	// Setup the args for helm install using custom values.yaml file
+	options := &helm.Options{
+		ValuesFiles:    []string{"../test_data/values/tls_pbr_appser_values.yaml"},
+		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+	}
+
+	t.Logf("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+
+	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+
+	t.Logf("====Installing Helm Chart")
+	releaseName := "test-path"
+	helm.Install(t, options, helmChartPath, releaseName)
+
+	podName := releaseName + "-1"
+	svcName := releaseName + "-haproxy"
+
+	// wait until the pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
+
+	tunnel := k8s.NewTunnel(
+		kubectlOptions, k8s.ResourceTypeService, svcName, 8080, 80)
+	defer tunnel.Close()
+	tunnel.ForwardPort(t)
+
+	client := req.C().
+		SetCommonBasicAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	endpoint := "http://localhost:8080/manage/manage/v2/servers?group-id=Default&server-type=http&format=json"
+	fmt.Println(endpoint)
+	testServerReq, err := os.ReadFile("../test_data/path_based_test_data/test-server.json")
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	//create new app server: test-server
+	resp, err := client.R().
+		SetHeader("Content-type", "application/json").
+		SetBodyJsonString(string(testServerReq)).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error: %s", err.Error())
+			}
+			t.Logf("StatusCode: %d", resp.GetStatusCode())
+			if resp.GetStatusCode() != 201 {
+				t.Log("Waiting for MarkLogic cluster to be ready")
+			}
+			return resp.GetStatusCode() != 201
+		}).
+		Post(endpoint)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	//test the additional app servers path
+	path := "test"
+	endpoint = fmt.Sprintf("http://localhost:8080/%s", path)
+	t.Logf("Verifying path based routing using %s", endpoint)
+	resp, err = client.R().
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error: %s", err.Error())
+			}
+			t.Logf("StatusCode: %d", resp.GetStatusCode())
+			if resp.GetStatusCode() != 500 {
+				t.Log("Waiting for MarkLogic cluster to be ready")
+			}
+			return resp.GetStatusCode() != 500
+		}).
+		Get(endpoint)
+
+	if err != nil {
+		t.Errorf("Error routing to %s", path)
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	//the response for test-server should be 500 and error message XDMP-MODNOTFOUND
+	//because test-server exist and there is no app running on it
+	assert.Equal(t, 500, resp.GetStatusCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	assert.Contains(t, string(body), "XDMP-MODNOTFOUND")
 }
 
 func TestPathBasedRoutingWithTLS(t *testing.T) {
