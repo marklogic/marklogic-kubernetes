@@ -60,7 +60,7 @@ oldFullname is the name used before 1.1.x release
 {{- $chartVersionString := $chartVersionWithDot | replace "." "" }}
 {{- $chartVersionDigit := int $chartVersionString }}
 {{- if lt $chartVersionDigit 110 -}}
-{{- $errorMessage := printf "New hostnames has been introduced since version 1.1.0. You are upgrading from version %s to version %s. To make the upgrade successful, please set the following configuration in values file to keep using the legacy hostname: \n\nuseLegacyHostnames: true\n" $chartVersionWithDot .Chart.Version }}
+{{- $errorMessage := printf "A new algorithm for generating hostnames was introduced in version 1.1.0. When upgrading from version %s to version %s, the \"useLegacyHostnames\" setting must be set to true to prevent the StatefulSet from being recreated. Please add the following to the values file and attempt the upgrade again: \n\nuseLegacyHostnames: true\n" $chartVersionWithDot .Chart.Version }}
 {{- fail $errorMessage }}
 {{- end }}
 {{- end }}
