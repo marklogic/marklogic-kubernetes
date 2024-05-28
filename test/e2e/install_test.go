@@ -22,7 +22,7 @@ func TestHelmInstall(t *testing.T) {
 	var resp *http.Response
 	var body []byte
 	var err error
-	var podName string
+	var podZeroName string
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -37,7 +37,7 @@ func TestHelmInstall(t *testing.T) {
 	}
 
 	options := map[string]string{
-		"persistence.enabled":   "false",
+		"persistence.enabled":   "true",
 		"replicaCount":          "2",
 		"image.repository":      imageRepo,
 		"image.tag":             imageTag,
@@ -55,7 +55,8 @@ func TestHelmInstall(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	podZeroName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	podOneName := releaseName + "-1"
 	tlsConfig := tls.Config{}
 
 	// wait until the pod is in Ready status
@@ -128,4 +129,9 @@ func TestHelmInstall(t *testing.T) {
 		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
 
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart pod by pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

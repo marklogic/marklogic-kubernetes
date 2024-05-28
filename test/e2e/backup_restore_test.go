@@ -344,4 +344,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	if !strings.Contains(string(result), "<b>two</b>") && !strings.Contains(string(result), "<a>one</a>") {
 		t.Errorf("Both docs are restored")
 	}
+
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

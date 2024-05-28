@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/tidwall/gjson"
 )
 
@@ -41,7 +43,7 @@ func TestHelmScaleUp(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -63,7 +65,7 @@ func TestHelmScaleUp(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -128,6 +130,13 @@ func TestHelmScaleUp(t *testing.T) {
 	if numOfHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func TestHelmScaleDown(t *testing.T) {
@@ -156,7 +165,7 @@ func TestHelmScaleDown(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -183,7 +192,7 @@ func TestHelmScaleDown(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -244,4 +253,8 @@ func TestHelmScaleDown(t *testing.T) {
 	if numOfHostsOffline != 1 {
 		t.Errorf("Incorrect number of offline hosts")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podName0}, namespaceName, kubectlOptions, &tlsConfig)
 }

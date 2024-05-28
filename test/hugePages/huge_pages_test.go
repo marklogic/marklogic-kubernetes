@@ -38,7 +38,7 @@ func TestHugePagesSettings(t *testing.T) {
 	password := "admin"
 
 	options := map[string]string{
-		"persistence.enabled":            "false",
+		"persistence.enabled":            "true",
 		"replicaCount":                   "1",
 		"image.repository":               imageRepo,
 		"image.tag":                      imageTag,
@@ -97,4 +97,7 @@ func TestHugePagesSettings(t *testing.T) {
 	if !strings.Contains(string(body), "Linux Huge Pages: detected 1280") {
 		t.Errorf("Huge Pages not configured for the node")
 	}
+
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

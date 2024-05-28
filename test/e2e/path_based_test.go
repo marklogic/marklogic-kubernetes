@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 )
@@ -44,7 +46,7 @@ func TestPathBasedRouting(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":       "false",
+			"persistence.enabled":       "true",
 			"replicaCount":              "3",
 			"image.repository":          imageRepo,
 			"image.tag":                 imageTag,
@@ -68,11 +70,13 @@ func TestPathBasedRouting(t *testing.T) {
 	releaseName := "test-path"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-2"
+	podZeroName := releaseName + "-0"
+	podOneName := releaseName + "-1"
+	podTwoName := releaseName + "-2"
 	svcName := releaseName + "-haproxy"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podTwoName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypeService, svcName, 8080, 80)
@@ -144,6 +148,13 @@ func TestPathBasedRouting(t *testing.T) {
 			t.Errorf("basic authentication is not configured for %s AppServer", appServers[i])
 		}
 	}
+
+	tlsConfig := tls.Config{}
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func TestPathBasedRoutAppServers(t *testing.T) {
@@ -174,11 +185,12 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 	releaseName := "test-path"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-1"
+	podZeroName := releaseName + "-0"
+	podOneName := releaseName + "-1"
 	svcName := releaseName + "-haproxy"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypeService, svcName, 8080, 80)
@@ -248,6 +260,13 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	assert.Contains(t, string(body), "XDMP-MODNOTFOUND")
+
+	tlsConfig := tls.Config{}
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func TestPathBasedRoutingWithTLS(t *testing.T) {
@@ -277,7 +296,7 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":           "false",
+			"persistence.enabled":           "true",
 			"replicaCount":                  "3",
 			"image.repository":              imageRepo,
 			"image.tag":                     imageTag,
@@ -302,11 +321,13 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 	releaseName := "test-pb-tls"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-2"
+	podZeroName := releaseName + "-0"
+	podOneName := releaseName + "-1"
+	podTwoName := releaseName + "-2"
 	svcName := releaseName + "-haproxy"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podTwoName, 10, 20*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypeService, svcName, 8080, 80)
@@ -376,4 +397,11 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 			t.Errorf("ssl is not enabled for %s AppServer", appServers[i])
 		}
 	}
+
+	tlsConfig := tls.Config{}
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
 }

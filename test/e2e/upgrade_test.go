@@ -18,6 +18,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
@@ -47,7 +48,7 @@ func TestHelmUpgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -75,10 +76,10 @@ func TestHelmUpgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "marklogicdb/marklogic-db",
+			"image.tag":             "latest",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -155,6 +156,11 @@ func TestHelmUpgrade(t *testing.T) {
 		t.Errorf("Incorrect number of MarkLogic hosts found after helm upgrade")
 	}
 
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 func TestMLupgrade(t *testing.T) {
 	// Path to the helm chart we will test
@@ -187,7 +193,7 @@ func TestMLupgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
+			"persistence.enabled": "true",
 			"replicaCount":        "1",
 			"updateStrategy.type": "OnDelete",
 			"image.repository":    imageRepo,
@@ -216,7 +222,7 @@ func TestMLupgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
@@ -276,4 +282,8 @@ func TestMLupgrade(t *testing.T) {
 
 	// verify latest MarkLogic version after upgrade
 	assert.Equal(t, actualMlVersion, expectedMlVersion)
+
+	tlsConfig := tls.Config{}
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

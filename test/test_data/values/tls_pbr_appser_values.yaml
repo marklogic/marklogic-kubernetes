@@ -1,6 +1,6 @@
 # This is a custom values files for path based routing additional app servers e2e tests
 persistence:
-  enabled: false
+  enabled: true
 
 replicaCount: 2
 
