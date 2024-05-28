@@ -60,10 +60,10 @@ func TestHelmInstall(t *testing.T) {
 	tlsConfig := tls.Config{}
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 15*time.Second)
 
 	// verify MarkLogic is ready
-	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
 	}
@@ -80,7 +80,7 @@ func TestHelmInstall(t *testing.T) {
 	// the random generated username should have length of 11"
 	assert.Equal(t, 11, len(username))
 
-	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel8002.Close()
 	tunnel8002.ForwardPort(t)
 	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel8002.Endpoint())
