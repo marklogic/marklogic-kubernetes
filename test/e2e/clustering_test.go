@@ -118,9 +118,9 @@ func TestClusterJoin(t *testing.T) {
 	}
 
 	tlsConfig := tls.Config{}
-	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

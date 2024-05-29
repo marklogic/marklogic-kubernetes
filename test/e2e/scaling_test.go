@@ -256,5 +256,5 @@ func TestHelmScaleDown(t *testing.T) {
 
 	tlsConfig := tls.Config{}
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podName0}, namespaceName, kubectlOptions, &tlsConfig)
+	testUtil.RestartPodAndVerify(t, false, []string{podName0}, namespaceName, kubectlOptions, &tlsConfig)
 }

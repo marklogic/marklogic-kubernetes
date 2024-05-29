@@ -129,9 +129,9 @@ func TestHelmInstall(t *testing.T) {
 		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
 
-	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart pod by pod in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
