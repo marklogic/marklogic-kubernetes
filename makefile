@@ -104,7 +104,7 @@ e2e-test: prepare
 	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Running e2e tests"
-	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/tls_test.go -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/tls_test.go)
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/...)
 
 	@echo "=====Setting hugepages value to 1280 for hugepages-e2e test"
 	sudo sysctl -w vm.nr_hugepages=1280
