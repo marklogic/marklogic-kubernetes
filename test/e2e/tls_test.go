@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 
@@ -73,22 +74,12 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
 
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)

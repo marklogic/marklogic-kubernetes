@@ -360,6 +360,20 @@ spec:
                     fi
                     # End Group Configuration
 
+                    AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s"
+
+                    # Authentication configuration when path based is used
+                    if [[ $POD_NAME == *-0 ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
+                      log "Info: [poststart] path based routing is set. Adapting authentication method"
+                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP}
+                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/App-Services/properties?group-id=${MARKLOGIC_GROUP}
+                      $AUTH_CURL -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Manage/properties?group-id=${MARKLOGIC_GROUP}
+                      log "Info: [poststart] Default App-Servers authentication set to basic auth"
+                    else
+                      log "Info: [poststart] This is not the boostrap host or path based routing is not set. Skipping authentication configuration"
+                    fi
+                    #End of authentication configuration
+
                     if [[ "$MARKLOGIC_JOIN_TLS_ENABLED" == "true" ]]; then
                       https_error_message="You have attempted to access an HTTPS server using HTTP."
                       resp=$(curl -s http://localhost:8001)
@@ -371,6 +385,7 @@ spec:
                       fi
                     else
                       log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to false"
+                      log "Info: [poststart] Poststart Hook Execution Completed"
                       exit 0
                     fi
 
@@ -379,7 +394,6 @@ spec:
                       sleep 5s
                     done
 
-                    AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
                     cd ~ 
                     if [[ -e "/run/secrets/marklogic-certs/tls.crt" ]]; then
                       log "Info: [poststart] Configuring named certificates on host"

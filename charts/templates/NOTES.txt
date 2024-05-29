@@ -1,6 +1,9 @@
 Thank you for installing {{ .Chart.Name }}.
 
+NOTE: Marklogic cluster make take several minutes to be fully initialised. Please standby while containers are started and the MarkLogic cluster is configured.
+
 Your release is named {{ .Release.Name }}.
+
 
 {{- if eq (include "marklogic.imageType" .) "rootless" }}
 {{- if .Values.containerSecurityContext.allowPrivilegeEscalation }}
@@ -9,6 +12,23 @@ WARNING
    The rootless MarkLogic container image is in use but containerSecurityContext.allowPrivilegeEscalation is set to true.
    Privilege escalation is not required to run the rootless MarkLogic container image. It is recommended to set 
    containerSecurityContext.allowPrivilegeEscalation to false to secure this configuration.
+   ***********************************************************************************************************
+{{- end }}
+{{- end }}
+
+{{- if .Values.haproxy.pathbased.enabled }}
+{{- if not .Values.tls.enableOnDefaultAppServers }}
+WARNING
+   ***********************************************************************************************************
+   Setting "pathbased.enabled" to true requires HTTP basic authentication but "tls.enableOnDefaultAppServers"
+   is set to false so passwords will be sent in plain text.
+   This is not recommended and is not a secure configuration so it should only be used be used with caution 
+   in non-production environments. 
+
+   For production environments please enable TLS as recommended.
+ 
+   Set "tls.enableOnDefaultAppServers" to true or use a service mesh with TLS enabled for 
+   end-to-end encryption.
    ***********************************************************************************************************
 {{- end }}
 {{- end }}

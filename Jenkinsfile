@@ -104,9 +104,9 @@ void resultNotification(message) {
     } else {
         emailList = params.emailList
     }
-    jira_link = "https://project.marklogic.com/jira/browse/${JIRA_ID}"
-    email_body = "<b>Jenkins pipeline for</b> ${env.JOB_NAME} <br><b>Build Number: </b>${env.BUILD_NUMBER} <br><br><b>Lint Output: </b><br><pre><code>${LINT_OUTPUT}</code></pre><br><br><b>Scan Output: </b><br><pre><code>${SCAN_OUTPUT}</code></pre><br><br><b>Build URL: </b><br>${env.BUILD_URL}"
-    jira_email_body = "${email_body} <br><br><b>Jira URL: </b><br>${jira_link}"
+    jira_link = "https://progresssoftware.atlassian.net/browse/${JIRA_ID}"
+    email_body = "<b>Jenkins pipeline for</b> ${env.JOB_NAME} <br><b>Build Number: </b>${env.BUILD_NUMBER} <br><br><b>Lint Output: </b><br><pre><code>${LINT_OUTPUT}</code></pre><br><br><b>Scan Output: </b><br><pre><code>${SCAN_OUTPUT}</code></pre><br><br><b>Build URL: </b><br><a href='${env.BUILD_URL}'>${env.BUILD_URL}</a>"
+    jira_email_body = "${email_body} <br><br><b>Jira URL: </b><br><a href='${jira_link}'>${jira_link}</a>"
 
     if (JIRA_ID) {
         def comment = [ body: "Jenkins pipeline build result: ${message}" ]
@@ -146,17 +146,6 @@ void publishTestResults() {
     archiveArtifacts artifacts: '**/test/test_results/*.xml', allowEmptyArchive: true
 }
 
-String getVersionDiv(mlVersion) {
-    switch (mlVersion) {
-        case '10.0':
-            return '-'
-        case '9.0':
-            return '-'
-        default:
-            return '.'
-    }
-}
-
 pipeline {
     agent {
         label {
@@ -169,29 +158,22 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HC_TESTS=true''' : '')
     }
     environment {
-        //timeStamp = sh(returnStdout: true, script: "date +%Y%m%d -d '-5 hours'").trim()
-        timeStamp = 'nightly'
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
-        dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-centos"
-        dockerVerDivider = getVersionDiv(params.ML_VERSION)
-        prevDockerVerDivider = getVersionDiv(params.PREV_ML_VERSION)
-        dockerVersion = "${ML_VERSION}${dockerVerDivider}${timeStamp}-centos-${dockerReleaseVer}"
-        prevDockerVersion = "${PREV_ML_VERSION}${prevDockerVerDivider}${timeStamp}-centos-${prevDockerReleaseVer}"
+        dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-${params.dockerImageType}"
     }
 
     parameters {
-        string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
-        choice(name: 'ML_VERSION', choices: '11.2\n12.0\n10.0', description: 'MarkLogic version. used to pick appropriate docker image')
+        choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi\ncentos', description: 'Platform type for Docker image')
+        string(name: 'dockerVersion', defaultValue: 'latest-11', description: 'Docker tag to use for tests. (e.g. 11.2.nightly-ubi-rootless-1.1.2) Has to correspond with dockerImageType.', trim: true)
+        string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
+        choice(name: 'K8_VERSION', choices: 'v1.29\nv1.30\nv1.28\nv1.27\nv1.26\nv1.25\nv1.24', description: 'Test Kubernetes version.')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         booleanParam(name: 'IMAGE_SCAN', defaultValue: false, description: 'Find and scan dependent Docker images for security vulnerabilities')
-        string(name: 'dockerReleaseVer', defaultValue: '1.1.2', description: 'Current Docker version. (e.g. 1.0.1)', trim: true)
-        choice(name: 'PREV_ML_VERSION', choices: '10.0\n9.0\n11.2', description: 'Previous MarkLogic version for MarkLogic upgrade tests')
-        string(name: 'prevDockerReleaseVer', defaultValue: '1.1.2', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 1.0.1)', trim: true)
-        choice(name: 'K8_VERSION', choices: 'v1.25.8\nv1.26.3\nv1.24.12\nv1.23.17', description: 'Test Kubernetes version. (e.g. v1.25.8)')
+        string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
     }
 
     stages {
