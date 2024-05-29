@@ -27,8 +27,20 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	username := "admin"
 	password := "admin"
+
+	if !repoPres {
+		imageRepo = "marklogicdb/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "latest"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
 
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
@@ -37,8 +49,8 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":           "false",
 			"replicaCount":                  "1",
-			"image.repository":              "marklogicdb/marklogic-db",
-			"image.tag":                     "latest",
+			"image.repository":              imageRepo,
+			"image.tag":                     imageTag,
 			"auth.adminUsername":            username,
 			"auth.adminPassword":            password,
 			"logCollection.enabled":         "false",
@@ -131,10 +143,25 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	namespaceName := "marklogic-" + "tlsnamed"
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	var err error
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	if !repoPres {
+		imageRepo = "marklogicdb/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "latest"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
 
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
 		ValuesFiles:    []string{"../test_data/values/tls_twonode_values.yaml"},
+		SetValues: map[string]string{ 
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -314,19 +341,23 @@ func TestTlsOnEDnode(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
-
+	
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
 	options := &helm.Options{
 		ValuesFiles:    []string{"../test_data/values/tls_dnode_values.yaml"},
+		SetValues: map[string]string{ 
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -415,6 +446,10 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{ 
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+		},
 		ValuesFiles:    []string{"../test_data/values/tls_enode_values.yaml"},
 	}
 
@@ -440,7 +475,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	helm.Install(t, enodeOptions, helmChartPath, enodeReleaseName)
 
 	// wait until the first enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 20, 20*time.Second)
 
 	t.Log("====Verify xdqp-ssl-enabled is set to false on Enode")
 	resp, err = client.R().
@@ -473,7 +508,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	}
 
 	// wait until the second enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 20, 20*time.Second)
 
 	t.Log("====Verifying two hosts joined enode group")
 	enodeHostCount := 0
