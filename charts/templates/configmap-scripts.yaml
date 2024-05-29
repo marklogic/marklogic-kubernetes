@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-scripts
+  name: {{ include "marklogic.fullname" . }}-scripts
 data:
   liveness-probe.sh: |
     #!/bin/bash

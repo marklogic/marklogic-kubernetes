@@ -15,6 +15,17 @@ terminationGracePeriod: 120
 ## Kubernetes cluster domain name
 clusterDomain: cluster.local
 
+## Allow deployment with hostname over 64 characters
+## This is not remmended as it may cause issues when turning on TLS on MarkLogic Server
+## Because MarkLogic Server only supports using CN as hostname in the certificate
+## There is a limit of 64 characters for CN in the certificate
+allowLongHostnames: false
+
+## This flag facilitates upgrading from version 1.0.x of the chart while retaining the use of legacy hostnames. 
+## When upgrading from version 1.0.x to any version above 1.1.0, this flag must be set to true.
+## It should remain true for all future upgrades. For new installations, this flag should be set to false.
+useLegacyHostnames: false
+
 ## Group related settings
 group:
   ## the group name of the current Marklogic Helm Deployment
@@ -28,7 +39,7 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.1.0-centos-1.1.2
+  tag: 11.2.0-centos-1.1.2
   pullPolicy: IfNotPresent
 
 ## Init container image parameters

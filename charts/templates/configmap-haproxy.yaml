@@ -1,6 +1,7 @@
 {{- if .Values.haproxy.enabled }}
 {{- $replicas := int .Values.replicaCount }}
 {{- $releaseName := include "marklogic.fullname" . }}
+{{- $headlessServiceName := include "marklogic.headlessServiceName" . }}
 {{- $namespace := .Release.Namespace }}
 {{- $clusterDomain := .Values.clusterDomain }}
 {{- $haproxyTlsEnabled := .Values.haproxy.tls.enabled }}
@@ -76,12 +77,12 @@ data:
     {{- if .Values.haproxy.tcpports.enabled }}
       {{- range $_, $v := .Values.haproxy.tcpports.ports }}
       {{ $portNumber := printf "%v" (default $v.port $v.targetPort) }}
-      listen odbc
+      listen marklogic-TCP-{{$portNumber}}
         bind :{{ $portNumber }}
         mode tcp
         balance leastconn
         {{- range $i := until $replicas }}
-        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
+        server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} check resolvers dns init-addr none
         {{- end }}
       {{- end }}
     {{- end }}
@@ -308,9 +309,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
       {{- else }}
-      server {{ printf "%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
       {{- end }}
     {{- end }}
