@@ -158,9 +158,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_twonode_values.yaml"},
-		SetValues: map[string]string{ 
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+		SetValues: map[string]string{
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -341,7 +341,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
-	
+
 	if !repoPres {
 		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
@@ -354,9 +354,9 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	options := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_dnode_values.yaml"},
-		SetValues: map[string]string{ 
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+		SetValues: map[string]string{
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -446,9 +446,9 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{ 
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+		SetValues: map[string]string{
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
 		},
 		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
 	}
