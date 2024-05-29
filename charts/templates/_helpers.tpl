@@ -5,16 +5,84 @@ Expand the name of the chart.
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-The release name will be used as full name
+{{/* 
+newFullname is the name used after 1.1.x release, in an effort to make the release name shorter.
 */}}
-{{- define "marklogic.fullname" -}}
+{{- define "marklogic.newFullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+
+{{/* 
+oldFullname is the name used before 1.1.x release
+*/}}
+{{- define "marklogic.oldFullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "marklogic.shouldUseNewName" -}}
+{{- if .Release.IsInstall -}}
+{{- true }}
+{{- else }}
+{{- if eq .Values.useLegacyHostnames true -}}
+{{- false }}
+{{- else }}
+{{- true }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "marklogic.checkUpgradeError" -}}
+{{- if and .Release.IsUpgrade (ne .Values.useLegacyHostnames true) -}}
+{{- $stsName := trim (include "marklogic.oldFullname" .) -}}
+{{- if .Values.fullnameOverride  -}}
+{{- $stsName := trim .Values.fullnameOverride -}}
+{{- end }}
+{{- $sts := lookup "apps/v1" "StatefulSet" .Release.Namespace $stsName }}
+{{- if $sts }}
+{{- $labels := $sts.metadata.labels }}
+{{- $chartVersionFull := get $labels "helm.sh/chart" }}
+{{- if $chartVersionFull }}
+{{- $chartVersionWithDot := trimPrefix "marklogic-" $chartVersionFull }}
+{{- $chartVersionString := $chartVersionWithDot | replace "." "" }}
+{{- $chartVersionDigit := int $chartVersionString }}
+{{- if lt $chartVersionDigit 110 -}}
+{{- $errorMessage := printf "A new algorithm for generating hostnames was introduced in version 1.1.0. When upgrading from version %s to version %s, the \"useLegacyHostnames\" setting must be set to true to prevent the StatefulSet from being recreated. Please add the following to the values file and attempt the upgrade again: \n\nuseLegacyHostnames: true\n" $chartVersionWithDot .Chart.Version }}
+{{- fail $errorMessage }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+{{- end }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+To surrport the upgrade from 1.0.x to 1.1.x, we keep the old name when doing upgrade from 1.0.x.
+For the new install, we use the new name, which is the release name.
+*/}}
+{{- define "marklogic.fullname" -}}
+{{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
+{{- include "marklogic.newFullname" . }}
+{{- else }}
+{{- include "marklogic.oldFullname" . }}
 {{- end }}
 {{- end }}
 
@@ -29,7 +97,27 @@ Create chart name and version as used by the chart label.
 Create headless service name for statefulset
 */}}
 {{- define "marklogic.headlessServiceName" -}}
-{{- include "marklogic.fullname" . }}
+{{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
+{{- include "marklogic.newFullname" . }}
+{{- else }}
+{{- printf "%s-headless" (include "marklogic.oldFullname" .) }}
+{{- end }}
+{{- end }}
+{{/*
+{{- end}}
+
+
+{{/*
+Create cluster service name for statefulset
+*/}}
+{{- define "marklogic.clusterServiceName" -}}
+{{- if eq (include "marklogic.shouldUseNewName" .) "true" -}}
+{{- include "marklogic.newFullname" . }}-cluster
+{{- else }}
+{{- include "marklogic.oldFullname" . }}
+{{- end }}
+{{- end }}
+{{/*
 {{- end}}
 
 
@@ -102,8 +190,8 @@ Validate values file
 */}}
 {{- define "marklogic.checkInputError" -}}
 {{- $fqdn := include "marklogic.fqdn" . }}
-{{- if gt (len $fqdn) 64}}
-{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again."  }}
+{{- if and (gt (len $fqdn) 64) (not .Values.allowLongHostnames) }}
+{{- $errorMessage := printf "%s%s%s" "The FQDN: " $fqdn " is longer than 64. Please use a shorter release name and try again. MarkLogic App Server does not support turning on SSL with FQDN over 64 characters. If you still want to install with an FQDN longer than 64 characters, you can override this restriction by setting allowLongHostnames: true in your Helm values file." }}
 {{- fail $errorMessage }}
 {{- end }}
 {{- end }}

@@ -16,8 +16,7 @@ WARNING
 FQDN is {{ include "marklogic.fqdn" . }}
 {{- if gt (len (include "marklogic.fqdn" .)) 64 }}
 WARNING:    The hostname is greater than 64 characters
-            There may be issues with certificates
-            The certificates may shorten the name or use SANs for hostnames in the certificates
+            There may be issues with certificates in MarkLogic App Server
 {{- end }}
 
 Group {{ .Values.group.name }} is created on the MarkLogic cluster.

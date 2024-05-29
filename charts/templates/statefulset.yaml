@@ -1,3 +1,4 @@
+{{- include "marklogic.checkUpgradeError" . -}}
 {{- include "marklogic.checkInputError" . }}
 apiVersion: apps/v1
 kind: StatefulSet
@@ -315,8 +316,12 @@ spec:
                     # Begin Group Configuration
                     if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                       [ -f /var/opt/MarkLogic/group_cfg ] && current_group_cfg=$(cat /var/opt/MarkLogic/group_cfg)
-                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}" = "${current_group_cfg}" ]; then
-                        log "Info: [poststart] Group config has not changed, complete group configuration"
+                      colon_count=$(echo "$current_group_cfg" | awk -F':' '{print NF-1}')
+                      if [ "$colon_count" -eq 2 ]; then
+                        current_group_cfg="${current_group_cfg%:*}"
+                      fi
+                      if [ "${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}" = "${current_group_cfg}" ]; then
+                          log "Info: [poststart] Group config has not changed, skip group configuration"
                       else 
                         log "Info: [poststart] Begin group configuration."
                         while [ ! -f /var/opt/MarkLogic/ready ]; do
@@ -339,9 +344,9 @@ spec:
                             restart_check ${TIMESTAMP}
                           fi
                           if [[ $MARKLOGIC_IMAGE_TYPE == "rootless" ]]; then
-                            sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                            sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
                           else
-                            sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}:${MARKLOGIC_JOIN_TLS_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
+                            sudo sh -c 'echo -n '"${MARKLOGIC_GROUP}:${XDQP_SSL_ENABLED}"' > /var/opt/MarkLogic/group_cfg'
                           fi
                           log "Info: [poststart] ${GROUP_CFG} saved"
                         else
@@ -359,7 +364,7 @@ spec:
                       https_error_message="You have attempted to access an HTTPS server using HTTP."
                       resp=$(curl -s http://localhost:8001)
                       if [[ "$resp" == *"$https_error_message"* ]]; then
-                          log "Info: [poststart] MarkLogic server has already configured HTTPS"
+                        log "Info: [poststart] MarkLogic server has already configured HTTPS"
                         exit 0
                       else 
                         log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
@@ -659,7 +664,7 @@ spec:
             secretName: {{ include "marklogic.authSecretNameToMount" . }}
         - name: scripts
           configMap:
-            name: {{ .Release.Name }}-scripts
+            name: {{ include "marklogic.fullname" . }}-scripts
             defaultMode: 0755
         {{- if .Values.logCollection.enabled }}
         - name: {{ include "marklogic.fullname" . }}-fb-config-map
