@@ -157,7 +157,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
-		ValuesFiles:    []string{"../test_data/values/tls_twonode_values.yaml"},
+		ValuesFiles: []string{"../test_data/values/tls_twonode_values.yaml"},
 		SetValues: map[string]string{ 
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -353,7 +353,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	}
 
 	options := &helm.Options{
-		ValuesFiles:    []string{"../test_data/values/tls_dnode_values.yaml"},
+		ValuesFiles: []string{"../test_data/values/tls_dnode_values.yaml"},
 		SetValues: map[string]string{ 
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -450,7 +450,7 @@ func TestTlsOnEDnode(t *testing.T) {
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 		},
-		ValuesFiles:    []string{"../test_data/values/tls_enode_values.yaml"},
+		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
 	}
 
 	//generate certificates for enode pod zero
