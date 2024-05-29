@@ -13,10 +13,6 @@ replicaCount: 1
 persistence:
   enabled: true
 
-image:
-  repository: marklogicdb/marklogic-db
-  tag: latest
-
 tls:
   enableOnDefaultAppServers: true
   certSecretNames:
