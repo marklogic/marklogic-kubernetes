@@ -238,7 +238,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		k8s.RunKubectl(t, kubectlOptions, "get", "pod", podOneName)
 		// k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podOneName)
 		podOne := k8s.GetPod(t, kubectlOptions, podOneName)
-		err:= k8s.RunKubectlE(t, kubectlOptions, "logs", "-n", namespaceName, "-p", podOneName)
+		err := k8s.RunKubectlE(t, kubectlOptions, "logs", "-n", namespaceName, "-p", podOneName)
 		if err != nil {
 			t.Logf("Error: %s", err.Error())
 		}
