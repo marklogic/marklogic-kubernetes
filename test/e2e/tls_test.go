@@ -12,94 +12,95 @@ import (
 	"time"
 
 	"github.com/imroc/req/v3"
-	// "github.com/marklogic/marklogic-kubernetes/test/testUtil"
-	// "github.com/stretchr/testify/assert"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/tidwall/gjson"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
-	// "github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/random"
 )
 
-// func TestTLSEnabledWithSelfSigned(t *testing.T) {
-// 	// Path to the helm chart we will test
-// 	helmChartPath, e := filepath.Abs("../../charts")
-// 	if e != nil {
-// 		t.Fatalf(e.Error())
-// 	}
-// 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-// 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-// 	username := "admin"
-// 	password := "admin"
+// 	"github.com/stretchr/testify/assert"
 
-// 	if !repoPres {
-// 		imageRepo = "marklogicdb/marklogic-db"
-// 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
-// 	}
+func TestTLSEnabledWithSelfSigned(t *testing.T) {
+	// Path to the helm chart we will test
+	helmChartPath, e := filepath.Abs("../../charts")
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	username := "admin"
+	password := "admin"
 
-// 	if !tagPres {
-// 		imageTag = "latest"
-// 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
-// 	}
+	if !repoPres {
+		imageRepo = "marklogicdb/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
 
-// 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
-// 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
-// 	options := &helm.Options{
-// 		KubectlOptions: kubectlOptions,
-// 		SetValues: map[string]string{
-// 			"persistence.enabled":           "false",
-// 			"replicaCount":                  "1",
-// 			"image.repository":              imageRepo,
-// 			"image.tag":                     imageTag,
-// 			"auth.adminUsername":            username,
-// 			"auth.adminPassword":            password,
-// 			"logCollection.enabled":         "false",
-// 			"tls.enableOnDefaultAppServers": "true",
-// 		},
-// 	}
+	if !tagPres {
+		imageTag = "latest"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
 
-// 	t.Logf("====Creating namespace: " + namespaceName)
-// 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":           "false",
+			"replicaCount":                  "1",
+			"image.repository":              imageRepo,
+			"image.tag":                     imageTag,
+			"auth.adminUsername":            username,
+			"auth.adminPassword":            password,
+			"logCollection.enabled":         "false",
+			"tls.enableOnDefaultAppServers": "true",
+		},
+	}
 
-// 	defer t.Logf("====Deleting namespace: " + namespaceName)
-// 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+	t.Logf("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-// 	t.Logf("====Installing Helm Chart")
-// 	releaseName := "test-join"
-// 	helm.Install(t, options, helmChartPath, releaseName)
+	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-// 	podName := releaseName + "-0"
-// 	tlsConfig := tls.Config{InsecureSkipVerify: true}
+	t.Logf("====Installing Helm Chart")
+	releaseName := "test-join"
+	helm.Install(t, options, helmChartPath, releaseName)
 
-// 	// wait until the pod is in Ready status
-// 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	podName := releaseName + "-0"
+	tlsConfig := tls.Config{InsecureSkipVerify: true}
 
-// 	// verify MarkLogic is ready
-// 	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
-// 	if err != nil {
-// 		t.Fatal("MarkLogic failed to start")
-// 	}
+	// wait until the pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
 
-// 	tunnel := k8s.NewTunnel(
-// 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
-// 	defer tunnel.Close()
-// 	tunnel.ForwardPort(t)
-// 	endpointManage := fmt.Sprintf("https://%s/manage/v2", tunnel.Endpoint())
-// 	t.Logf(`Endpoint: %s`, endpointManage)
+	// verify MarkLogic is ready
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
-// 	client := req.C().EnableInsecureSkipVerify()
+	tunnel := k8s.NewTunnel(
+		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	defer tunnel.Close()
+	tunnel.ForwardPort(t)
+	endpointManage := fmt.Sprintf("https://%s/manage/v2", tunnel.Endpoint())
+	t.Logf(`Endpoint: %s`, endpointManage)
 
-// 	resp, err := client.R().
-// 		SetDigestAuth(username, password).
-// 		Get("https://localhost:8002/manage/v2")
+	client := req.C().EnableInsecureSkipVerify()
 
-// 	if err != nil {
-// 		t.Fatalf(err.Error())
-// 	}
+	resp, err := client.R().
+		SetDigestAuth(username, password).
+		Get("https://localhost:8002/manage/v2")
 
-// 	fmt.Println("StatusCode: ", resp.GetStatusCode())
-// }
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	fmt.Println("StatusCode: ", resp.GetStatusCode())
+}
 
 func GenerateCACertificate(caPath string) error {
 	var err error
