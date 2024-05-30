@@ -235,8 +235,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	counter := 0
 	for isPodOneAvailable == false {
 		k8s.RunKubectl(t, kubectlOptions, "get", "pod", podOneName)
-		k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podOneName)
+		// k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podOneName)
 		podOne := k8s.GetPod(t, kubectlOptions, podOneName)
+        k8s.RunKubectl(t, kubectlOptions, "logs", "-n", namespaceName, "-p", podOneName)
 		if !k8s.IsPodAvailable(podOne) {
 			counter++
 			t.Logf("Pod is not available, retrying %d times", counter)
