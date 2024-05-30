@@ -238,8 +238,8 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podOneName)
 		podOne := k8s.GetPod(t, kubectlOptions, podOneName)
 		if !k8s.IsPodAvailable(podOne) {
-			counter ++
-			t.Logf("Pod is not available, retrying %d times", counter)	
+			counter++
+			t.Logf("Pod is not available, retrying %d times", counter)
 			time.Sleep(20 * time.Second)
 			if counter > 15 {
 				t.Fatalf("Pod is not available after 5 minutes")
@@ -249,9 +249,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		}
 	}
 
-
 	// k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 30*time.Second)
-	
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
