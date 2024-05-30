@@ -225,6 +225,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	)
 
 	// wait until pods are in Ready status
+	k8s.RunKubectl(t, kubectlOptions, "get", "pods")
+	k8s.RunKubectl(t, kubectlOptions, "get", "ns")
+	k8s.RunKubectl(t, kubectlOptions, "get", "sts")
+	k8s.RunKubectl(t, kubectlOptions, "get", "pvc")
+	k8s.RunKubectl(t, kubectlOptions, "get", "svc")
+
 	isPodOneAvailable := false
 	counter := 0
 	for isPodOneAvailable == false {
