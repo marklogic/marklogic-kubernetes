@@ -106,8 +106,8 @@ e2e-test: prepare
 
 	kubectl version
 	minikube version
-	# go version
-	# docker images
+	go version
+	docker images
 
 	@echo "=====Setting hugepages values to 0 for e2e tests"
 	sudo sysctl -w vm.nr_hugepages=0
