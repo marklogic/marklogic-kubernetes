@@ -92,16 +92,13 @@ e2e-test: prepare
 	minikube delete --all --purge
 
 	@echo "=====Pull $(dockerImage) image for upgrade test"
-	docker pull $(dockerImage)
+	docker pull marklogicdb/marklogic-db:11.2.0-ubi-rootless
 
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
-	minikube image load $(dockerImage)
-
-	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
-	minikube image load $(prevDockerImage)
+	minikube image load marklogicdb/marklogic-db:11.2.0-ubi-rootless
 
 
 	kubectl version

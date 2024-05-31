@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -29,20 +28,10 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
-	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	imageRepo := "marklogicdb/marklogic-db"
+	imageTag := "11.2.0-ubi-rootless"
 	username := "admin"
 	password := "admin"
-
-	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
-	}
-
-	if !tagPres {
-		imageTag = "latest"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
-	}
 
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
@@ -137,17 +126,8 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	namespaceName := "marklogic-" + "tlsnamed"
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	var err error
-	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
-	}
-
-	if !tagPres {
-		imageTag = "latest"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
-	}
+	imageRepo := "marklogicdb/marklogic-db"
+	imageTag := "11.2.0-ubi-rootless"
 
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
