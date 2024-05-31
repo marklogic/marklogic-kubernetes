@@ -230,8 +230,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	k8s.RunKubectl(t, kubectlOptions, "get", "ns")
 	k8s.RunKubectl(t, kubectlOptions, "get", "secrets")
 	k8s.RunKubectl(t, kubectlOptions, "get", "pvc")
-	k8s.RunKubectl(t, kubectlOptions, "get", "svc")
 	k8s.RunKubectl(t, kubectlOptions, "get", "cm", "marklogic", "-o", "yaml")
+	err = k8s.RunKubectlE(t, kubectlOptions, "logs", podName)
+	if err != nil {
+		t.Logf("Error: %s", err.Error())
+	}
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pods", podOneName)
 
 	isPodOneAvailable := false
 	counter := 0
@@ -239,9 +243,13 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		k8s.RunKubectl(t, kubectlOptions, "get", "pod", podOneName)
 		// k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podOneName)
 		podOne := k8s.GetPod(t, kubectlOptions, podOneName)
-		err := k8s.RunKubectlE(t, kubectlOptions, "logs", "-n", namespaceName, "-p", podOneName)
+		err := k8s.RunKubectlE(t, kubectlOptions, "logs", "-p", podOneName)
 		if err != nil {
-			t.Logf("Error: %s", err.Error())
+			t.Logf("ml-1 log not ready")
+		}
+		err = k8s.RunKubectlE(t, kubectlOptions, "logs", "-c", "copy-certs", podOneName)
+		if err != nil {
+			t.Logf("copy-certs log not ready")
 		}
 		if !k8s.IsPodAvailable(podOne) {
 			counter++
