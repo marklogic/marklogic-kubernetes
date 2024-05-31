@@ -296,6 +296,10 @@ spec:
                     }
 
                     log "Info: [poststart] Poststart Hook Execution"
+                    
+                    log "info: [poststart] bash version: $BASH_VERSION"
+                    curl_version=$(curl --version)
+                    log "info: [poststart] curl version: $curl_version"
 
                     restart_check () {
                       local retry_count LAST_START timestamp=$1
