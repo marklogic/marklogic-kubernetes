@@ -50,7 +50,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":           "false",
-			"replicaCount":                  "1",
+			"replicaCount":                  "2",
 			"image.repository":              imageRepo,
 			"image.tag":                     imageTag,
 			"auth.adminUsername":            username,
@@ -75,6 +75,8 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
+	podOneName := releaseName + "-1"
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 10, 20*time.Second)
 
 	// verify MarkLogic is ready
 	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
