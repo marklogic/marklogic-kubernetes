@@ -1,6 +1,6 @@
 dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
-kubernetesVersion?=v1.28.10
+kubernetesVersion?=v1.29.4
 minikubeMemory?=10gb
 ## System requirement:
 ## - Go 
@@ -91,6 +91,9 @@ e2e-test: prepare
 	@echo "=====Delete if there are existing minikube cluster"
 	minikube delete --all --purge
 
+	@echo "=====Pull $(dockerImage) image for upgrade test"
+	docker pull $(dockerImage)
+
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
@@ -100,11 +103,11 @@ e2e-test: prepare
 	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
 	minikube image load $(prevDockerImage)
 
-	@echo "=====Pull $(dockerImage) image for upgrade test"
-	docker pull $(dockerImage)
 
 	kubectl version
 	minikube version
+	# go version
+	# docker images
 
 	@echo "=====Setting hugepages values to 0 for e2e tests"
 	sudo sysctl -w vm.nr_hugepages=0

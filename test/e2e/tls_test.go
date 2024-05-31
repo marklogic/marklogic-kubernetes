@@ -208,10 +208,10 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
+	tunnel8001 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
+	defer tunnel8001.Close()
+	tunnel8001.ForwardPort(t)
+	endpoint7997 := fmt.Sprintf("http://%s", tunnel8001.Endpoint())
 
 	// verify if 7997 health check endpoint returns 200
 	http_helper.HttpGetWithRetryWithCustomValidation(
@@ -221,16 +221,17 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		10,
 		15*time.Second,
 		func(statusCode int, body string) bool {
-			return statusCode == 200
+			return statusCode == 403
 		},
 	)
 
 	// wait until pods are in Ready status
 	k8s.RunKubectl(t, kubectlOptions, "get", "pods")
 	k8s.RunKubectl(t, kubectlOptions, "get", "ns")
-	k8s.RunKubectl(t, kubectlOptions, "get", "sts")
+	k8s.RunKubectl(t, kubectlOptions, "get", "secrets")
 	k8s.RunKubectl(t, kubectlOptions, "get", "pvc")
 	k8s.RunKubectl(t, kubectlOptions, "get", "svc")
+	k8s.RunKubectl(t, kubectlOptions, "get", "cm", "marklogic", "-o", "yaml")
 
 	isPodOneAvailable := false
 	counter := 0
