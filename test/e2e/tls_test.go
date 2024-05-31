@@ -225,6 +225,24 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		},
 	)
 
+	t.Log("Getting error message from marklogic-0")
+	client := req.C().
+		EnableInsecureSkipVerify().
+		SetCommonDigestAuth("admin", "admin").
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	res, err := client.R().
+		Get("http://localhost:8001/")
+	defer res.Body.Close()
+
+	body1, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	t.Log("======localhost:8001")
+	t.Log(string(body1))
+
 	// wait until pods are in Ready status
 	k8s.RunKubectl(t, kubectlOptions, "get", "pods")
 	k8s.RunKubectl(t, kubectlOptions, "get", "ns")
@@ -271,11 +289,11 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	tunnel.ForwardPort(t)
 
 	totalHosts := 1
-	client := req.C().
-		EnableInsecureSkipVerify().
-		SetCommonDigestAuth("admin", "admin").
-		SetCommonRetryCount(10).
-		SetCommonRetryFixedInterval(10 * time.Second)
+	// client := req.C().
+	// 	EnableInsecureSkipVerify().
+	// 	SetCommonDigestAuth("admin", "admin").
+	// 	SetCommonRetryCount(10).
+	// 	SetCommonRetryFixedInterval(10 * time.Second)
 
 	resp, err := client.R().
 		AddRetryCondition(func(resp *req.Response, err error) bool {
