@@ -7,7 +7,7 @@ terminationGracePeriod: 10
 replicaCount: 2
 
 persistence:
-  enabled: true
+  enabled: false
 
 tls:
   enableOnDefaultAppServers: true
