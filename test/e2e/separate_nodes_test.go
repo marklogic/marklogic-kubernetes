@@ -46,7 +46,7 @@ func TestSeparateEDnode(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 

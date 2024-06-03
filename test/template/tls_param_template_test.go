@@ -1,6 +1,7 @@
 package template_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -23,9 +24,25 @@ func TestChartTemplateTLSEnabled(t *testing.T) {
 	namespaceName := "marklogic-templ"
 	t.Logf("Namespace: %s\n", namespaceName)
 
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	if !repoPres {
+		imageRepo = "marklogicdb/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "latest-11"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
-		ValuesFiles:    []string{"../test_data/values/tls_template_values.yaml"},
+		ValuesFiles: []string{"../test_data/values/tls_template_values.yaml"},
+		SetValues: map[string]string{
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 

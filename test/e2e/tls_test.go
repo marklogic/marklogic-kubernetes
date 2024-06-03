@@ -145,7 +145,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -348,10 +348,11 @@ func TestTlsOnEDnode(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
+	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_dnode_values.yaml"},
 		SetValues: map[string]string{
@@ -444,13 +445,14 @@ func TestTlsOnEDnode(t *testing.T) {
 	// verify xdqp-ssl-enabled is set to true
 	assert.Equal(t, true, xdqpSSLEnabled, "xdqp-ssl-enabled should be set to true")
 
+	// Setup the args for helm install using custom values.yaml file
 	enodeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
+		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
 		SetValues: map[string]string{
 			"image.repository": imageRepo,
 			"image.tag":        imageTag,
 		},
-		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
+		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
 	//generate certificates for enode pod zero

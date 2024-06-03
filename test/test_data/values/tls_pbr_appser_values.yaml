@@ -4,10 +4,6 @@ persistence:
 
 replicaCount: 2
 
-image:
-  repository: marklogicdb/marklogic-db
-  tag: latest-11
-
 auth:
   adminPassword: admin
   adminUsername: admin
