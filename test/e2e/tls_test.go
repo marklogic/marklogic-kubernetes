@@ -29,7 +29,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 		t.Fatalf(e.Error())
 	}
 	imageRepo := "marklogicdb/marklogic-db"
-	imageTag := "11.2.0-ubi-rootless"
+	imageTag := "11.2.0-centos-1.1.2"
 	username := "admin"
 	password := "admin"
 
@@ -127,7 +127,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	var err error
 	imageRepo := "marklogicdb/marklogic-db"
-	imageTag := "11.2.0-ubi-rootless"
+	imageTag := "11.2.0-centos-1.1.2"
 
 	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
