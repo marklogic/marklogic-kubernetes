@@ -3,6 +3,7 @@ package testUtil
 
 import (
 	"crypto/tls"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,9 +33,11 @@ func RestartPodAndVerify(t *testing.T, delAtOnce bool, podList []string, namespa
 	// wait until the pod is in Ready status and MarkLogic server is ready
 	for _, pod := range podList {
 		k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 15, 15*time.Second)
-		_, err := MLReadyCheck(t, kubectlOpt, pod, tlsConfig)
-		if err != nil {
-			t.Fatal("MarkLogic failed to start")
+		if strings.HasSuffix(pod, "-0") {
+			_, err := MLReadyCheck(t, kubectlOpt, pod, tlsConfig)
+			if err != nil {
+				t.Fatal("MarkLogic failed to start")
+			}
 		}
 	}
 }

@@ -8,7 +8,7 @@ auth:
 terminationGracePeriod: 10
 
 persistence:
-  enabled: true
+  enabled: false
 
 tls:
   enableOnDefaultAppServers: true
