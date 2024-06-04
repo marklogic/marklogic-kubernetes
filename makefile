@@ -117,7 +117,7 @@ e2e-test: prepare
 	minikube start
 
 	@echo "=====Running hugepages e2e test"
-	$(if $(saveOutput),gotestsum --junitfile test/test_results/hugePages-tests.xml ./test/hugePages/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/hugePages/...)
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/hugePages-tests.xml ./test/hugePages/$(testSelection) -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/hugePages/...)
 
 	@echo "=====Resetting hugepages value to 0"
 	sudo sysctl -w vm.nr_hugepages=0
