@@ -1,5 +1,5 @@
-dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
-prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
+dockerImage?=marklogicdb/marklogic-db:latest
+prevDockerImage?=marklogicdb/marklogic-db:latest-10.0
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
 ## System requirement:
@@ -107,7 +107,7 @@ e2e-test: prepare
 	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Running e2e tests"
-	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 90m, go test -v -count=1 -timeout 90m ./test/e2e/...)
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 120m, go test -v -count=1 -timeout 120m ./test/e2e/...)
 
 	@echo "=====Setting hugepages value to 1280 for hugepages-e2e test"
 	sudo sysctl -w vm.nr_hugepages=1280

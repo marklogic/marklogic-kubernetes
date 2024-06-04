@@ -14,7 +14,6 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
@@ -100,24 +99,11 @@ func TestHelmUpgrade(t *testing.T) {
 	passwordAfterUpgrade := string(passwordArr[:])
 	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
 
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podZeroName, 7997, 7997)
-
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
-
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint,
-		&tlsConfig,
-		15,
-		20*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	tunnel8002 := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
@@ -162,6 +148,7 @@ func TestHelmUpgrade(t *testing.T) {
 	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
+
 func TestMLupgrade(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -226,6 +213,8 @@ func TestMLupgrade(t *testing.T) {
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 		},
 	}
 

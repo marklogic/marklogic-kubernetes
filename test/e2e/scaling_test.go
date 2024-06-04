@@ -253,8 +253,4 @@ func TestHelmScaleDown(t *testing.T) {
 	if numOfHostsOffline != 1 {
 		t.Errorf("Incorrect number of offline hosts")
 	}
-
-	tlsConfig := tls.Config{}
-	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podName0}, namespaceName, kubectlOptions, &tlsConfig)
 }

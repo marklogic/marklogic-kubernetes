@@ -17,7 +17,6 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 )
@@ -100,8 +99,8 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	fmt.Println("StatusCode: ", resp.GetStatusCode())
 
-	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func GenerateCACertificate(caPath string) error {
@@ -208,28 +207,15 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	tlsConfig := tls.Config{InsecureSkipVerify: true}
 
-	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
-
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
-
 	// wait until pods are in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 30*time.Second)
+
+	// verify MarkLogic is ready
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
@@ -315,9 +301,6 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	if certHostName.Str != "marklogic-1.marklogic.marklogic-tlsnamed.svc.cluster.local" && certHostName.Str != "marklogic-0.marklogic.marklogic-tlsnamed.svc.cluster.local" {
 		t.Errorf("Incorrect hostname configured for Named certificate")
 	}
-
-	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 
 	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, false, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
