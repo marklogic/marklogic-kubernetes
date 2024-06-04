@@ -171,7 +171,7 @@ pipeline {
         string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
         choice(name: 'K8_VERSION', choices: 'v1.29\nv1.30\nv1.28\nv1.27\nv1.26\nv1.25\nv1.24', description: 'Test Kubernetes version.')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
-        string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', description: '..', trim: true)
+        string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         booleanParam(name: 'IMAGE_SCAN', defaultValue: false, description: 'Find and scan dependent Docker images for security vulnerabilities')
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
