@@ -227,6 +227,7 @@ pipeline {
             sh '''
 	            sudo sysctl -w vm.nr_hugepages=0
                 export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
+                docker rm -f $(docker ps -a -q) || true
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
                 docker image prune --force --all
