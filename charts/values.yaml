@@ -28,6 +28,9 @@ group:
 ## The name of the host to join. If not provided, the deployment is a bootstrap host.
 bootstrapHostName: ""
 
+## Flag to enable to migrate from MarkLogic root to rootless image
+rootToRootlessUpgrade: false
+
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
@@ -40,6 +43,9 @@ initContainers:
     image: "curlimages/curl:8.6.0"
     pullPolicy: IfNotPresent
   copyCerts:
+    image: "redhat/ubi9:9.3"
+    pullPolicy: IfNotPresent
+  rootToRootlessUpgrade:
     image: "redhat/ubi9:9.3"
     pullPolicy: IfNotPresent
 
