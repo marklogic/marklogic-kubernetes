@@ -1,5 +1,5 @@
-dockerImage?=marklogicdb/marklogic-db:latest
-prevDockerImage?=marklogicdb/marklogic-db:latest-10.0
+dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
+prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
 ## System requirement:
