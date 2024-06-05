@@ -14,8 +14,14 @@ For non-production deployments, please see [MiniKube Setup Guide](https://docs.m
 
 ### Kubernetes Version
 
-This Helm-chart currently support Kubernetes 1.23 or later.
- 
+This Helm chart supports Kubernetes 1.23 or later.
+
+This Helm chart has been tested on EKS (Elastic Kubernetes Service on AWS) and AKS (Azure Kubernetes Service), nevertheless it is expected to work on GKE (Google Kubernetes Engine) and RedHat OpenShift.
+
+### MarkLogic Version
+
+This Helm chart supports MarkLogic starting release 10.0-10-2.
+
 ### Installing MarkLogic Helm Chart
 
 This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 20GB persistent volume, 2 vCPUs, and 4GB of RAM will be allocated for the pod.
@@ -109,6 +115,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `clusterDomain`                                     | Domain for the Kubernetes cluster                                                                                                                                                      | `cluster.local`            |
 | `allowLongHostnames`                                | Allow deployment with hostname over 64 characters                                                    | `false` |
 | `useLegacyHostnames`                                | Use the lagecy hostnames that is used before 1.1.0 version.                                          | `false` |
+| `podAnnotations`                                     | Pod Annotations                                                                                                                                                      | `{}`            |
 | `group.name`                                        | Group name for joining MarkLogic cluster                                                                                                                                               | `Default`                  |
 | `group.enableXdqpSsl`                               | SSL encryption for XDQP                                                                                                                                                                | `true`                     |
 | `bootstrapHostName`                                 | Host name of MarkLogic bootstrap host (to join a cluster)                                                                                                                              | `""`                       |
@@ -206,6 +213,9 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.additionalAppServers`                      | List of additional HTTP Ports configuration for HAproxy                         | `[]`                     |
 | `haproxy.tcpports.enabled`                          | Parameter to enable TCP port routing on HAProxy                              | `false`                  |
 | `haproxy.tcpports`                                  | TCP Ports and load balancing type configuration for HAproxy                  | `[]`                     |
+| `haproxy.timemout.client`                           | Timeout client measures inactivity during periods that we would expect the client to be speaking  | `600s`  |
+| `haproxy.timeout.connect`                           | Timeout connect configures the time that HAProxy will wait for a TCP connection to a backend server to be established  | `600s`  |
+| `haproxy.timeout.server`                            | Timeout server measures inactivity when we’d expect the backend server to be speaking | `600s`  |
 | `haproxy.tls.enabled`                               | Parameter to enable TLS for HAProxy                                                                                                                                                    | `false`                    |
 | `haproxy.tls.secretName`                            | Name of the secret that stores the certificate                                                                                                                                         | `""`                       |
 | `haproxy.tls.certFileName`                          | The name of the certificate file in the secret                                                                                                                                         | `""`                       |
