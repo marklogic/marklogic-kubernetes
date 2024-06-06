@@ -69,8 +69,8 @@ spec:
       {{- end }}
       {{- if eq .Values.rootToRootlessUpgrade true }}
       - name: root-rootless-upgrade
-        image: {{ .Values.initContainers.rootToRootlessUpgrade.image | quote }}
-        imagePullPolicy: {{ .Values.initContainers.rootToRootlessUpgrade.pullPolicy | quote }}
+        image: {{ .Values.initContainers.volumePermissionChange.image | quote }}
+        imagePullPolicy: {{ .Values.initContainers.volumePermissionChange.pullPolicy | quote }}
         command: ["/bin/sh", "/tmp/helm-scripts/root-rootless-upgrade.sh"]
         volumeMounts:
           - name: datadir

@@ -45,7 +45,7 @@ initContainers:
   copyCerts:
     image: "redhat/ubi9:9.3"
     pullPolicy: IfNotPresent
-  rootToRootlessUpgrade:
+  volumePermissionChange:
     image: "redhat/ubi9:9.3"
     pullPolicy: IfNotPresent
 
