@@ -103,6 +103,13 @@ e2e-test: prepare
 	@echo "=====Pull $(dockerImage) image for upgrade test"
 	docker pull $(dockerImage)
 
+	kubectl get nodes
+	kubectl -n kube-system get pods
+	minikube version
+	kubectl version
+	go version
+	docker version
+
 	@echo "=====Setting hugepages values to 0 for e2e tests"
 	sudo sysctl -w vm.nr_hugepages=0
 
