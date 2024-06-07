@@ -76,5 +76,5 @@ func TestMlAdminSecrets(t *testing.T) {
 
 	tlsConfig := tls.Config{}
 	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

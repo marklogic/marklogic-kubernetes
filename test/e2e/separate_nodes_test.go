@@ -370,7 +370,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	assert.Equal(t, 404, resp.StatusCode)
 
 	tlsConfig := tls.Config{}
-	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{dnodePodName}, namespaceName, kubectlOptions, &tlsConfig)
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName}, namespaceName, kubectlOptions, &tlsConfig)
 
 }

@@ -273,6 +273,6 @@ func TestMLupgrade(t *testing.T) {
 	assert.Equal(t, actualMlVersion, expectedMlVersion)
 
 	tlsConfig := tls.Config{}
-	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

@@ -98,6 +98,6 @@ func TestHugePagesSettings(t *testing.T) {
 		t.Errorf("Huge Pages not configured for the node")
 	}
 
-	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
