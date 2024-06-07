@@ -411,6 +411,7 @@ data:
                 info "Calling Bootstrap host with response code:$resp. Bootstrap host is not ready with TLS enabled, try again in 10s"
                 sleep 10s
                 wait_bootstrap_ready
+                return 0
             fi
         else
             if [[ $resp -eq 401 ]]; then
@@ -419,6 +420,7 @@ data:
                 info "Calling Bootstrap host with response code:$resp. Bootstrap host is not ready, try again in 10s"
                 sleep 10s
                 wait_bootstrap_ready
+                return 0
             fi
         fi
     }
@@ -491,14 +493,14 @@ data:
                 return 0
             elif [ "${response_code}" = "401" ]; then
                 error "Failed to join the cluster: Security DB not set or credential not correct. Exit."
-                return 1
+                exit 1
             elif [ "${response_code}" != "404" ]; then
                 info "Response code from bootstrap host: ${response_code}. Retry again in 10s"
                 sleep 10s
-                ((retry_times--))
-                if [ $retry_times -le 0 ]; then
+                ((retry_count--))
+                if [ $retry_count -le 0 ]; then
                     error "Failed to get the expected response form bootstrap host after 5 times retry. Exit."
-                    return 1
+                    exit 1
                 fi
             else
                 info "Proceed to joining bootstrap host"
@@ -773,7 +775,7 @@ data:
             fi
         fi
         
-        log "Info:  removing cert keys"
+        log "Info: removing cert keys"
         rm -f /run/secrets/marklogic-certs/*.key
     }   
 
