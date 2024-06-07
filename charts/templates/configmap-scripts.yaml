@@ -406,7 +406,7 @@ data:
             if [[ $resp -eq 403 ]]; then
                 info "Bootstrap host is ready with TLS enabled"
             else
-                info "Timestamp response code:$resp. Bootstrap host is not ready with TLS enabled, try again in 10s"
+                info "Calling Bootstrap host with response code:$resp. Bootstrap host is not ready with TLS enabled, try again in 10s"
                 sleep 10s
                 wait_bootstrap_ready
             fi
@@ -414,7 +414,7 @@ data:
             if [[ $resp -eq 401 ]]; then
                 info "Bootstrap host is ready with no TLS"
             else
-                info "Timestamp response code:$resp. Bootstrap host is not ready, try again in 10s"
+                info "Calling Bootstrap host with response code:$resp. Bootstrap host is not ready, try again in 10s"
                 sleep 10s
                 wait_bootstrap_ready
             fi
@@ -516,11 +516,11 @@ data:
             exit 1
         fi
         
-        info "${hostname} - joining group ${MARKLOGIC_GROUP}"
+        info "${hostname} - joining cluster of group ${MARKLOGIC_GROUP}"
         payload=\"group=${MARKLOGIC_GROUP}\"
         curl_retry_validate "http://${hostname}:8001/admin/v1/server-config" 200 \
-            "--anyauth --user \"${MARKLOGIC_ADMIN_USERNAME}\":\"${MARKLOGIC_ADMIN_PASSWORD}\" \
-            -o /tmp/${hostname}.xml -X GET -H \"Accept: application/xml\""
+            "-o /tmp/${hostname}.xml -X GET -H \"Accept: application/xml\""
+
 
         curl_retry_validate "$HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/cluster-config" 200 \
             "--anyauth $HTTPS_OPTION --user \"${MARKLOGIC_ADMIN_USERNAME}\":\"${MARKLOGIC_ADMIN_PASSWORD}\" \
@@ -529,14 +529,10 @@ data:
             -H \"Content-type: application/x-www-form-urlencoded\" \
             -o /tmp/${hostname}_cluster.zip"
 
-        timestamp=$( \
-                curl -s --anyauth $HTTPS_OPTION \
-                --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
-                "http://${hostname}:8001/admin/v1/timestamp" \
-            )
+        timestamp=$(curl -s "http://${hostname}:8001/admin/v1/timestamp" )
 
         curl_retry_validate "http://${hostname}:8001/admin/v1/cluster-config" 202 \
-                "-o /dev/null --anyauth --user \"${MARKLOGIC_ADMIN_USERNAME}\":\"${MARKLOGIC_ADMIN_PASSWORD}\" \
+                "-o /dev/null \
                 -X POST -H \"Content-type: application/zip\" \
                 --data-binary @/tmp/${hostname}_cluster.zip"
         
