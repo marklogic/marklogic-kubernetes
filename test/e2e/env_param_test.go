@@ -29,8 +29,7 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	username := "admin"
-	password := "Admin"
-	// password := "AdminPa$s_with@!#%^&*()"
+	password := "AdminPa$s_with@!#%^&*()"
 	var resp *http.Response
 	var body []byte
 	var err error
