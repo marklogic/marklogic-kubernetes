@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
@@ -156,21 +157,23 @@ func TestMlDbBackupRestore(t *testing.T) {
 	username := "admin"
 	password := "admin"
 
-	options := map[string]string{
-		"persistence.enabled":   "true",
-		"replicaCount":          "1",
-		"image.repository":      imageRepo,
-		"image.tag":             imageTag,
-		"auth.adminUsername":    username,
-		"auth.adminPassword":    password,
-		"logCollection.enabled": "false",
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
+		},
 	}
 
 	t.Logf("====Installing Helm Chart")
 	releaseName := "bkuprestore"
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
@@ -37,25 +38,27 @@ func TestHugePagesSettings(t *testing.T) {
 	username := "admin"
 	password := "admin"
 
-	options := map[string]string{
-		"persistence.enabled":            "false",
-		"replicaCount":                   "1",
-		"image.repository":               imageRepo,
-		"image.tag":                      imageTag,
-		"auth.adminUsername":             username,
-		"auth.adminPassword":             password,
-		"logCollection.enabled":          "false",
-		"hugepages.enabled":              "true",
-		"hugepages.mountPath":            "/dev/hugepages",
-		"resources.limits.hugepages-2Mi": "1Gi",
-		"resources.limits.memory":        "8Gi",
-		"resources.requests.memory":      "8Gi",
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":            "false",
+			"replicaCount":                   "1",
+			"image.repository":               imageRepo,
+			"image.tag":                      imageTag,
+			"auth.adminUsername":             username,
+			"auth.adminPassword":             password,
+			"logCollection.enabled":          "false",
+			"hugepages.enabled":              "true",
+			"hugepages.mountPath":            "/dev/hugepages",
+			"resources.limits.hugepages-2Mi": "1Gi",
+			"resources.limits.memory":        "8Gi",
+			"resources.requests.memory":      "8Gi",
+		},
 	}
 	t.Logf("====Installing Helm Chart")
 	releaseName := "hugepages"
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
