@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
@@ -23,6 +25,8 @@ func TestHelmInstall(t *testing.T) {
 	var body []byte
 	var err error
 	var podName string
+	var helmChartPath string
+	upgradeHelm, upgradeHelmTest := os.LookupEnv("upgradeTest")
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -36,26 +40,39 @@ func TestHelmInstall(t *testing.T) {
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	options := map[string]string{
-		"persistence.enabled":   "false",
-		"replicaCount":          "2",
-		"image.repository":      imageRepo,
-		"image.tag":             imageTag,
-		"logCollection.enabled": "false",
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "false",
+			"replicaCount":          "2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"logCollection.enabled": "false",
+		},
 	}
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-install"
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if upgradeHelmTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	tlsConfig := tls.Config{}
 
 	// wait until the pod is in Ready status
@@ -65,6 +82,22 @@ func TestHelmInstall(t *testing.T) {
 	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
+	}
+
+	helmUpgradeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "false",
+			"replicaCount":          "2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"logCollection.enabled": "false",
+		},
+	}
+
+	if upgradeHelmTest {
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName})
 	}
 
 	t.Log("====Testing Generated Random Password====")

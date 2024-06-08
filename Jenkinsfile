@@ -158,11 +158,12 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HC_TESTS=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true''' : '')
     }
     environment {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-${params.dockerImageType}"
+        upgradeTest = "${params.HELM_UPGRADE_TESTS}"
     }
 
     parameters {
@@ -171,6 +172,7 @@ pipeline {
         string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
         choice(name: 'K8_VERSION', choices: 'v1.28.10\nv1.29.5\nv1.27.14\nv1.26.15\nv1.25.16\nv1.24.17', description: 'Test Kubernetes version.')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
+        booleanParam(name: 'HELM_UPGRADE_TESTS', defaultValue: false, description: 'Run Helm upgrade in E2E tests (runs nightly on develop)')
         string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         booleanParam(name: 'IMAGE_SCAN', defaultValue: false, description: 'Find and scan dependent Docker images for security vulnerabilities')
@@ -206,6 +208,16 @@ pipeline {
             steps {
                 sh """
                     export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb testSelection=${params.KUBERNETES_TEST_SELECTION}
+                """
+            }
+        }
+        stage('Kubernetes-Run-Upgrade-Tests') {
+            when {
+                expression { return params.HELM_UPGRADE_TESTS }
+            }
+            steps {
+                sh """
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make upgrade-test upgradeTest=true dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }

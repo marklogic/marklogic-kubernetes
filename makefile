@@ -2,6 +2,7 @@ dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/mar
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
+upgradeTest?=false
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable output saving for testing commands)
@@ -191,6 +192,23 @@ template-test: prepare
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
 test: template-test e2e-test
+
+#***************************************************************************
+# test
+#***************************************************************************
+## Run all tests
+## Options:
+## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
+## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
+.PHONY: upgrade-test
+upgrade-test: 
+	@echo "=====Setting upgrade parameter to true for e2e tests"
+	upgradeTest=true
+	@echo "=====upgrade parameter for e2e tests"
+	$(upgradeTest)
+	@echo "=====Running e2e tests"
+	e2e-test
 
 #***************************************************************************
 # image-scan
