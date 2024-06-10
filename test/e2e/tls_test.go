@@ -398,6 +398,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	resp, err := client.R().
 		AddRetryCondition(func(resp *req.Response, err error) bool {
 			body, err := io.ReadAll(resp.Body)
+			t.Log("====Body: ", string(body))
 			if err != nil {
 				t.Logf("error: %s", err.Error())
 			}

@@ -10,7 +10,7 @@ metadata:
 data:
   liveness-probe.sh: |
     #!/bin/bash
-    pid=$(pgrep -fn start.marklogic)
+    pid=$(pgrep start.marklogic)
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
       # Check to make sure pod doesn't terminate if PID value is empty for any reason
@@ -114,7 +114,7 @@ data:
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
-    pid=$(pgrep -fn start.marklogic)
+    pid=$(pgrep start.marklogic)
 
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
@@ -192,7 +192,7 @@ data:
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
-    pid=$(pgrep -fn start.marklogic)
+    pid=$(pgrep start.marklogic)
 
     ###############################################################
     # Logging utility
