@@ -624,6 +624,14 @@ data:
 
     function configure_tls {
         info "Configuring TLS for App Servers"
+        https_error_message="You have attempted to access an HTTPS server using HTTP."
+        resp=$(curl -s http://localhost:8001)
+        if [[ "$resp" == *"$https_error_message"* ]]; then
+            log "Info: [poststart] MarkLogic server has already configured HTTPS"
+            return 0
+        else 
+            log "Info: [poststart] MARKLOGIC_JOIN_TLS_ENABLED is set to true, configuring SSL"
+        fi
 
         AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
 
