@@ -269,7 +269,7 @@ containerSecurityContext:
   enabled: true
   runAsUser: 1000
   runAsNonRoot: true
-  allowPrivilegeEscalation: true
+  allowPrivilegeEscalation: false
 
 ## Below are the advanced configurations, please read the reference in detail before making changes
 
