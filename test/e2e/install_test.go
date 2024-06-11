@@ -27,7 +27,7 @@ func TestHelmInstall(t *testing.T) {
 	var podName string
 	var helmChartPath string
 	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("InitialChartVersion")
+	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -92,6 +92,7 @@ func TestHelmInstall(t *testing.T) {
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"logCollection.enabled": "false",
+			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
 		},
 	}
@@ -103,6 +104,9 @@ func TestHelmInstall(t *testing.T) {
 
 	t.Log("====Testing Generated Random Password====")
 	secretName := releaseName + "-admin"
+	if strings.HasPrefix(initialChartVersion, "1.0") {
+		secretName = releaseName + "-marklogic-admin"
+	}
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
 	passwordArr := secret.Data["password"]
 	password := string(passwordArr[:])
@@ -161,5 +165,4 @@ func TestHelmInstall(t *testing.T) {
 	if groupQuantityJSON.Num != 1 {
 		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
-
 }

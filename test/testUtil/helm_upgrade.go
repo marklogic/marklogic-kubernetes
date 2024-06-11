@@ -21,9 +21,13 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 	}
 
 	t.Logf("Initial Helm Chart Version %s:", oldChartVersion)
+	stsName := releaseName
 	if strings.HasPrefix(oldChartVersion, "1.0") {
-		stsName := releaseName + "-marklogic"
-		k8s.RunKubectl(t, kubectlOpt, "get", "statefulset")
+		stsName = releaseName + "-marklogic"
+	}
+
+	//delete statefulset to upgrade if initial helm chart version is 1.x.x
+	if strings.HasPrefix(oldChartVersion, "1.") {
 		k8s.RunKubectl(t, kubectlOpt, "delete", "statefulset", stsName)
 	}
 

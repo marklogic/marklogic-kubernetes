@@ -2,6 +2,7 @@
 package testUtil
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,10 @@ func HelmInstall(t *testing.T, helmOptions *helm.Options, releaseName string, ku
 	helm.Install(t, helmOptions, helmChartPath[0], releaseName)
 
 	podName := releaseName + "-0"
+	if strings.HasPrefix(helmOptions.Version, "1.0") {
+		podName = releaseName + "-marklogic-0"
+	}
+
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOpt, podName, 15, 15*time.Second)
 	return podName
