@@ -25,7 +25,6 @@ data:
   MARKLOGIC_FQDN_SUFFIX: {{ include "marklogic.headlessURL" . }}
   MARKLOGIC_INIT: "false"
   MARKLOGIC_JOIN_CLUSTER: "false"
-  MARKLOGIC_GROUP: {{ .Values.group.name }}
   XDQP_SSL_ENABLED: {{ quote .Values.group.enableXdqpSsl }}
   MARKLOGIC_IMAGE_TYPE: {{ include "marklogic.imageType" . }}
 ---
