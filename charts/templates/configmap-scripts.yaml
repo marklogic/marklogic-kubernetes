@@ -531,7 +531,7 @@ data:
             "-X" "POST" "-d" "${MARKLOGIC_GROUP_PAYLOAD}" \
             "--data-urlencode" "server-config@/tmp/marklogic/host.xml" \
             "-H" "Content-type: application/x-www-form-urlencoded" \
-            "-o" "/tmp/marklogic/cluster.zip"
+            "-o" "/tmp/marklogic/cluster.zip" "$HTTPS_OPTION"
 
         timestamp=$(curl -s "http://${hostname}:8001/admin/v1/timestamp" )
 
