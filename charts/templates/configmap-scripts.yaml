@@ -168,7 +168,7 @@ data:
   poststart-hook.sh: |
     #! /bin/bash    
     # Refer to https://docs.marklogic.com/guide/admin-api/cluster#id_10889 for cluster joining process
-    
+
     mkdir -p /tmp/marklogic
     N_RETRY=10
     RETRY_INTERVAL=5
@@ -189,9 +189,6 @@ data:
     else 
         echo "IS_BOOTSTRAP_HOST false"
     fi
-
-    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
-    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
     pid=$(pgrep start.marklogic)
 
@@ -222,6 +219,40 @@ data:
         
         echo $message >> /tmp/script.log
     }
+
+    ###############################################################
+    # Env Setup of MarkLogic
+    ###############################################################
+    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
+    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
+
+    # Make sure username and password variables are not empty
+    if [[ -z "${MARKLOGIC_ADMIN_USERNAME}" ]] || [[ -z "${MARKLOGIC_ADMIN_PASSWORD}" ]]; then
+        error "MARKLOGIC_ADMIN_USERNAME and MARKLOGIC_ADMIN_PASSWORD must be set." exit
+    fi
+
+    # generate JSON payload conditionally with license details.
+    if [[ -z "${LICENSE_KEY}" ]] || [[ -z "${LICENSEE}" ]]; then
+        LICENSE_PAYLOAD="{}"
+    else
+        info "LICENSE_KEY and LICENSEE are defined, installing MarkLogic license."
+        LICENSE_PAYLOAD="{\"license-key\" : \"${LICENSE_KEY}\",\"licensee\" : \"${LICENSEE}\"}"
+    fi
+
+    # sets realm conditionally based on user input
+    if [[ -z "${REALM}" ]]; then
+        ML_REALM="public"
+    else
+        info "REALM is defined, setting realm."
+        ML_REALM="${REALM}"
+    fi
+
+    if [[ -z "${MARKLOGIC_WALLET_PASSWORD}" ]]; then
+        MARKLOGIC_WALLET_PASSWORD_PAYLOAD=""
+    else
+        MARKLOGIC_WALLET_PASSWORD_PAYLOAD="wallet-password=${MARKLOGIC_WALLET_PASSWORD}"
+    fi
+    ###############################################################
 
     ################################################################
     # restart_check(hostname, baseline_timestamp)
@@ -271,7 +302,7 @@ data:
         local curl_options=("$@")
 
         for ((retry_count = 0; retry_count < N_RETRY; retry_count = retry_count + 1)); do
-            response=$(curl -s -m 30 -w '%{http_code}' "${curl_options[@]}" "$endpoint")
+            response=$(curl -v -m 30 -w '%{http_code}' "${curl_options[@]}" "$endpoint")
             response_code=$(tail -n1 <<< "$response")
             response_content=$(sed '$ d' <<< "$response")
             if [[ ${response_code} -eq ${expected_response_code} ]]; then
@@ -524,21 +555,23 @@ data:
         info "${hostname} - joining cluster of group ${MARKLOGIC_GROUP}"
         MARKLOGIC_GROUP_PAYLOAD="group=${MARKLOGIC_GROUP}"
         curl_retry_validate false "http://${hostname}:8001/admin/v1/server-config" 200 \
-            "-o" "/tmp/marklogic/host.xml" "-X" "GET" "-H" "Accept: application/xml"
+            "-o" "/tmp/host.xml" "-X" "GET" "-H" "Accept: application/xml"
         
+        info "${hostname} - getting cluster-config from bootstrap host"
         curl_retry_validate false "$HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/cluster-config" 200 \
             "--anyauth" "--user" "${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}" \
             "-X" "POST" "-d" "${MARKLOGIC_GROUP_PAYLOAD}" \
-            "--data-urlencode" "server-config@/tmp/marklogic/host.xml" \
+            "--data-urlencode" "server-config@/tmp/host.xml" \
             "-H" "Content-type: application/x-www-form-urlencoded" \
-            "-o" "/tmp/marklogic/cluster.zip" "$HTTPS_OPTION"
+            "-o" "/tmp/cluster.zip" $HTTPS_OPTION
 
         timestamp=$(curl -s "http://${hostname}:8001/admin/v1/timestamp" )
 
+        info "${hostname} - joining cluster of group ${MARKLOGIC_GROUP}"
         curl_retry_validate false "http://${hostname}:8001/admin/v1/cluster-config" 202 \
                 "-o" "/dev/null" \
                 "-X" "POST" "-H" "Content-type: application/zip" \
-                "--data-binary" "@/tmp/marklogic/cluster.zip"
+                "--data-binary" "@/tmp/cluster.zip"
         
         # 202 causes restart
         info "${hostname} - restart triggered"
@@ -777,37 +810,7 @@ data:
         rm -f /run/secrets/marklogic-certs/*.key
     }   
 
-    ###############################################################
-    # Env Setup of MarkLogic
-    ###############################################################
-    # Make sure username and password variables are not empty
-    if [[ -z "${MARKLOGIC_ADMIN_USERNAME}" ]] || [[ -z "${MARKLOGIC_ADMIN_PASSWORD}" ]]; then
-        error "MARKLOGIC_ADMIN_USERNAME and MARKLOGIC_ADMIN_PASSWORD must be set." exit
-    fi
 
-    # generate JSON payload conditionally with license details.
-    if [[ -z "${LICENSE_KEY}" ]] || [[ -z "${LICENSEE}" ]]; then
-        LICENSE_PAYLOAD="{}"
-    else
-        info "LICENSE_KEY and LICENSEE are defined, installing MarkLogic license."
-        LICENSE_PAYLOAD="{\"license-key\" : \"${LICENSE_KEY}\",\"licensee\" : \"${LICENSEE}\"}"
-    fi
-
-    # sets realm conditionally based on user input
-    if [[ -z "${REALM}" ]]; then
-        ML_REALM="public"
-    else
-        info "REALM is defined, setting realm."
-        ML_REALM="${REALM}"
-    fi
-
-    if [[ -z "${MARKLOGIC_WALLET_PASSWORD}" ]]; then
-        MARKLOGIC_WALLET_PASSWORD_PAYLOAD=""
-    else
-        MARKLOGIC_WALLET_PASSWORD_PAYLOAD="wallet-password=${MARKLOGIC_WALLET_PASSWORD}"
-    fi
-
-    ###############################################################
     info "Start configuring MarkLogic for $HOST_FQDN"
     info "Bootstrap host: $MARKLOGIC_BOOTSTRAP_HOST"
 
