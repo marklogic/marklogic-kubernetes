@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ func TestHugePagesSettings(t *testing.T) {
 	var body []byte
 	var err error
 	var podName string
+	var helmChartPath string
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -66,7 +68,12 @@ func TestHugePagesSettings(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for verifying huge pages")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)

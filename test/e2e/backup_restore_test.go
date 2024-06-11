@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -138,7 +139,7 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 
 func TestMlDbBackupRestore(t *testing.T) {
 	// var resp *http.Response
-
+	var helmChartPath string
 	var err error
 	var podName string
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
@@ -181,7 +182,12 @@ func TestMlDbBackupRestore(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for backup restore test")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
