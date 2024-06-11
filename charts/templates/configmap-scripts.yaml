@@ -169,8 +169,9 @@ data:
     #! /bin/bash    
     # Refer to https://docs.marklogic.com/guide/admin-api/cluster#id_10889 for cluster joining process
     
+    mkdir -p /tmp/marklogic
     N_RETRY=10
-    RETRY_INTERVAL=1
+    RETRY_INTERVAL=5
     HOST_FQDN="$(hostname).${MARKLOGIC_FQDN_SUFFIX}"
 
     # HTTP_PROTOCOL could be http or https 
@@ -221,8 +222,6 @@ data:
         
         echo $message >> /tmp/script.log
     }
-
-    info "PID: $pid"
 
     ################################################################
     # restart_check(hostname, baseline_timestamp)
@@ -275,17 +274,17 @@ data:
             response=$(curl -s -m 30 -w '%{http_code}' "${curl_options[@]}" "$endpoint")
             response_code=$(tail -n1 <<< "$response")
             response_content=$(sed '$ d' <<< "$response")
-
             if [[ ${response_code} -eq ${expected_response_code} ]]; then
-                return "${response_code}"
+                return ${response_code}
             else
                 echo "${response_content}" > /tmp/start-marklogic_curl_retry_validate.log
             fi
             
             sleep ${RETRY_INTERVAL}
         done
+
         if [[ "${return_error}" = "false" ]] ; then
-            return "${response_code}"
+            return ${response_code}
         fi
         [ -f "/tmp/start-marklogic_curl_retry_validate.log" ] && cat start-marklogic_curl_retry_validate.log
         error "Expected response code ${expected_response_code}, got ${response_code} from ${endpoint}." exit
@@ -524,23 +523,22 @@ data:
 
         info "${hostname} - joining cluster of group ${MARKLOGIC_GROUP}"
         MARKLOGIC_GROUP_PAYLOAD="group=${MARKLOGIC_GROUP}"
-        info "server-config"
         curl_retry_validate false "http://${hostname}:8001/admin/v1/server-config" 200 \
-            "-o" "/tmp/${hostname}.xml" "-X" "GET" "-H" "Accept: application/xml"
-
+            "-o" "/tmp/marklogic/host.xml" "-X" "GET" "-H" "Accept: application/xml"
+        
         curl_retry_validate false "$HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8001/admin/v1/cluster-config" 200 \
             "--anyauth" "--user" "${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}" \
             "-X" "POST" "-d" "${MARKLOGIC_GROUP_PAYLOAD}" \
-            "--data-urlencode" "server-config@/tmp/${hostname}.xml" \
+            "--data-urlencode" "server-config@/tmp/marklogic/host.xml" \
             "-H" "Content-type: application/x-www-form-urlencoded" \
-            "-o" "/tmp/${hostname}_cluster.zip" "$HTTPS_OPTION"
+            "-o" "/tmp/marklogic/cluster.zip"
 
         timestamp=$(curl -s "http://${hostname}:8001/admin/v1/timestamp" )
 
         curl_retry_validate false "http://${hostname}:8001/admin/v1/cluster-config" 202 \
                 "-o" "/dev/null" \
                 "-X" "POST" "-H" "Content-type: application/zip" \
-                "--data-binary" "@/tmp/${hostname}_cluster.zip"
+                "--data-binary" "@/tmp/marklogic/cluster.zip"
         
         # 202 causes restart
         info "${hostname} - restart triggered"
@@ -555,22 +553,20 @@ data:
     # return 
     ################################################################
     function configure_group {
-
+        log "configuring group"
         if [[ "$IS_BOOTSTRAP_HOST" == "true" ]]; then
             group_cfg_template='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
             group_cfg=$(printf "$group_cfg_template" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
 
             # check if host is already in and get the current cluster
-            response_code=$( \
-                curl -s --anyauth \
-                -w '%{http_code}' -o "/tmp/groups.out" \
-                --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
-                http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts/${HOST_FQDN}/properties?format=xml
-            )
+            curl_retry_validate false "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts/${HOST_FQDN}/properties?format=xml" 200 \
+                "--anyauth" "--user" "${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}" \
+                "-o" "/tmp/marklogic/groups.out"
 
+            response_code=$?
             if [ "${response_code}" = "200" ]; then
                 current_group=$( \
-                    cat "/tmp/groups.out" | 
+                    cat "/tmp/marklogic/groups.out" | 
                     grep "group" |
                     sed 's%^.*<group.*>\(.*\)</group>.*$%\1%' \
                 )
@@ -599,7 +595,8 @@ data:
                 else
                     info "unexpected response when updating group \"${current_group}\": ${response_code}"
                 fi
-            
+            else
+                info "failed to get current group, response code: ${response_code}"
             fi
 
             if [[ "$MARKLOGIC_CLUSTER_TYPE" == "non-bootstrap" ]]; then
@@ -840,6 +837,8 @@ data:
     if [[ $MARKLOGIC_JOIN_TLS_ENABLED == "true" ]]; then
         configure_tls
     fi
+
+    touch /tmp/marklogic/ready
 
     info "helm script completed"
       
