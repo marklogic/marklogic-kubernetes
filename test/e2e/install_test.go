@@ -26,7 +26,8 @@ func TestHelmInstall(t *testing.T) {
 	var err error
 	var podName string
 	var helmChartPath string
-	upgradeHelm, upgradeHelmTest := os.LookupEnv("upgradeTest")
+	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
+	initialChartVersion, _ := os.LookupEnv("InitialChartVersion")
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -45,12 +46,13 @@ func TestHelmInstall(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
 		},
+		Version: initialChartVersion,
 	}
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-install"
@@ -67,7 +69,7 @@ func TestHelmInstall(t *testing.T) {
 
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTest {
+	if upgradeHelmTestPres {
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
@@ -87,17 +89,16 @@ func TestHelmInstall(t *testing.T) {
 	helmUpgradeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
 		},
 	}
 
-	if upgradeHelmTest {
+	if upgradeHelmTestPres {
 		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName})
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}
 
 	t.Log("====Testing Generated Random Password====")

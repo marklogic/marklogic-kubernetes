@@ -3,6 +3,7 @@ package testUtil
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,12 +12,19 @@ import (
 )
 
 // HelmUpgrade : testUtil function to upgrade helm chart for e2e tests
-func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName string, kubectlOpt *k8s.KubectlOptions, podList []string) {
+func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName string, kubectlOpt *k8s.KubectlOptions, podList []string, oldChartVersion string) {
 
 	// Path to the current helm chart(to be released) we will upgrade to
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
 		t.Fatalf(e.Error())
+	}
+
+	t.Logf("Initial Helm Chart Version %s:", oldChartVersion)
+	if strings.HasPrefix(oldChartVersion, "1.0") {
+		stsName := releaseName + "-marklogic"
+		k8s.RunKubectl(t, kubectlOpt, "get", "statefulset")
+		k8s.RunKubectl(t, kubectlOpt, "delete", "statefulset", stsName)
 	}
 
 	//upgrade the helm chart
@@ -30,6 +38,6 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 
 	// wait until all pods are in Ready status
 	for _, pod := range podList {
-		k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 15, 15*time.Second)
+		k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 20, 20*time.Second)
 	}
 }
