@@ -792,8 +792,6 @@ data:
         configure_tls
     fi
 
-    touch /tmp/marklogic/ready
-
     info "helm script completed"
       
 
