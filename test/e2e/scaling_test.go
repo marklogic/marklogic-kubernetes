@@ -71,8 +71,12 @@ func TestHelmScaleUp(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	podOneName := releaseName + "-1"
-	// wait until second pod is in Ready status
+
+	// wait until first pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 30, 10*time.Second)
+
+	// wait until second pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 
 	//set helm options for upgrading helm chart version
 	helmUpgradeOptions := &helm.Options{
@@ -91,10 +95,6 @@ func TestHelmScaleUp(t *testing.T) {
 		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
-	helm.Upgrade(t, helmUpgradeOptions, helmChartPath, releaseName)
-
-	// wait until second pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)

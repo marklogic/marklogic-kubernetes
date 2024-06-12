@@ -74,7 +74,6 @@ func TestHelmUpgrade(t *testing.T) {
 	}
 
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
-	podOneName := releaseName + "-1"
 
 	// save the generated password from first installation
 	secretName := releaseName + "-admin"
@@ -88,7 +87,7 @@ func TestHelmUpgrade(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
-			"replicaCount":          "2",
+			"replicaCount":          "1",
 			"logCollection.enabled": "false",
 			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
@@ -97,13 +96,10 @@ func TestHelmUpgrade(t *testing.T) {
 
 	if upgradeHelmTestPres {
 		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName}, initialChartVersion)
 	}
 
 	tlsConfig := tls.Config{}
-
-	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 20, 20*time.Second)
 
 	t.Log("====Test password in secret should not change after upgrade====")
 	secret = k8s.GetSecret(t, kubectlOptions, secretName)

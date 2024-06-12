@@ -68,7 +68,6 @@ func TestMlAdminSecrets(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-ml-secrets"
 	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
-	helm.Install(t, options, helmChartPath, releaseName)
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
