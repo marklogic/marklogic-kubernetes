@@ -1,12 +1,8 @@
 # This is a custom values files for path based routing additional app servers e2e tests
 persistence:
-  enabled: false
+  enabled: true
 
 replicaCount: 2
-
-image:
-  repository: marklogicdb/marklogic-db
-  tag: latest-11
 
 auth:
   adminPassword: admin

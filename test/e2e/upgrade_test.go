@@ -14,10 +14,10 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
@@ -47,7 +47,7 @@ func TestHelmUpgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -75,10 +75,10 @@ func TestHelmUpgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "marklogicdb/marklogic-db",
+			"image.tag":             "latest",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -99,24 +99,11 @@ func TestHelmUpgrade(t *testing.T) {
 	passwordAfterUpgrade := string(passwordArr[:])
 	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
 
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podZeroName, 7997, 7997)
-
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
-
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint,
-		&tlsConfig,
-		15,
-		20*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	tunnel8002 := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
@@ -155,7 +142,13 @@ func TestHelmUpgrade(t *testing.T) {
 		t.Errorf("Incorrect number of MarkLogic hosts found after helm upgrade")
 	}
 
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
+
 func TestMLupgrade(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -187,7 +180,7 @@ func TestMLupgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
+			"persistence.enabled": "true",
 			"replicaCount":        "1",
 			"updateStrategy.type": "OnDelete",
 			"image.repository":    imageRepo,
@@ -216,10 +209,12 @@ func TestMLupgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 		},
 	}
 
@@ -276,4 +271,8 @@ func TestMLupgrade(t *testing.T) {
 
 	// verify latest MarkLogic version after upgrade
 	assert.Equal(t, actualMlVersion, expectedMlVersion)
+
+	tlsConfig := tls.Config{}
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

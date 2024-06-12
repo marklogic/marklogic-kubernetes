@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
@@ -187,23 +186,6 @@ func TestMlDbBackupRestore(t *testing.T) {
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
 
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
-
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
-
 	//create backup directories and setup permissions
 	k8s.RunKubectl(t, kubectlOptions, "exec", podName, "--", "/bin/bash", "-c", "cd /tmp && mkdir backup && chmod 777 backup && mkdir backup/incrBackup && chmod 777 backup/incrBackup")
 
@@ -344,4 +326,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	if !strings.Contains(string(result), "<b>two</b>") && !strings.Contains(string(result), "<a>one</a>") {
 		t.Errorf("Both docs are restored")
 	}
+
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
