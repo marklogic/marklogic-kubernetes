@@ -370,55 +370,6 @@ data:
     }
 
     ################################################################
-    # Function to initialize a host
-    # $1: The host name
-    # return values: 0 - successfully initialized
-    #                1 - host not reachable
-    ################################################################
-    function init_marklogic_host {
-        local hostname=$1
-        info "initializing host: $hostname"
-        timestamp=$( \
-            curl -s --anyauth \
-            --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
-            http://${hostname}:8001/admin/v1/timestamp \
-        )
-        if [ -z "${timestamp}" ]; then
-            info "${hostname} - not responding yet"
-            return 1
-        fi
-        info "${hostname} - responding, calling init"
-        output_path="/tmp/${hostname}.out"
-        response_code=$( \
-            curl --anyauth -m 30 -s --retry 5 \
-            -w '%{http_code}' -o "${output_path}" \
-            -i -X POST -H "Content-type:application/json" \
-            -d "${LICENSE_PAYLOAD}" \
-            --user "${MARKLOGIC_ADMIN_USERNAME}":"${MARKLOGIC_ADMIN_PASSWORD}" \
-            http://${hostname}:8001/admin/v1/init \
-        )
-
-        if [ "${response_code}" = "202" ]; then
-            info "${hostname} - init called, restart triggered"
-            last_startup=$( \
-                cat "${output_path}" | 
-                grep "last-startup" |
-                sed 's%^.*<last-startup.*>\(.*\)</last-startup>.*$%\1%' \
-            )
-
-            restart_check "${hostname}" "${last_startup}"
-            return 0
-        elif [ "${response_code}" -eq "204" ]; then
-            info "${hostname} - init called, no restart triggered"
-            info "${hostname} - init complete"
-            return 0
-        else
-            info "${hostname} - error calling init: ${response_code}"
-            [ -f "${out}" ] && cat "${out}"
-        fi
-    }
-
-    ################################################################
     # Function to bootstrap host is ready:
     #   1. If TLS is not enabled, wait until Security DB is installed.
     #   2. If TLS is enabled, wait until TLS is turned on in App Server
