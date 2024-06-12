@@ -87,6 +87,7 @@ func TestHelmInstall(t *testing.T) {
 		t.Fatal("MarkLogic failed to start")
 	}
 
+	//set helm options for upgrading helm chart version
 	helmUpgradeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{

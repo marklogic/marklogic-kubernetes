@@ -34,14 +34,16 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 	//upgrade the helm chart
 	helm.Upgrade(t, helmUpgradeOptions, helmChartPath, releaseName)
 
-	// delete one pod at a time to allow restart
-	for _, pod := range podList {
-		t.Logf("====Deleting %s pod\n", pod)
-		k8s.RunKubectl(t, kubectlOpt, "delete", "pod", pod)
-	}
+	if !strings.HasPrefix(oldChartVersion, "1.") {
+		// delete one pod at a time to allow restart
+		for _, pod := range podList {
+			t.Logf("====Deleting %s pod\n", pod)
+			k8s.RunKubectl(t, kubectlOpt, "delete", "pod", pod)
+		}
 
-	// wait until all pods are in Ready status
-	for _, pod := range podList {
-		k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 20, 20*time.Second)
+		// wait until all pods are in Ready status
+		for _, pod := range podList {
+			k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 20, 20*time.Second)
+		}
 	}
 }

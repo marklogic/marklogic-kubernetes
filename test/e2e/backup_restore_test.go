@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
@@ -142,6 +140,8 @@ func TestMlDbBackupRestore(t *testing.T) {
 	var helmChartPath string
 	var err error
 	var podName string
+	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
+	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -187,31 +187,38 @@ func TestMlDbBackupRestore(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if upgradeHelmTestPres {
+		helm.RemoveRepo(t, options, "marklogic")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		helmChartPath = "marklogic/marklogic"
+	}
+
 	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for backup restore test")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
 
-	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
 
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
-
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
+	//set helm options for upgrading helm chart version
+	helmUpgradeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"logCollection.enabled": "false",
+			"useLegacyHostnames":    "true",
+			"allowLongHostnames":    "true",
 		},
-	)
+	}
+
+	if upgradeHelmTestPres {
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
 
 	//create backup directories and setup permissions
 	k8s.RunKubectl(t, kubectlOptions, "exec", podName, "--", "/bin/bash", "-c", "cd /tmp && mkdir backup && chmod 777 backup && mkdir backup/incrBackup && chmod 777 backup/incrBackup")

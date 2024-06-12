@@ -14,6 +14,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
@@ -24,6 +25,8 @@ func TestSeparateEDnode(t *testing.T) {
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
+	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "dnode"
@@ -51,7 +54,7 @@ func TestSeparateEDnode(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -69,8 +72,16 @@ func TestSeparateEDnode(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if upgradeHelmTestPres {
+		helm.RemoveRepo(t, options, "marklogic")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		helmChartPath = "marklogic/marklogic"
+	}
+
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	helm.Install(t, options, helmChartPath, dnodeReleaseName)
+	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
@@ -124,7 +135,7 @@ func TestSeparateEDnode(t *testing.T) {
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -137,7 +148,7 @@ func TestSeparateEDnode(t *testing.T) {
 		},
 	}
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	helm.Install(t, enodeOptions, helmChartPath, enodeReleaseName)
+	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
@@ -181,6 +192,23 @@ func TestSeparateEDnode(t *testing.T) {
 
 	// wait until the second enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
+
+	//set helm options for upgrading E/D node releases
+	helmUpgradeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"logCollection.enabled": "false",
+			"useLegacyHostnames":    "true",
+			"allowLongHostnames":    "true",
+		},
+	}
+
+	if upgradeHelmTestPres {
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
+	}
 
 	enodeHostCountJSON := 0
 	client := req.C()

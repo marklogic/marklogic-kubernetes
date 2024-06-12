@@ -13,6 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
@@ -24,6 +25,8 @@ func TestMarklogicReady(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
+	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
 	username := "admin"
 	password := "admin"
 	var resp *http.Response
@@ -45,7 +48,7 @@ func TestMarklogicReady(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -63,11 +66,36 @@ func TestMarklogicReady(t *testing.T) {
 
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-install"
-	helm.Install(t, options, helmChartPath, releaseName)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if upgradeHelmTestPres {
+		helm.RemoveRepo(t, options, "marklogic")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		helmChartPath = "marklogic/marklogic"
+	}
 
-	podName := releaseName + "-0"
+	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+
+	//set helm options for upgrading helm chart version
+	helmUpgradeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"logCollection.enabled": "false",
+			"useLegacyHostnames":    "true",
+			"allowLongHostnames":    "true",
+		},
+	}
+
+	if upgradeHelmTestPres {
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
+
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
 	defer tunnel.Close()

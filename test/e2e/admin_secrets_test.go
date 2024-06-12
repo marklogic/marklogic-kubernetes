@@ -10,14 +10,13 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 )
 
 func TestMlAdminSecrets(t *testing.T) {
-	// Path to the helm chart we will test
-	helmChartPath, e := filepath.Abs("../../charts")
-	if e != nil {
-		t.Fatalf(e.Error())
-	}
+	var helmChartPath string
+	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
+	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -36,7 +35,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
+			"persistence.enabled": "true",
 			"replicaCount":        "1",
 			"image.repository":    imageRepo,
 			"image.tag":           imageTag,
@@ -52,13 +51,44 @@ func TestMlAdminSecrets(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
+	// Path to the helm chart we will test
+	helmChartPath, err := filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if upgradeHelmTestPres {
+		helm.RemoveRepo(t, options, "marklogic")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		helmChartPath = "marklogic/marklogic"
+	}
+
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-ml-secrets"
+	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+
+	//set helm options for upgrading helm chart version
+	helmUpgradeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"logCollection.enabled": "false",
+			"useLegacyHostnames":    "true",
+			"allowLongHostnames":    "true",
+		},
+	}
+
+	if upgradeHelmTestPres {
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
 
 	// get corev1.Pod to get logs of a pod
 	pod := k8s.GetPod(t, kubectlOptions, podName)
