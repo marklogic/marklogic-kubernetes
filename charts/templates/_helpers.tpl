@@ -68,9 +68,6 @@ oldFullname is the name used before 1.1.x release
 {{- end }}
 {{- end }}
 
-{{/*
-{{- end }}
-{{- end }}
 
 {{/*
 Create a default fully qualified app name.
@@ -146,6 +143,23 @@ Selector labels
 {{- define "marklogic.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "marklogic.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "marklogic.annotations" -}}
+marklogic.com/group-name: {{ .Values.group.name | quote }}
+marklogic.com/group-xdqp-enabled: {{ .Values.group.enableXdqpSsl | quote }}
+marklogic.com/cluster-name: {{ include "marklogic.clusterName" . }}
+app.kubernetes.io/name: "marklogic"
+marklogic.com/fqdn: {{ include "marklogic.fqdn" . }}
+{{- end }}
+
+{{- define "marklogic.clusterName" -}}
+{{- $bootStrapHost := trim .Values.bootstrapHostName }}
+{{- if ne $bootStrapHost "" -}}
+{{ .Values.bootstrapHostName }}
+{{- else -}}
+{{ include "marklogic.fqdn" . }}
+{{- end }}
 {{- end }}
 
 {{/*
