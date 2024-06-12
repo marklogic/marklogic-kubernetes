@@ -1,3 +1,35 @@
+{{- $groupDict := dict -}}
+{{- $newGroupName := .Values.group.name }}
+{{- $newClusterName := include "marklogic.clusterName" . -}}
+{{- $newFqdn := include "marklogic.fqdn" . -}}
+{{- $existingSTS := (lookup "apps/v1" "StatefulSet" "" "" ).items }}
+{{- range $key, $v := $existingSTS -}}
+  {{- $v := $v.metadata.annotations -}}
+  {{- $appName := get $v "app.kubernetes.io/name" -}}
+  {{- $fqdn := get $v "marklogic.com/fqdn" -}}
+  # {{- $fqdn }}
+  {{- if and (eq $appName "marklogic") (ne $newFqdn $fqdn) -}}
+    {{- $groupName := get $v "marklogic.com/group-name" }}
+    {{- $clusterName := get $v "marklogic.com/cluster-name" -}}
+    {{- if hasKey $groupDict $clusterName }}
+      {{- $currentList := get $groupDict $clusterName -}}
+      {{- $newList := append $currentList $groupName -}}
+      {{- $groupDict = merge (dict $clusterName $newList) $groupDict -}}
+    {{- else }}
+      {{- $groupDict = merge (dict $clusterName (list $groupName)) $groupDict -}}
+    {{- end}}
+  {{- end}}
+{{- end }}
+# {{- $groupDict -}}
+{{- if hasKey $groupDict $newClusterName -}}
+  {{- $groupNames := get $groupDict $newClusterName -}}
+  # {{- $groupNames -}}
+  {{- if has $newGroupName $groupNames }}
+    {{- $errorMessage := printf "You current deployment's group name \"%s\" is already in the cluster, please choose another group name" $newGroupName -}}
+    {{- fail $errorMessage -}}
+  {{- end }}
+{{- end }}
+
 {{- include "marklogic.checkUpgradeError" . -}}
 {{- include "marklogic.checkInputError" . }}
 apiVersion: apps/v1
@@ -7,6 +39,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "marklogic.labels" . | nindent 4 }}
+  annotations:
+    {{- include "marklogic.annotations" . | nindent 4 }}
+
 spec:
   serviceName: {{ include "marklogic.headlessServiceName" . }}
   replicas: {{ .Values.replicaCount }}
@@ -111,6 +146,8 @@ spec:
               value: {{ .Values.license.licensee | quote }}
             - name: REALM
               value: {{ .Values.realm  | quote }}
+            - name:  MARKLOGIC_GROUP
+              value: {{ .Values.group.name }}
           envFrom:
             - configMapRef:
                 name: {{ include "marklogic.fullname" . }}

@@ -42,7 +42,7 @@ bootstrapHostName: ""
 ## Marklogic image parameters
 image:
   repository: marklogicdb/marklogic-db
-  tag: 11.2.0-centos-1.1.2
+  tag: 11.2.0-ubi-rootless
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
@@ -269,7 +269,7 @@ containerSecurityContext:
   enabled: true
   runAsUser: 1000
   runAsNonRoot: true
-  allowPrivilegeEscalation: true
+  allowPrivilegeEscalation: false
 
 ## Below are the advanced configurations, please read the reference in detail before making changes
 
@@ -291,8 +291,8 @@ livenessProbe:
 ################################################################
 
 readinessProbe:
-  enabled: false
-  initialDelaySeconds: 10
+  enabled: true
+  initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
