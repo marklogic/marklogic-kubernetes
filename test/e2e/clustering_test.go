@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/tidwall/gjson"
 )
 
@@ -33,7 +35,7 @@ func TestClusterJoin(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -42,7 +44,7 @@ func TestClusterJoin(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -62,6 +64,7 @@ func TestClusterJoin(t *testing.T) {
 	releaseName := "test-join"
 	helm.Install(t, options, helmChartPath, releaseName)
 
+	podZeroName := releaseName + "-0"
 	podName := releaseName + "-1"
 
 	// wait until the pod is in Ready status
@@ -113,4 +116,11 @@ func TestClusterJoin(t *testing.T) {
 	if numOfHosts != 2 {
 		t.Errorf("Wrong number of hosts")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

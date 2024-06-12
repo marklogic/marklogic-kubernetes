@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
@@ -45,7 +47,7 @@ func TestMarklogicReady(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -65,11 +67,12 @@ func TestMarklogicReady(t *testing.T) {
 	releaseName := "test-install"
 	helm.Install(t, options, helmChartPath, releaseName)
 
-	podName := releaseName + "-0"
+	podZeroName := releaseName + "-0"
+	podOneName := releaseName + "-1"
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 15*time.Second)
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
+		kubectlOptions, k8s.ResourceTypePod, podOneName, 8001, 8001)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 	endpoint := fmt.Sprintf("http://%s/admin/v1/timestamp", tunnel.Endpoint())
@@ -86,4 +89,11 @@ func TestMarklogicReady(t *testing.T) {
 	}
 
 	t.Logf("Timestamp response:\n" + string(body))
+
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
