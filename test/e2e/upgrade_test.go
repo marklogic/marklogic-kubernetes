@@ -14,13 +14,12 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmUpgrade(t *testing.T) {
@@ -99,24 +98,11 @@ func TestHelmUpgrade(t *testing.T) {
 	passwordAfterUpgrade := string(passwordArr[:])
 	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
 
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podZeroName, 7997, 7997)
-
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
-
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint,
-		&tlsConfig,
-		15,
-		20*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	tunnel8002 := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
@@ -241,9 +227,14 @@ func TestMLupgrade(t *testing.T) {
 	clusterEndpoint := fmt.Sprintf("http://%s/manage/v2?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, clusterEndpoint)
 
-	getMLversion := digestAuth.NewRequest(username, password, "GET", clusterEndpoint, "")
+	reqClient := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	resp, err := getMLversion.Execute()
+	resp, err := reqClient.R().
+		Get(clusterEndpoint)
+
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

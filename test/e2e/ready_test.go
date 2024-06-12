@@ -2,8 +2,7 @@ package e2e
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +12,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
+	"github.com/imroc/req/v3"
 )
 
 func TestMarklogicReady(t *testing.T) {
@@ -26,7 +25,6 @@ func TestMarklogicReady(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	username := "admin"
 	password := "admin"
-	var resp *http.Response
 	var body []byte
 	var err error
 
@@ -75,13 +73,21 @@ func TestMarklogicReady(t *testing.T) {
 	endpoint := fmt.Sprintf("http://%s/admin/v1/timestamp", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, endpoint)
 
-	// Make request to server as soon as it is ready
-	timestamp := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	if resp, err = timestamp.Execute(); err != nil {
+	// Make request to server as soon as it is ready
+	resp, err := client.R().
+		Get(endpoint)
+
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	defer resp.Body.Close()
+
+	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
 

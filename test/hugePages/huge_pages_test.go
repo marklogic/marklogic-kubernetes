@@ -11,9 +11,9 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHugePagesSettings(t *testing.T) {
@@ -82,15 +82,24 @@ func TestHugePagesSettings(t *testing.T) {
 	defer tunnel8002.Close()
 	tunnel8002.ForwardPort(t)
 	endpointManage := fmt.Sprintf("http://%s/manage/v2/logs?format=text&filename=ErrorLog.txt", tunnel8002.Endpoint())
-	request := digestAuth.NewRequest(username, password, "GET", endpointManage, "")
-	response, err := request.Execute()
+
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	resp, err := client.R().
+		Get(endpointManage)
+
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer response.Body.Close()
-	assert.Equal(t, 200, response.StatusCode)
+	defer resp.Body.Close()
+	assert.Equal(t, 200, resp.StatusCode)
 
-	body, err = io.ReadAll(response.Body)
+	if body, err = io.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
 	t.Log(string(body))
 
 	// Verify if Huge pages are configured on the MarkLogic node
