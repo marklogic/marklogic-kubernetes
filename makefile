@@ -202,14 +202,8 @@ test: template-test e2e-test
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: upgrade-test
-upgrade-test: 
-	@echo "=====Setting upgrade parameter to true for e2e tests"
-	upgradeTest=true
-	@echo "=====upgrade parameter for e2e tests"
-	$(upgradeTest)
-	@echo "=====Running e2e tests"
-	e2e-test
-
+upgrade-test: e2e-test
+	
 #***************************************************************************
 # image-scan
 #***************************************************************************
