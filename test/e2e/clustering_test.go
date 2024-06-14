@@ -52,8 +52,8 @@ func TestClusterJoin(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
-			"image.tag":             "latest-11",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
