@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -140,8 +141,13 @@ func TestMlDbBackupRestore(t *testing.T) {
 	var helmChartPath string
 	var err error
 	var podName string
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -171,6 +177,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Installing Helm Chart")
@@ -189,12 +196,14 @@ func TestMlDbBackupRestore(t *testing.T) {
 
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
 	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for backup restore test")
@@ -215,8 +224,11 @@ func TestMlDbBackupRestore(t *testing.T) {
 		},
 	}
 
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+	if strings.HasPrefix(initialChartVersion, "1.") {
+		podName = releaseName + "-marklogic-0"
+	}
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}
 

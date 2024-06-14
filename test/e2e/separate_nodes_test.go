@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -20,72 +21,10 @@ import (
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
-func TestSeparateEDnode(t *testing.T) {
-	username := "admin"
-	password := "admin"
-	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
-	dnodeReleaseName := "dnode"
-	enodeReleaseName := "enode"
-	dnodePodName := dnodeReleaseName + "-0"
-	enodePodName0 := enodeReleaseName + "-0"
-	enodePodName1 := enodeReleaseName + "-1"
+var username = "admin"
+var password = "admin"
 
-	// Path to the helm chart we will test
-	helmChartPath, e := filepath.Abs("../../charts")
-	if e != nil {
-		t.Fatalf(e.Error())
-	}
-
-	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
-	}
-
-	if !tagPres {
-		imageTag = "latest"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
-	}
-
-	options := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"group.name":            "dnode",
-			"group.enableXdqpSsl":   "true",
-			"logCollection.enabled": "false",
-		},
-	}
-
-	t.Logf("====Creating namespace: " + namespaceName)
-	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
-
-	defer t.Logf("====Deleting namespace: " + namespaceName)
-	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
-
-	//add the helm chart repo and install the last helm chart release from repository
-	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
-		helm.RemoveRepo(t, options, "marklogic")
-		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
-		helmChartPath = "marklogic/marklogic"
-	}
-
-	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
-
-	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
-
+func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.KubectlOptions) (string, error) {
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
 	defer tunnel.Close()
@@ -131,44 +70,30 @@ func TestSeparateEDnode(t *testing.T) {
 	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
 	// verify xdqp-ssl-enabled is set to trues
 	assert.Equal(t, true, xdqpSSLEnabled.Bool(), "xdqp-ssl-enabled should be set to true")
+	return bootstrapHostJSON.Str, err
+}
 
-	enodeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"group.name":            "enode",
-			"bootstrapHostName":     bootstrapHostJSON.Str,
-			"group.enableXdqpSsl":   "false",
-			"logCollection.enabled": "false",
-		},
-	}
-	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
-
-	// wait until the first enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
-
+func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.KubectlOptions) {
+	tunnel := k8s.NewTunnel(
+		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
+	defer tunnel.Close()
+	tunnel.ForwardPort(t)
 	t.Log("====Verify xdqp-ssl-enabled is set to false on Enode")
-	endpoint = fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
+	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint for group properties: %s`, endpoint)
 
-	request = digestAuth.NewRequest(username, password, "GET", endpoint, "")
-	resp, err = request.Execute()
+	request := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	resp, err := request.Execute()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	xdqpSSLEnabled = gjson.Get(string(body), `xdqp-ssl-enabled`)
+	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
 	// verify xdqp-ssl-enabled is set to false
 	assert.Equal(t, false, xdqpSSLEnabled.Bool())
 
@@ -188,26 +113,6 @@ func TestSeparateEDnode(t *testing.T) {
 	// verify groups dnode, enode exists on the cluster
 	if !strings.Contains(string(body), "<nameref>dnode</nameref>") && !strings.Contains(string(body), "<nameref>enode</nameref>") {
 		t.Errorf("Groups does not exists on cluster")
-	}
-
-	// wait until the second enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
-
-	//set helm options for upgrading E/D node releases
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"logCollection.enabled": "false",
-			"useLegacyHostnames":    "true",
-			"allowLongHostnames":    "true",
-		},
-	}
-
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
 	}
 
 	enodeHostCountJSON := 0
@@ -236,6 +141,8 @@ func TestSeparateEDnode(t *testing.T) {
 			}
 			totalHosts := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
 			enodeHostCountJSON = int(totalHosts.Num)
+			t.Logf("====Response: %d", resp.GetStatusCode())
+			t.Logf("====enodeHostCountJSON: %d", enodeHostCountJSON)
 			if enodeHostCountJSON != 2 {
 				t.Log("Waiting for hosts to join enode group")
 			}
@@ -251,6 +158,154 @@ func TestSeparateEDnode(t *testing.T) {
 	if enodeHostCountJSON != 2 {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
+}
+
+func TestSeparateEDnode(t *testing.T) {
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	dnodeReleaseName := "dnode"
+	enodeReleaseName := "enode"
+	dnodePodName := dnodeReleaseName + "-0"
+	enodePodName0 := enodeReleaseName + "-0"
+	enodePodName1 := enodeReleaseName + "-1"
+
+	// Path to the helm chart we will test
+	helmChartPath, e := filepath.Abs("../../charts")
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+
+	if !repoPres {
+		imageRepo = "marklogicdb/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "latest"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"group.name":            "dnode",
+			"logCollection.enabled": "false",
+		},
+		Version: initialChartVersion,
+	}
+
+	t.Logf("====Creating namespace: " + namespaceName)
+	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
+
+	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.RemoveRepo(t, options, "marklogic")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
+	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
+
+	// wait until the pod is in ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
+
+	bootstrapHostJSON, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	enodeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"group.name":            "enode",
+			"bootstrapHostName":     bootstrapHostJSON,
+			"group.enableXdqpSsl":   "false",
+			"logCollection.enabled": "false",
+		},
+	}
+	t.Logf("====Installing Helm Chart " + enodeReleaseName)
+	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
+
+	// wait until the first enode pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
+
+	// wait until the second enode pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
+
+	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
+
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		//set helm options for upgrading Dnode release
+		dnodeUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues: map[string]string{
+				"persistence.enabled":   "true",
+				"logCollection.enabled": "false",
+				"replicaCount":          "1",
+				"group.name":            "dnode",
+				"group.enableXdqpSsl":   "true",
+				"auth.adminUsername":    username,
+				"auth.adminPassword":    password,
+				"useLegacyHostnames":    "true",
+				"allowLongHostnames":    "true",
+			},
+		}
+
+		if strings.HasPrefix(initialChartVersion, "1.") {
+			dnodePodName = dnodeReleaseName + "-marklogic-0"
+			enodePodName0 = enodeReleaseName + "-marklogic-0"
+			enodePodName1 = enodeReleaseName + "-marklogic-1"
+		}
+		testUtil.HelmUpgrade(t, dnodeUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
+		bootstrapHostJSON, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions)
+
+		//set helm options for upgrading Enode releases
+		enodeUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues: map[string]string{
+				"persistence.enabled":   "true",
+				"logCollection.enabled": "false",
+				"replicaCount":          "2",
+				"auth.adminUsername":    username,
+				"auth.adminPassword":    password,
+				"group.name":            "enode",
+				"bootstrapHostName":     bootstrapHostJSON,
+				"group.enableXdqpSsl":   "false",
+				"useLegacyHostnames":    "true",
+				"allowLongHostnames":    "true",
+			},
+		}
+		testUtil.HelmUpgrade(t, enodeUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
+	}
+	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
+
 }
 
 func TestIncorrectBootsrapHostname(t *testing.T) {

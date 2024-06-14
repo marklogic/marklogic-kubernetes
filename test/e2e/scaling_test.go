@@ -1,9 +1,11 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,10 +24,15 @@ func TestHelmScaleUp(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
+	var initialChartVersion string
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	username := "admin"
 	password := "admin"
 
@@ -46,12 +53,13 @@ func TestHelmScaleUp(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":             "latest-11",
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -61,22 +69,42 @@ func TestHelmScaleUp(t *testing.T) {
 
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
 
 	releaseName := "test-scale-up"
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
-	podOneName := releaseName + "-1"
 
 	// wait until first pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 30, 10*time.Second)
 
+	newOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"logCollection.enabled": "false",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+		},
+	}
+
+	t.Logf("====Scaling up pods using helm upgrade")
+	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
+
+	podOneName := releaseName + "-1"
 	// wait until second pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
+
+	if strings.HasPrefix(initialChartVersion, "1.") {
+		podZeroName = releaseName + "-marklogic-0"
+		podOneName = releaseName + "-marklogic-1"
+	}
 
 	//set helm options for upgrading helm chart version
 	helmUpgradeOptions := &helm.Options{
@@ -84,17 +112,22 @@ func TestHelmScaleUp(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
 		},
 	}
 
-	t.Logf("====Upgrading Helm Chart")
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		t.Logf("====Upgrading Helm Chart")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
+
+	tlsConfig := tls.Config{}
+	testUtil.MLReadyCheck(t, kubectlOptions, podOneName, &tlsConfig)
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
@@ -103,9 +136,9 @@ func TestHelmScaleUp(t *testing.T) {
 
 	numOfHosts := 1
 	client := req.C()
-	_, err := client.R().
+	_, err = client.R().
 		SetDigestAuth(username, password).
-		SetRetryCount(3).
+		SetRetryCount(5).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
 			if resp == nil || err != nil {
@@ -125,8 +158,10 @@ func TestHelmScaleUp(t *testing.T) {
 				t.Logf("error in read response body: %s", err.Error())
 				return true
 			}
+			t.Logf("====RespCode: %d", resp.GetStatusCode())
 			totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
 			numOfHosts = int(totalHosts.Num)
+			t.Logf("====NumOfHosts: %d", numOfHosts)
 			if numOfHosts != 2 {
 				t.Log("Waiting for second host to join MarkLogic cluster")
 			}

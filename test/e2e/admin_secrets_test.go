@@ -3,6 +3,7 @@ package e2e
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,8 +16,13 @@ import (
 
 func TestMlAdminSecrets(t *testing.T) {
 	var helmChartPath string
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -43,6 +49,7 @@ func TestMlAdminSecrets(t *testing.T) {
 			"auth.adminPassword":  "admin",
 			"auth.walletPassword": "admin",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -52,19 +59,20 @@ func TestMlAdminSecrets(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	// Path to the helm chart we will test
-	helmChartPath, err := filepath.Abs("../../charts")
+	helmChartPath, err = filepath.Abs("../../charts")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-ml-secrets"
 	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
@@ -84,8 +92,12 @@ func TestMlAdminSecrets(t *testing.T) {
 		},
 	}
 
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+	if strings.HasPrefix(initialChartVersion, "1.") {
+		podName = releaseName + "-marklogic-0"
+	}
+
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}
 

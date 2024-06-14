@@ -20,7 +20,7 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 		t.Fatalf(e.Error())
 	}
 
-	t.Logf("Initial Helm Chart Version %s:", oldChartVersion)
+	t.Logf("Initial Helm Chart Version: %s", oldChartVersion)
 	stsName := releaseName
 	if strings.HasPrefix(oldChartVersion, "1.0") {
 		stsName = releaseName + "-marklogic"
@@ -40,10 +40,9 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 			t.Logf("====Deleting %s pod\n", pod)
 			k8s.RunKubectl(t, kubectlOpt, "delete", "pod", pod)
 		}
-
-		// wait until all pods are in Ready status
-		for _, pod := range podList {
-			k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 20, 20*time.Second)
-		}
+	}
+	// wait until all pods are in Ready status
+	for _, pod := range podList {
+		k8s.WaitUntilPodAvailable(t, kubectlOpt, pod, 10, 15*time.Second)
 	}
 }

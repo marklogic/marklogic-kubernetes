@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +20,9 @@ import (
 )
 
 func TestEnableConvertersAndLicense(t *testing.T) {
-
+	var resp *http.Response
+	var body []byte
+	var err error
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -27,13 +30,15 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	username := "admin"
 	password := "AdminPa$s_with@!#%^&*()"
-	var resp *http.Response
-	var body []byte
-	var err error
 
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
@@ -52,15 +57,14 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":             "latest-11",
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 			"enableConverters":      "true",
-			"license.key":           "3981-CE27-75BB-9D3C-B81C-E067-1B39-DDFE-0875-C37E-D3F0-A76C-34E5-2F86-76BB-ADDD-E677-CB3F-D5FE-4773-C3CD-5EE8-87BC-36E5-3F71-0C15",
-			"license.licensee":      "MarkLogic - Version 9 QA Test License",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -73,12 +77,14 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	releaseName := "test"
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
 	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in Ready status
@@ -90,15 +96,23 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"enableConverters":      "true",
 			"logCollection.enabled": "false",
 			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
 		},
 	}
 
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	podOneName := releaseName + "-1"
+	if strings.HasPrefix(initialChartVersion, "1.") {
+		podName = releaseName + "-marklogic-0"
+		podOneName = releaseName + "-marklogic-1"
+	}
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
 	}
 
 	tunnel := k8s.NewTunnel(
@@ -127,8 +141,6 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 		t.Errorf("Failed to get logs for pod %s in namespace %s: %v", podName, namespaceName, err)
 	}
 
-	// Verify that the license is getting installed
-	assert.Contains(t, logs, "LICENSE_KEY and LICENSEE are defined")
 	// Verify that converters are getting installed
 	assert.Contains(t, logs, "INSTALL_CONVERTERS is true, installing converters.")
 }

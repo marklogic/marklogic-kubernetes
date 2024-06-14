@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,15 +24,20 @@ func TestMarklogicReady(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
-	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
-	username := "admin"
-	password := "admin"
 	var resp *http.Response
 	var body []byte
 	var err error
+	var initialChartVersion string
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
+	username := "admin"
+	password := "admin"
 
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
@@ -50,12 +56,13 @@ func TestMarklogicReady(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":             "latest-11",
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -68,7 +75,7 @@ func TestMarklogicReady(t *testing.T) {
 	releaseName := "test-install"
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
@@ -90,10 +97,15 @@ func TestMarklogicReady(t *testing.T) {
 			"allowLongHostnames":    "true",
 		},
 	}
+	podOneName := releaseName + "-1"
+	if strings.HasPrefix(initialChartVersion, "1.") {
+		podName = releaseName + "-marklogic-0"
+		podOneName = releaseName + "-marklogic-1"
+	}
 
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
 	}
 
 	tunnel := k8s.NewTunnel(

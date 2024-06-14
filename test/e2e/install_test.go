@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -26,10 +27,17 @@ func TestHelmInstall(t *testing.T) {
 	var err error
 	var podName string
 	var helmChartPath string
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var initialChartVersion string
+	releaseName := "test-install"
+	secretName := releaseName + "-admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
@@ -48,14 +56,12 @@ func TestHelmInstall(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":             "latest-11",
 			"logCollection.enabled": "false",
 		},
 		Version: initialChartVersion,
 	}
-	t.Logf("====Installing Helm Chart")
-	releaseName := "test-install"
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
@@ -69,12 +75,14 @@ func TestHelmInstall(t *testing.T) {
 
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
 	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	tlsConfig := tls.Config{}
 
@@ -99,16 +107,18 @@ func TestHelmInstall(t *testing.T) {
 		},
 	}
 
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	podOneName := releaseName + "-1"
+	if strings.HasPrefix(initialChartVersion, "1.") {
+		podName = releaseName + "-marklogic-0"
+		podOneName = releaseName + "-marklogic-1"
+		secretName = releaseName + "-marklogic-admin"
+	}
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
 	}
 
 	t.Log("====Testing Generated Random Password====")
-	secretName := releaseName + "-admin"
-	if strings.HasPrefix(initialChartVersion, "1.0") {
-		secretName = releaseName + "-marklogic-admin"
-	}
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
 	passwordArr := secret.Data["password"]
 	password := string(passwordArr[:])
