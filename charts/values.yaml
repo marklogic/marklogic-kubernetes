@@ -42,10 +42,7 @@ initContainers:
   configureGroup:
     image: "curlimages/curl:8.6.0"
     pullPolicy: IfNotPresent
-  copyCerts:
-    image: "redhat/ubi9:9.3"
-    pullPolicy: IfNotPresent
-  volumePermissionChange:
+  utilContainer:
     image: "redhat/ubi9:9.3"
     pullPolicy: IfNotPresent
 

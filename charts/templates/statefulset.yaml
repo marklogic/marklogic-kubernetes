@@ -37,8 +37,8 @@ spec:
       initContainers: 
       {{- if eq .Values.tls.enableOnDefaultAppServers true }}
       - name: copy-certs
-        image: {{ .Values.initContainers.copyCerts.image | quote }}
-        imagePullPolicy: {{ .Values.initContainers.copyCerts.pullPolicy | quote }}
+        image: {{ .Values.initContainers.utilContainer.image | quote }}
+        imagePullPolicy: {{ .Values.initContainers.utilContainer.pullPolicy | quote }}
         command: ["/bin/sh", "/tmp/helm-scripts/copy-certs.sh"]
         volumeMounts:
         {{- if .Values.tls.certSecretNames }}
@@ -69,8 +69,8 @@ spec:
       {{- end }}
       {{- if eq .Values.rootToRootlessUpgrade true }}
       - name: root-rootless-upgrade
-        image: {{ .Values.initContainers.volumePermissionChange.image | quote }}
-        imagePullPolicy: {{ .Values.initContainers.volumePermissionChange.pullPolicy | quote }}
+        image: {{ .Values.initContainers.utilContainer.image | quote }}
+        imagePullPolicy: {{ .Values.initContainers.utilContainer.pullPolicy | quote }}
         command: ["/bin/sh", "/tmp/helm-scripts/root-rootless-upgrade.sh"]
         volumeMounts:
           - name: datadir
