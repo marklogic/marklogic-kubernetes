@@ -56,8 +56,8 @@ func TestHelmInstall(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
-			"image.tag":             "latest-11",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
 		},
 		Version: initialChartVersion,
@@ -95,25 +95,26 @@ func TestHelmInstall(t *testing.T) {
 		t.Fatal("MarkLogic failed to start")
 	}
 
-	//set helm options for upgrading helm chart version
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
+	podOneName := releaseName + "-1"
+
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"logCollection.enabled": "false",
-			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
-		},
-	}
-
-	podOneName := releaseName + "-1"
-	if strings.HasPrefix(initialChartVersion, "1.") {
-		podName = releaseName + "-marklogic-0"
-		podOneName = releaseName + "-marklogic-1"
-		secretName = releaseName + "-marklogic-admin"
-	}
-	if runUpgradeTest {
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			secretName = releaseName + "-marklogic-admin"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
 	}

@@ -53,8 +53,8 @@ func TestHelmScaleUp(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "1",
-			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
-			"image.tag":             "latest-11",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
@@ -101,26 +101,26 @@ func TestHelmScaleUp(t *testing.T) {
 	// wait until second pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 
-	if strings.HasPrefix(initialChartVersion, "1.") {
-		podZeroName = releaseName + "-marklogic-0"
-		podOneName = releaseName + "-marklogic-1"
-	}
-
-	//set helm options for upgrading helm chart version
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
-			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
-		},
-	}
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podZeroName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
 
-	if runUpgradeTest {
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		t.Logf("====Upgrading Helm Chart")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
@@ -158,10 +158,8 @@ func TestHelmScaleUp(t *testing.T) {
 				t.Logf("error in read response body: %s", err.Error())
 				return true
 			}
-			t.Logf("====RespCode: %d", resp.GetStatusCode())
 			totalHosts := gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`)
 			numOfHosts = int(totalHosts.Num)
-			t.Logf("====NumOfHosts: %d", numOfHosts)
 			if numOfHosts != 2 {
 				t.Log("Waiting for second host to join MarkLogic cluster")
 			}

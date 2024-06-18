@@ -212,22 +212,24 @@ func TestMlDbBackupRestore(t *testing.T) {
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
 
-	//set helm options for upgrading helm chart version
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
+	if runUpgradeTest {
+		// create options for helm upgrade
+		upgradeOptionsMap := map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"logCollection.enabled": "false",
-			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
-		},
-	}
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
 
-	if strings.HasPrefix(initialChartVersion, "1.") {
-		podName = releaseName + "-marklogic-0"
-	}
-	if runUpgradeTest {
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}

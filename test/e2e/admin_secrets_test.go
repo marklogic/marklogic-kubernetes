@@ -43,8 +43,8 @@ func TestMlAdminSecrets(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled": "true",
 			"replicaCount":        "1",
-			"image.repository":    imageRepo,
-			"image.tag":           imageTag,
+			"image.repository":    "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":           "latest-11",
 			"auth.adminUsername":  "admin",
 			"auth.adminPassword":  "admin",
 			"auth.walletPassword": "admin",
@@ -80,23 +80,25 @@ func TestMlAdminSecrets(t *testing.T) {
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
 
-	//set helm options for upgrading helm chart version
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
+	if runUpgradeTest {
+		// create options for helm upgrade
+		upgradeOptionsMap := map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"logCollection.enabled": "false",
-			"useLegacyHostnames":    "true",
 			"allowLongHostnames":    "true",
-		},
-	}
+		}
 
-	if strings.HasPrefix(initialChartVersion, "1.") {
-		podName = releaseName + "-marklogic-0"
-	}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
 
-	if runUpgradeTest {
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}

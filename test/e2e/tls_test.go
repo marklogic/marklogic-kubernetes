@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -30,8 +31,13 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	username := "admin"
 	password := "admin"
 
@@ -59,6 +65,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 			"logCollection.enabled":         "false",
 			"tls.enableOnDefaultAppServers": "true",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -71,12 +78,14 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	releaseName := "test-join"
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
 	}
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
 	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	tlsConfig := tls.Config{InsecureSkipVerify: true}
 
@@ -84,24 +93,28 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
 
 	// verify MarkLogic is ready
-	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
 	}
 
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
 			"persistence.enabled":           "true",
 			"replicaCount":                  "1",
 			"tls.enableOnDefaultAppServers": "true",
 			"logCollection.enabled":         "false",
-			"useLegacyHostnames":            "true",
 			"allowLongHostnames":            "true",
-		},
-	}
-
-	if upgradeHelmTestPres {
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helmOptions for upgrade
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
 		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}
@@ -161,8 +174,13 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	var err error
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	if !repoPres {
 		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
@@ -180,6 +198,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 			"image.repository": imageRepo,
 			"image.tag":        imageTag,
 		},
+		Version:        initialChartVersion,
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -224,10 +243,11 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	t.Logf("====Creating secret for pod-1 certificate")
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "marklogic-1-cert", "--from-file=../test_data/pod_one_certs/tls.crt", "--from-file=../test_data/pod_one_certs/tls.key")
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
@@ -261,15 +281,21 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 30*time.Second)
 
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"useLegacyHostnames": "true",
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
 			"allowLongHostnames": "true",
-		},
-	}
+		}
 
-	if upgradeHelmTestPres {
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			ValuesFiles:    []string{"../test_data/values/tls_twonode_values.yaml"},
+			SetValues:      upgradeOptionsMap,
+		}
 		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
 	}
@@ -364,8 +390,14 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	upgradeHelm, upgradeHelmTestPres := os.LookupEnv("upgradeTest")
-	initialChartVersion, _ := os.LookupEnv("initialChartVersion")
+	var err error
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	namespaceName := "marklogic-tlsednode"
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "dnode"
@@ -373,7 +405,6 @@ func TestTlsOnEDnode(t *testing.T) {
 	dnodePodName := dnodeReleaseName + "-0"
 	enodePodName0 := enodeReleaseName + "-0"
 	enodePodName1 := enodeReleaseName + "-1"
-	var err error
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -394,9 +425,10 @@ func TestTlsOnEDnode(t *testing.T) {
 	options := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_dnode_values.yaml"},
 		SetValues: map[string]string{
-			"image.repository": imageRepo,
-			"image.tag":        imageTag,
+			"image.repository": "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":        "latest-11",
 		},
+		Version:        initialChartVersion,
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -408,7 +440,7 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
-	if upgradeHelmTestPres {
+	if runUpgradeTest {
 		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		helmChartPath = "marklogic/marklogic"
@@ -432,6 +464,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	t.Logf("====Creating secret for pod-0 certificate")
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "dnode-0-cert", "--from-file=../test_data/dnode_zero_certs/tls.crt", "--from-file=../test_data/dnode_zero_certs/tls.key")
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
@@ -500,9 +533,10 @@ func TestTlsOnEDnode(t *testing.T) {
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"image.repository": imageRepo,
-			"image.tag":        imageTag,
+			"image.repository": "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":        "latest-11",
 		},
+		Version:     initialChartVersion,
 		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
 	}
 
@@ -524,6 +558,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	t.Logf("====Creating secret for enode-1 certificates")
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "enode-1-cert", "--from-file=../test_data/enode_one_certs/tls.crt", "--from-file=../test_data/enode_one_certs/tls.key")
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
@@ -563,20 +598,38 @@ func TestTlsOnEDnode(t *testing.T) {
 	// wait until the second enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 20, 20*time.Second)
 
-	helmUpgradeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "2",
-			"logCollection.enabled": "false",
-			"useLegacyHostnames":    "true",
-			"allowLongHostnames":    "true",
-		},
+	if runUpgradeTest {
+		dnodeUpgradeOptionsMap := map[string]string{
+			"allowLongHostnames": "true",
+		}
+		enodeUpgradeOptionsMap := map[string]string{
+			"allowLongHostnames": "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			dnodePodName = dnodeReleaseName + "-marklogic-0"
+			enodePodName0 = enodeReleaseName + "-marklogic-0"
+			enodePodName1 = enodeReleaseName + "-marklogic-1"
+			dnodeUpgradeOptionsMap["useLegacyHostnames"] = "true"
+			enodeUpgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		dnodeHelmUpgradeOptions := &helm.Options{
+			ValuesFiles:    []string{"../test_data/values/tls_dnode_values.yaml"},
+			KubectlOptions: kubectlOptions,
+			SetValues:      dnodeUpgradeOptionsMap,
+		}
+		enodeHelmUpgradeOptions := &helm.Options{
+			ValuesFiles:    []string{"../test_data/values/tls_enode_values.yaml"},
+			KubectlOptions: kubectlOptions,
+			SetValues:      dnodeUpgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, dnodeHelmUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
+		testUtil.HelmUpgrade(t, enodeHelmUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
 	}
 
-	if upgradeHelmTestPres {
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
+	// verify groups dnode, enode exists on the cluster
+	if !strings.Contains(string(body), "<nameref>dnode</nameref>") && !strings.Contains(string(body), "<nameref>enode</nameref>") {
+		t.Errorf("Groups does not exists on cluster")
 	}
 
 	t.Log("====Verifying two hosts joined enode group")

@@ -261,46 +261,48 @@ func TestSeparateEDnode(t *testing.T) {
 	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
 
 	if runUpgradeTest {
+		dnodeUpgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"logCollection.enabled": "false",
+			"replicaCount":          "1",
+			"group.name":            "dnode",
+			"group.enableXdqpSsl":   "true",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"allowLongHostnames":    "true",
+		}
+		enodeUpgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"logCollection.enabled": "false",
+			"replicaCount":          "2",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"group.name":            "enode",
+			"group.enableXdqpSsl":   "false",
+			"allowLongHostnames":    "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			dnodePodName = dnodeReleaseName + "-marklogic-0"
+			enodePodName0 = enodeReleaseName + "-marklogic-0"
+			enodePodName1 = enodeReleaseName + "-marklogic-1"
+			dnodeUpgradeOptionsMap["useLegacyHostnames"] = "true"
+			enodeUpgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		//set helm options for upgrading Dnode release
 		dnodeUpgradeOptions := &helm.Options{
 			KubectlOptions: kubectlOptions,
-			SetValues: map[string]string{
-				"persistence.enabled":   "true",
-				"logCollection.enabled": "false",
-				"replicaCount":          "1",
-				"group.name":            "dnode",
-				"group.enableXdqpSsl":   "true",
-				"auth.adminUsername":    username,
-				"auth.adminPassword":    password,
-				"useLegacyHostnames":    "true",
-				"allowLongHostnames":    "true",
-			},
+			SetValues:      dnodeUpgradeOptionsMap,
 		}
 
-		if strings.HasPrefix(initialChartVersion, "1.") {
-			dnodePodName = dnodeReleaseName + "-marklogic-0"
-			enodePodName0 = enodeReleaseName + "-marklogic-0"
-			enodePodName1 = enodeReleaseName + "-marklogic-1"
-		}
 		testUtil.HelmUpgrade(t, dnodeUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
 		bootstrapHostJSON, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions)
+		enodeUpgradeOptionsMap["bootstrapHostName"] = bootstrapHostJSON
 
 		//set helm options for upgrading Enode releases
 		enodeUpgradeOptions := &helm.Options{
 			KubectlOptions: kubectlOptions,
-			SetValues: map[string]string{
-				"persistence.enabled":   "true",
-				"logCollection.enabled": "false",
-				"replicaCount":          "2",
-				"auth.adminUsername":    username,
-				"auth.adminPassword":    password,
-				"group.name":            "enode",
-				"bootstrapHostName":     bootstrapHostJSON,
-				"group.enableXdqpSsl":   "false",
-				"useLegacyHostnames":    "true",
-				"allowLongHostnames":    "true",
-			},
+			SetValues:      enodeUpgradeOptionsMap,
 		}
 		testUtil.HelmUpgrade(t, enodeUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
 	}
