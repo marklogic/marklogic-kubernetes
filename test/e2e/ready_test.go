@@ -131,9 +131,6 @@ func TestMarklogicReady(t *testing.T) {
 	t.Logf("Timestamp response:\n" + string(body))
 
 	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

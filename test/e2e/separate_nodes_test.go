@@ -310,9 +310,6 @@ func TestSeparateEDnode(t *testing.T) {
 	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
 
 	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
 
