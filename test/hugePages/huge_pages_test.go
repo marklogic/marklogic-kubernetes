@@ -1,4 +1,4 @@
-package huge_pages
+package hugepages
 
 import (
 	"crypto/tls"
