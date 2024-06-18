@@ -79,8 +79,8 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
 	if runUpgradeTest {
-		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
 		helmChartPath = "marklogic/marklogic"
 	}
 
@@ -248,8 +248,8 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
 	if runUpgradeTest {
-		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
 		helmChartPath = "marklogic/marklogic"
 	}
 
@@ -441,8 +441,8 @@ func TestTlsOnEDnode(t *testing.T) {
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
 	if runUpgradeTest {
-		helm.RemoveRepo(t, options, "marklogic")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
 		helmChartPath = "marklogic/marklogic"
 	}
 
