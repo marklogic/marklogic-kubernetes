@@ -2,7 +2,6 @@ dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/mar
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
-upgradeTest?=false
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable output saving for testing commands)
@@ -196,13 +195,20 @@ test: template-test e2e-test
 #***************************************************************************
 # test
 #***************************************************************************
-## Run all tests
-## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
-## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
-## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
+## Run upgrade in e2e tests
+## Set following environment variables 
+## [upgradeTest] to true. Use `export upgradeTest=true`
+## [initialChartVersion] to a valid MarkLogic helm chart version for ex.: 1.1.2 to run upgrade tests. Use `export initialChartVersion=1.1.2`
 .PHONY: upgrade-test
-upgrade-test: e2e-test
+upgrade-test: prepare
+	@echo "=====upgradeTest env var for upgrade tests"
+	echo $(upgradeTest)
+
+	@echo "=====initialChartVersion env var for upgrade tests"
+	echo ${initialChartVersion}
+	
+	@echo "=====Running upgrades in e2e tests"
+	make e2e-test
 	
 #***************************************************************************
 # image-scan
