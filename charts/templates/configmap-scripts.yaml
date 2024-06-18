@@ -221,6 +221,23 @@ data:
     }
 
     ###############################################################
+    # Function to get the current host protocol
+    # $1: The host name
+    # $2: The port number (default 8001)
+    ###############################################################
+    get_current_host_protocol() {
+        local hostname port protocol resp_code
+        hostname="${1:-localhost}"
+        port="${2:-8001}"
+        protocol="http"
+        resp_code=$(curl -s -o /dev/null -w '%{http_code}' http://$hostname:$port)
+        if [[ $resp_code -eq 403 ]]; then
+            protocol="https"
+        fi
+        echo $protocol
+    }
+
+    ###############################################################
     # Env Setup of MarkLogic
     ###############################################################
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
@@ -336,9 +353,10 @@ data:
         if [ -z "${timestamp}" ]; then
             info "${host} - not responding yet"
             sleep 5s
-            wait_until_marklogic_ready $host 
+            wait_until_marklogic_ready $host
+            return 0
         else 
-            info "${host} - responding, calling init"
+            info "${host} - responding with $timestamp"
             out="/tmp/${host}.out"
 
             response_code=$( \
@@ -537,15 +555,23 @@ data:
     # return 
     ################################################################
     function configure_group {
+        local LOCAL_HTTP_PROTOCOL LOCAL_HTTPS_OPTION
+        LOCAL_HTTP_PROTOCOL="http"
+        LOCAL_HTTPS_OPTION=""
+        protocol=$(get_current_host_protocol $MARKLOGIC_BOOTSTRAP_HOST)
+        if [[ $protocol == "https" ]]; then
+            LOCAL_HTTP_PROTOCOL="https"
+            LOCAL_HTTPS_OPTION="-k"
+        fi  
         log "configuring group"
         if [[ "$IS_BOOTSTRAP_HOST" == "true" ]]; then
             group_cfg_template='{"group-name":"%s", "xdqp-ssl-enabled":"%s"}'
             group_cfg=$(printf "$group_cfg_template" "$MARKLOGIC_GROUP" "$XDQP_SSL_ENABLED") 
 
             # check if host is already in and get the current cluster
-            curl_retry_validate false "http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts/${HOST_FQDN}/properties?format=xml" 200 \
+            curl_retry_validate false "$LOCAL_HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/hosts/${HOST_FQDN}/properties?format=xml" 200 \
                 "--anyauth" "--user" "${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD}" \
-                "-o" "/tmp/marklogic/groups.out"
+                "-o" "/tmp/marklogic/groups.out" $LOCAL_HTTPS_OPTION
 
             response_code=$?
             if [ "${response_code}" = "200" ]; then
@@ -558,15 +584,14 @@ data:
                 info "current_group: $current_group"
                 info "group_cfg: $group_cfg"
 
-                # curl retry doesn't work in the lower version
                 response_code=$( \
                     curl -s --anyauth \
                     --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} \
                     -w '%{http_code}' \
                     -X PUT \
                     -H "Content-type: application/json" \
-                    -d "${group_cfg}" \
-                    http://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${current_group}/properties \
+                    $LOCAL_HTTPS_OPTION -d "${group_cfg}" \
+                    $LOCAL_HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${current_group}/properties \
                 )
 
                 info "response_code: $response_code"
@@ -607,6 +632,16 @@ data:
     }
 
     function configure_tls {
+        local protocol
+        if [[ "$IS_BOOTSTRAP_HOST" == "true" ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
+            protocol=$(get_current_host_protocol)
+            log "Info:  Current host protocol: $protocol"
+            if [[ $protocol == "https" ]]; then
+                log "Info: MarkLogic server has already configured HTTPS for bootstrap host."
+                return 0
+            fi
+        fi
+
         info "Configuring TLS for App Servers"
 
         AUTH_CURL="curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s "
@@ -638,7 +673,7 @@ data:
     }
     EOF
 
-    if [[ $POD_NAME == *-0 ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
+    if [[ "$IS_BOOTSTRAP_HOST" == "true" ]] && [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
             log "Info:  creating default certificate Template"
             response=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @defaultCertificateTemplate.json http://localhost:8002/manage/v2/certificate-templates)
             sleep 5s
@@ -707,7 +742,7 @@ data:
             
             log "Info:  inserting following certificates for $cert_path for $MARKLOGIC_CLUSTER_TYPE"
 
-            if [[ $POD_NAME == *-0 ]]; then
+            if [[ "$IS_BOOTSTRAP_HOST" == "true" ]]; then
             res=$($AUTH_CURL -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json http://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
             else 
             res=$($AUTH_CURL -k  -X POST --header "Content-Type:application/json" -d @insert_cert_payload.json https://localhost:8002/manage/v2/certificate-templates/defaultTemplate 2>&1)
@@ -716,7 +751,7 @@ data:
             sleep 5s
         fi
 
-        if [[ $POD_NAME == *-0 ]]; then
+        if [[ "$IS_BOOTSTRAP_HOST" == "true" ]]; then
             if [[ $MARKLOGIC_CLUSTER_TYPE == "bootstrap" ]]; then
                 log "Info:  Generating Temporary CA Certificate"
                 $AUTH_CURL -X POST -i -d @generateCA.xqy \
@@ -774,7 +809,7 @@ data:
     sleep 5s 
 
     # Authentication configuration when path based is used
-    if [[ $POD_NAME == *-0 ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
+    if [[ "$IS_BOOTSTRAP_HOST" == "true" ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
         log "Info:  path based routing is set. Adapting authentication method"
         resp=$(curl --anyauth -w "%{http_code}" --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP})
         log "Info:  Admin-Servers response code: $resp"
