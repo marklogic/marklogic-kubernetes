@@ -41,7 +41,7 @@ func TestHugePagesSettings(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -150,4 +150,7 @@ func TestHugePagesSettings(t *testing.T) {
 	if !strings.Contains(string(body), "Linux Huge Pages: detected 1280") {
 		t.Errorf("Huge Pages not configured for the node")
 	}
+
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -374,4 +375,8 @@ func TestMlDbBackupRestore(t *testing.T) {
 	if !strings.Contains(string(result), "<b>two</b>") && !strings.Contains(string(result), "<a>one</a>") {
 		t.Errorf("Both docs are restored")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

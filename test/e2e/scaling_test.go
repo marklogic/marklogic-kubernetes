@@ -42,7 +42,7 @@ func TestHelmScaleUp(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -174,4 +174,11 @@ func TestHelmScaleUp(t *testing.T) {
 	if numOfHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

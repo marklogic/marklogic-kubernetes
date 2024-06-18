@@ -25,7 +25,7 @@ func TestHelmInstall(t *testing.T) {
 	var resp *http.Response
 	var body []byte
 	var err error
-	var podName string
+	var podZeroName string
 	var helmChartPath string
 	var initialChartVersion string
 	releaseName := "test-install"
@@ -83,14 +83,14 @@ func TestHelmInstall(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+	podZeroName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	tlsConfig := tls.Config{}
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 15*time.Second)
 
 	// verify MarkLogic is ready
-	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
 	}
@@ -105,7 +105,7 @@ func TestHelmInstall(t *testing.T) {
 			"allowLongHostnames":    "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
-			podName = releaseName + "-marklogic-0"
+			podZeroName = releaseName + "-marklogic-0"
 			podOneName = releaseName + "-marklogic-1"
 			secretName = releaseName + "-marklogic-admin"
 			upgradeOptionsMap["useLegacyHostnames"] = "true"
@@ -116,7 +116,7 @@ func TestHelmInstall(t *testing.T) {
 			SetValues:      upgradeOptionsMap,
 		}
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
 
 	t.Log("====Testing Generated Random Password====")
@@ -130,7 +130,7 @@ func TestHelmInstall(t *testing.T) {
 	// the random generated username should have length of 11"
 	assert.Equal(t, 11, len(username))
 
-	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel8002.Close()
 	tunnel8002.ForwardPort(t)
 	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel8002.Endpoint())
@@ -178,4 +178,10 @@ func TestHelmInstall(t *testing.T) {
 	if groupQuantityJSON.Num != 1 {
 		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
+
+	// restart pod by pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"io"
 	"os"
 	"path/filepath"
@@ -41,7 +42,7 @@ func TestClusterJoin(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -78,11 +79,11 @@ func TestClusterJoin(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
-	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	podOneName := releaseName + "-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
 
 	if runUpgradeTest {
 		upgradeOptionsMap := map[string]string{
@@ -94,7 +95,7 @@ func TestClusterJoin(t *testing.T) {
 			"allowLongHostnames":    "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
-			podName = releaseName + "-marklogic-0"
+			podZeroName = releaseName + "-marklogic-0"
 			podOneName = releaseName + "-marklogic-1"
 			upgradeOptionsMap["useLegacyHostnames"] = "true"
 		}
@@ -104,10 +105,10 @@ func TestClusterJoin(t *testing.T) {
 			SetValues:      upgradeOptionsMap,
 		}
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
@@ -153,4 +154,11 @@ func TestClusterJoin(t *testing.T) {
 	if numOfHosts != 2 {
 		t.Errorf("Wrong number of hosts")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

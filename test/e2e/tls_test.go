@@ -18,7 +18,6 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 )
@@ -137,6 +136,9 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	}
 
 	fmt.Println("StatusCode: ", resp.GetStatusCode())
+
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func GenerateCACertificate(caPath string) error {
@@ -187,7 +189,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -258,25 +260,6 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	tlsConfig := tls.Config{InsecureSkipVerify: true}
 
-	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
-	tunnel7997 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 7997, 7997)
-	defer tunnel7997.Close()
-	tunnel7997.ForwardPort(t)
-	endpoint7997 := fmt.Sprintf("http://%s", tunnel7997.Endpoint())
-
-	// verify if 7997 health check endpoint returns 200
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint7997,
-		&tlsConfig,
-		10,
-		15*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
-
 	// wait until pods are in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 30*time.Second)
@@ -298,6 +281,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		}
 		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
+	}
+
+	// verify MarkLogic is ready
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
 	}
 
 	tunnel := k8s.NewTunnel(
@@ -384,6 +373,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	if certHostName.Str != "marklogic-1.marklogic.marklogic-tlsnamed.svc.cluster.local" && certHostName.Str != "marklogic-0.marklogic.marklogic-tlsnamed.svc.cluster.local" {
 		t.Errorf("Incorrect hostname configured for Named certificate")
 	}
+
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func TestTlsOnEDnode(t *testing.T) {
@@ -418,10 +413,11 @@ func TestTlsOnEDnode(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "latest"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
+	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_dnode_values.yaml"},
 		SetValues: map[string]string{
@@ -530,14 +526,15 @@ func TestTlsOnEDnode(t *testing.T) {
 	// verify xdqp-ssl-enabled is set to true
 	assert.Equal(t, true, xdqpSSLEnabled, "xdqp-ssl-enabled should be set to true")
 
+	// Setup the args for helm install using custom values.yaml file
 	enodeOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"image.repository": "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
-			"image.tag":        "latest-11",
-		},
-		Version:     initialChartVersion,
 		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
+		SetValues: map[string]string{
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+		},
+		Version:        initialChartVersion,
+		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
 	//generate certificates for enode pod zero
@@ -659,4 +656,11 @@ func TestTlsOnEDnode(t *testing.T) {
 	if enodeHostCount != 2 {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
 }

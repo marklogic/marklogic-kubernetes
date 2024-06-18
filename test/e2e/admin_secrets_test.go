@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -114,4 +115,8 @@ func TestMlAdminSecrets(t *testing.T) {
 	if !strings.Contains(podLogs, "MARKLOGIC_WALLET_PASSWORD_FILE is set, using file as secret for wallet-password.") {
 		t.Errorf("wallet password not set as secret")
 	}
+
+	tlsConfig := tls.Config{}
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -81,10 +82,10 @@ func TestMarklogicReady(t *testing.T) {
 		helmChartPath = "marklogic/marklogic"
 	}
 
-	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 15*time.Second)
 
 	podOneName := releaseName + "-1"
 
@@ -96,7 +97,7 @@ func TestMarklogicReady(t *testing.T) {
 			"allowLongHostnames":    "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
-			podName = releaseName + "-marklogic-0"
+			podZeroName = releaseName + "-marklogic-0"
 			podOneName = releaseName + "-marklogic-1"
 			upgradeOptionsMap["useLegacyHostnames"] = "true"
 		}
@@ -107,11 +108,11 @@ func TestMarklogicReady(t *testing.T) {
 		}
 
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
-		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
 
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
+		kubectlOptions, k8s.ResourceTypePod, podOneName, 8001, 8001)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 	endpoint := fmt.Sprintf("http://%s/admin/v1/timestamp", tunnel.Endpoint())
@@ -128,4 +129,11 @@ func TestMarklogicReady(t *testing.T) {
 	}
 
 	t.Logf("Timestamp response:\n" + string(body))
+
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

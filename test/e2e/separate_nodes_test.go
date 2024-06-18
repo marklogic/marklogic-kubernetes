@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -308,6 +309,13 @@ func TestSeparateEDnode(t *testing.T) {
 	}
 	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
 
+	tlsConfig := tls.Config{}
+	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
+
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
+
 }
 
 func TestIncorrectBootsrapHostname(t *testing.T) {
@@ -345,7 +353,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -396,7 +404,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -444,4 +452,9 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	}
 	// the request for enode should be 404
 	assert.Equal(t, 404, resp.StatusCode)
+
+	tlsConfig := tls.Config{}
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName}, namespaceName, kubectlOptions, &tlsConfig)
+
 }

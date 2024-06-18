@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -142,4 +143,8 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 
 	// Verify that converters are getting installed
 	assert.Contains(t, logs, "INSTALL_CONVERTERS is true, installing converters.")
+
+	tlsConfig := tls.Config{}
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
