@@ -99,8 +99,8 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	fmt.Println("StatusCode: ", resp.GetStatusCode())
 
-	// // restart pod in the cluster and verify its ready and MarkLogic server is healthy
-	// testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func GenerateCACertificate(caPath string) error {
@@ -302,11 +302,8 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		t.Errorf("Incorrect hostname configured for Named certificate")
 	}
 
-	// // restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	// testUtil.RestartPodAndVerify(t, false, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
-
-	// // restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	// testUtil.RestartPodAndVerify(t, true, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func TestTlsOnEDnode(t *testing.T) {
@@ -532,10 +529,8 @@ func TestTlsOnEDnode(t *testing.T) {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
 
-	// tlsConfig := tls.Config{}
+	tlsConfig := tls.Config{}
 	// // restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	// testUtil.RestartPodAndVerify(t, false, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
+	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
 
-	// // restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	// testUtil.RestartPodAndVerify(t, true, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
 }
