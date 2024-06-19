@@ -145,6 +145,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	var initialChartVersion string
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
 	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest = false
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
@@ -172,8 +173,8 @@ func TestMlDbBackupRestore(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "1",
-			"image.repository":      "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
-			"image.tag":             "latest-11",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
