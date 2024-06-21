@@ -211,6 +211,18 @@ Validate values file
 {{- end }}
 
 {{/*
+Validate root to rootless upgrade
+*/}}
+{{- define "marklogic.rootToRootlessUpgrade" -}}
+{{- if .Values.rootToRootlessUpgrade }}
+{{- if not (.Values.image.tag | contains "rootless") }}
+{{- $errorMessage := printf "%s" "Root to Rootless Upgrade is supported only if rootToRootlessUpgrade flag is true and image type is rootless."  }}
+{{- fail $errorMessage }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Name to distinguish marklogic image whether root or rootless
 */}}
 {{- define "marklogic.imageType" -}}

@@ -32,6 +32,7 @@
 
 {{- include "marklogic.checkUpgradeError" . -}}
 {{- include "marklogic.checkInputError" . }}
+{{- include "marklogic.rootToRootlessUpgrade" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -69,11 +70,11 @@ spec:
       topologySpreadConstraints: {{- toYaml . | nindent 6}}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriod }}
-      {{- if eq .Values.tls.enableOnDefaultAppServers true }}
       initContainers: 
+      {{- if eq .Values.tls.enableOnDefaultAppServers true }}
       - name: copy-certs
-        image: {{ .Values.initContainers.copyCerts.image | quote }}
-        imagePullPolicy: {{ .Values.initContainers.copyCerts.pullPolicy | quote }}
+        image: {{ .Values.initContainers.utilContainer.image | quote }}
+        imagePullPolicy: {{ .Values.initContainers.utilContainer.pullPolicy | quote }}
         command: ["/bin/sh", "/tmp/helm-scripts/copy-certs.sh"]
         volumeMounts:
         {{- if .Values.tls.certSecretNames }}
@@ -101,6 +102,20 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "marklogic.fullname" . }}
+      {{- end }}
+      {{- if eq .Values.rootToRootlessUpgrade true }}
+      - name: root-rootless-upgrade
+        image: {{ .Values.initContainers.utilContainer.image | quote }}
+        imagePullPolicy: {{ .Values.initContainers.utilContainer.pullPolicy | quote }}
+        command: ["/bin/sh", "/tmp/helm-scripts/root-rootless-upgrade.sh"]
+        volumeMounts:
+          - name: datadir
+            mountPath: /var/opt/MarkLogic
+          {{- if .Values.additionalVolumeMounts }}
+          {{- toYaml .Values.additionalVolumeMounts | nindent 10 }}
+          {{- end }}
+          - name: helm-scripts
+            mountPath: /tmp/helm-scripts
       {{- end }}
       containers:
         - name: marklogic-server

@@ -828,5 +828,29 @@ data:
     fi
 
     info "helm script completed"
+
+root-rootless-upgrade.sh: |
+    #!/bin/bash
+    log () {
+      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
+      # Check to make sure pod doesn't terminate if PID value is empty for any reason
+      if [ -n "$pid" ]; then
+          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
+      fi
+    }
+    
+    pid=$(pgrep start.marklogic)
+
+    log "Info: [root-rootless-upgrade] Execution Start"
+
+    # Change the permission on default data directory
+    chown -R 1000:100 /var/opt/MarkLogic
+    log "Info: [root-rootless-upgrade] Data Directory Permission Update Completed"
+
+    # Logic to set permission for additional volume mounts
+    {{ range $_, $v := .Values.additionalVolumeMounts }}
+        chown -R 1000:100 {{ $v.mountPath }}
+        log "Info: [root-rootless-upgrade] Additional Mount Path Permission Update Completed: {{ $v.mountPath }}"
+    {{ end }}
       
 
