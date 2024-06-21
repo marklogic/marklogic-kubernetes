@@ -46,7 +46,7 @@ Refer to the official Kubernetes documentation for detailed steps on how to [cre
 
 4. Create a `values.yaml` file to customize the settings. Specify the number of pods (one MarkLogic host in this case), add the secret name for the admin credentials (if not using the automatically generated one), and specify the resources that should be allocated to each MarkLiogic pod.
 
-Note: Please ensure to use the latest MarkLogic Docker image for the new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/marklogicdb/marklogic-db/tags](https://hub.docker.com/r/marklogicdb/marklogic-db/tags) for the latest image available.
+Note: Please ensure to use the latest MarkLogic Docker image for the new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/progressofficial/marklogic-db/tags](https://hub.docker.com/r/progressofficial/marklogic-db/tags) for the latest image available.
 ```
 # Create a single MarkLogic pod
 replicaCount: 1
@@ -54,7 +54,7 @@ replicaCount: 1
 # Marklogic image parameters
 # using the latest image 11.0.3-centos-1.0.2 
 image:
-  repository: marklogicdb/marklogic-db;
+  repository: progressofficial/marklogic-db;
   tag: 11.0.3-centos-1.0.2 
   pullPolicy: IfNotPresent
 
@@ -119,7 +119,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `group.name`                                        | Group name for joining MarkLogic cluster                                                                                                                                               | `Default`                  |
 | `group.enableXdqpSsl`                               | SSL encryption for XDQP                                                                                                                                                                | `true`                     |
 | `bootstrapHostName`                                 | Host name of MarkLogic bootstrap host (to join a cluster)                                                                                                                              | `""`                       |
-| `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `marklogicdb/marklogic-db` |
+| `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `progressofficial/marklogic-db` |
 | `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `11.2.0-centos-1.1.2`      |
 | `image.pullPolicy`                                  | Image pull policy for MarkLogic image                                                                                                                                                  | `IfNotPresent`             |
 | `initContainers.configureGroup.image`               | Image for configureGroup InitContainer                                                                                                                                                 | `curlimages/curl:8.6.0`    |
