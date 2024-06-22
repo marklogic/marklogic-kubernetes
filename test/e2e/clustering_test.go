@@ -107,6 +107,15 @@ func TestClusterJoin(t *testing.T) {
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
+
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
+
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()
@@ -138,8 +147,8 @@ func TestClusterJoin(t *testing.T) {
 			}
 			totalHosts := gjson.Get(string(body), `host-default-list.list-items.list-count.value`)
 			numOfHosts = int(totalHosts.Num)
+			t.Log("Number of hosts: " + string(totalHosts.Raw))
 			if numOfHosts != 2 {
-				t.Log("Number of hosts: " + string(totalHosts.Raw))
 				t.Log("Waiting for MarkLogic count of MarkLogic hosts to be 2")
 			}
 			return numOfHosts != 2
@@ -153,6 +162,14 @@ func TestClusterJoin(t *testing.T) {
 
 	if numOfHosts != 2 {
 		t.Errorf("Wrong number of hosts")
+	}
+
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, podOneName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
 	}
 
 	tlsConfig := tls.Config{}

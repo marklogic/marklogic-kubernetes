@@ -6,7 +6,7 @@ group:
   name: enode
   enableXdqpSsl: false
 
-bootstrapHostName: "dnode-0.dnode.marklogic-tlsednode.svc.cluster.local"
+# bootstrapHostName: "dnode-0.dnode.marklogic-tlsednode.svc.cluster.local"
 
 terminationGracePeriod: 10
 

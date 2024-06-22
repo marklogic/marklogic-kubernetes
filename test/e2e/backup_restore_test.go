@@ -145,7 +145,6 @@ func TestMlDbBackupRestore(t *testing.T) {
 	var initialChartVersion string
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
 	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
-	runUpgradeTest = false
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)

@@ -25,99 +25,109 @@ import (
 var username = "admin"
 var password = "admin"
 
-func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.KubectlOptions) (string, error) {
+func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.KubectlOptions, protocol string) (string, error) {
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
-	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, hostsEndpoint)
+	hostManageEndpoint := fmt.Sprintf("%s://%s/manage/v2/hosts?format=json", protocol, tunnel.Endpoint())
+	totalHosts := 0
+	bootstrapHost := ""
+	client := req.C().
+		EnableInsecureSkipVerify().
+		SetCommonDigestAuth("admin", "admin").
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-
-	resp, err := getHostsDR.Execute()
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	resp, err := client.R().
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("===Error from retryFunc : %s", err.Error())
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Logf("error: %s", err.Error())
+			}
+			totalHosts = int(gjson.Get(string(body), `host-default-list.list-items.list-count.value`).Num)
+			bootstrapHost = (gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)).Str
+			if totalHosts != 1 {
+				t.Log("Waiting for host to configure")
+			}
+			return totalHosts != 1
+		}).
+		Get(hostManageEndpoint)
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	bootstrapHostJSON := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
-	t.Logf(`BootstrapHost: = %s`, bootstrapHostJSON)
 	// verify bootstrap host exists on the cluster
-	if bootstrapHostJSON.Str == "" {
+	t.Log("====Verifying bootstrap host exists on the cluster")
+	if bootstrapHost == "" {
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
 
-	t.Log("====Verify xdqp-ssl-enabled is set to true")
-	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/dnode/properties?format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint for group properties: %s`, endpoint)
-
-	request := digestAuth.NewRequest(username, password, "GET", endpoint, "")
-	resp, err = request.Execute()
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	dnodeEndpoint := fmt.Sprintf("%s://%s/manage/v2/hosts?format=json", protocol, tunnel.Endpoint())
+	t.Log("====Verifying xdqp-ssl-enabled is set to true for dnode group")
+	resp, err = client.R().
+		Get(dnodeEndpoint)
 	defer resp.Body.Close()
-	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	t.Log(string(body))
-	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
-	// verify xdqp-ssl-enabled is set to trues
-	assert.Equal(t, true, xdqpSSLEnabled.Bool(), "xdqp-ssl-enabled should be set to true")
-	return bootstrapHostJSON.Str, err
+	body, err := io.ReadAll(resp.Body)
+	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`).Bool()
+
+	// verify xdqp-ssl-enabled is set to true
+	assert.Equal(t, true, xdqpSSLEnabled, "xdqp-ssl-enabled should be set to true")
+	return bootstrapHost, err
 }
 
-func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.KubectlOptions) {
+func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.KubectlOptions, protocol string) {
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
-	t.Log("====Verify xdqp-ssl-enabled is set to false on Enode")
-	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode/properties?format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint for group properties: %s`, endpoint)
 
-	request := digestAuth.NewRequest(username, password, "GET", endpoint, "")
-	resp, err := request.Execute()
+	t.Log("====Verify xdqp-ssl-enabled is set to false on Enode")
+	endpoint := fmt.Sprintf("%s://%s/manage/v2/groups/enode/properties?format=json", protocol, tunnel.Endpoint())
+	t.Logf(`Endpoint for group properties: %s`, endpoint)
+	client := req.C().
+		EnableInsecureSkipVerify().
+		SetCommonDigestAuth("admin", "admin").
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+	resp, err := client.R().
+		Get(endpoint)
+	defer resp.Body.Close()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-
 	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
 	// verify xdqp-ssl-enabled is set to false
 	assert.Equal(t, false, xdqpSSLEnabled.Bool())
 
-	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups", tunnel.Endpoint())
+	t.Log("====Verify both dnode and enode groups exist")
+	groupEndpoint := fmt.Sprintf("%s://%s/manage/v2/groups", protocol, tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, groupEndpoint)
-
-	getGroupsDR := digestAuth.NewRequest(username, password, "GET", groupEndpoint, "")
-
-	if resp, err = getGroupsDR.Execute(); err != nil {
-		t.Fatalf(err.Error())
-	}
+	resp, err = client.R().
+		Get(groupEndpoint)
 	defer resp.Body.Close()
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
-
 	// verify groups dnode, enode exists on the cluster
 	if !strings.Contains(string(body), "<nameref>dnode</nameref>") && !strings.Contains(string(body), "<nameref>enode</nameref>") {
 		t.Errorf("Groups does not exists on cluster")
 	}
 
-	enodeHostCountJSON := 0
-	client := req.C()
+	enodeEndpoint := fmt.Sprintf("%s://%s/manage/v2/groups/enode?format=json", protocol, tunnel.Endpoint())
+	enodeHostCount := 0
 	_, reqErr := client.R().
 		SetDigestAuth(username, password).
 		SetRetryCount(3).
@@ -141,22 +151,21 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 				return true
 			}
 			totalHosts := gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)
-			enodeHostCountJSON = int(totalHosts.Num)
+			enodeHostCount = int(totalHosts.Num)
 			t.Logf("====Response: %d", resp.GetStatusCode())
-			t.Logf("====enodeHostCountJSON: %d", enodeHostCountJSON)
-			if enodeHostCountJSON != 2 {
+			t.Logf("====enodeHostCount: %d", enodeHostCount)
+			if enodeHostCount != 2 {
 				t.Log("Waiting for hosts to join enode group")
 			}
-			return enodeHostCountJSON != 2
+			return enodeHostCount != 2
 		}).
-		Get("http://localhost:8002/manage/v2/groups/enode?format=json")
+		Get(enodeEndpoint)
 
 	if reqErr != nil {
 		t.Fatalf(reqErr.Error())
 	}
-
-	// verify bootstrap host exists on the cluster
-	if enodeHostCountJSON != 2 {
+	// verify two host exists on the cluster
+	if enodeHostCount != 2 {
 		t.Errorf("enode hosts does not exists on cluster")
 	}
 }
@@ -231,7 +240,7 @@ func TestSeparateEDnode(t *testing.T) {
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 
-	bootstrapHostJSON, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions)
+	bootstrapHost, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -245,7 +254,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            "enode",
-			"bootstrapHostName":     bootstrapHostJSON,
+			"bootstrapHostName":     bootstrapHost,
 			"group.enableXdqpSsl":   "false",
 			"logCollection.enabled": "false",
 		},
@@ -259,7 +268,7 @@ func TestSeparateEDnode(t *testing.T) {
 	// wait until the second enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 45, 20*time.Second)
 
-	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
+	VerifyEnodeConfig(t, dnodePodName, kubectlOptions, "http")
 
 	if runUpgradeTest {
 		dnodeUpgradeOptionsMap := map[string]string{
@@ -297,8 +306,15 @@ func TestSeparateEDnode(t *testing.T) {
 		}
 
 		testUtil.HelmUpgrade(t, dnodeUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
-		bootstrapHostJSON, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions)
-		enodeUpgradeOptionsMap["bootstrapHostName"] = bootstrapHostJSON
+		output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 20*time.Second)
+		if err != nil {
+			t.Error(err.Error())
+		}
+		if output != "Running" {
+			t.Error(output)
+		}
+		bootstrapHost, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
+		enodeUpgradeOptionsMap["bootstrapHostName"] = bootstrapHost
 
 		//set helm options for upgrading Enode releases
 		enodeUpgradeOptions := &helm.Options{
@@ -306,8 +322,15 @@ func TestSeparateEDnode(t *testing.T) {
 			SetValues:      enodeUpgradeOptionsMap,
 		}
 		testUtil.HelmUpgrade(t, enodeUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
+		output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 10, 15*time.Second)
+		if err != nil {
+			t.Error(err.Error())
+		}
+		if output != "Running" {
+			t.Error(output)
+		}
+		VerifyEnodeConfig(t, dnodePodName, kubectlOptions, "http")
 	}
-	VerifyEnodeConfig(t, dnodePodName, kubectlOptions)
 
 	tlsConfig := tls.Config{}
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy

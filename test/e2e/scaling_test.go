@@ -126,9 +126,18 @@ func TestHelmScaleUp(t *testing.T) {
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
 	}
 
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 20*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 	tlsConfig := tls.Config{}
-	testUtil.MLReadyCheck(t, kubectlOptions, podOneName, &tlsConfig)
-
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podOneName, &tlsConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()

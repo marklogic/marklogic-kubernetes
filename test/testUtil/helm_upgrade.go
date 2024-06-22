@@ -28,6 +28,7 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 
 	//delete statefulset to upgrade if initial helm chart version is 1.x.x
 	if strings.HasPrefix(oldChartVersion, "1.") {
+		t.Logf("====Deleting Statefulset: %s", stsName)
 		k8s.RunKubectl(t, kubectlOpt, "delete", "statefulset", stsName)
 	}
 

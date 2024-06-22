@@ -40,12 +40,12 @@ func TestHelmInstall(t *testing.T) {
 	}
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
