@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,10 +16,13 @@ import (
 )
 
 func TestMlAdminSecrets(t *testing.T) {
-	// Path to the helm chart we will test
-	helmChartPath, e := filepath.Abs("../../charts")
-	if e != nil {
-		t.Fatalf(e.Error())
+	var helmChartPath string
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
@@ -40,12 +44,13 @@ func TestMlAdminSecrets(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled": "true",
 			"replicaCount":        "1",
-			"image.repository":    imageRepo,
-			"image.tag":           imageTag,
+			"image.repository":    "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":           "latest-11",
 			"auth.adminUsername":  "admin",
 			"auth.adminPassword":  "admin",
 			"auth.walletPassword": "admin",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -54,13 +59,50 @@ func TestMlAdminSecrets(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
+	// Path to the helm chart we will test
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-ml-secrets"
-	helm.Install(t, options, helmChartPath, releaseName)
+	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
-	podName := releaseName + "-0"
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+
+	if runUpgradeTest {
+		// create options for helm upgrade
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+		}
+
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
 
 	// get corev1.Pod to get logs of a pod
 	pod := k8s.GetPod(t, kubectlOptions, podName)

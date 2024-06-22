@@ -193,6 +193,24 @@ template-test: prepare
 test: template-test e2e-test
 
 #***************************************************************************
+# test
+#***************************************************************************
+## Run upgrade in e2e tests
+## Set following environment variables 
+## [upgradeTest] to true. Use `export upgradeTest=true`
+## [initialChartVersion] to a valid MarkLogic helm chart version for ex.: 1.1.2 to run upgrade tests. Use `export initialChartVersion=1.1.2`
+.PHONY: upgrade-test
+upgrade-test: prepare
+	@echo "=====upgradeTest env var for upgrade tests"
+	echo $(upgradeTest)
+
+	@echo "=====initialChartVersion env var for upgrade tests"
+	echo ${initialChartVersion}
+	
+	@echo "=====Running upgrades in e2e tests"
+	make e2e-test
+	
+#***************************************************************************
 # image-scan
 #***************************************************************************
 ## Find and scan dependent Docker images for security vulnerabilities

@@ -6,10 +6,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
@@ -23,40 +26,64 @@ func TestHelmInstall(t *testing.T) {
 	var body []byte
 	var err error
 	var podZeroName string
+	var helmChartPath string
+	var initialChartVersion string
+	releaseName := "test-install"
+	secretName := releaseName + "-admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "marklogicdb/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
-	options := map[string]string{
-		"persistence.enabled":   "true",
-		"replicaCount":          "2",
-		"image.repository":      imageRepo,
-		"image.tag":             imageTag,
-		"logCollection.enabled": "false",
-	}
-	t.Logf("====Installing Helm Chart")
-	releaseName := "test-install"
-
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"logCollection.enabled": "false",
+		},
+		Version: initialChartVersion,
+	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
-	podZeroName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
-	podOneName := releaseName + "-1"
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podZeroName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	tlsConfig := tls.Config{}
 
 	// wait until the pod is in Ready status
@@ -68,8 +95,31 @@ func TestHelmInstall(t *testing.T) {
 		t.Fatal("MarkLogic failed to start")
 	}
 
+	podOneName := releaseName + "-1"
+
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podZeroName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			secretName = releaseName + "-marklogic-admin"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
+	}
+
 	t.Log("====Testing Generated Random Password====")
-	secretName := releaseName + "-admin"
 	secret := k8s.GetSecret(t, kubectlOptions, secretName)
 	passwordArr := secret.Data["password"]
 	password := string(passwordArr[:])
@@ -128,9 +178,6 @@ func TestHelmInstall(t *testing.T) {
 	if groupQuantityJSON.Num != 1 {
 		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
 	}
-
-	// restart pod by pod in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 
 	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)

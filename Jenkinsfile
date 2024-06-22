@@ -158,7 +158,7 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HC_TESTS=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true''' : '')
     }
     environment {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
@@ -174,6 +174,8 @@ pipeline {
         string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
         booleanParam(name: 'IMAGE_SCAN', defaultValue: false, description: 'Find and scan dependent Docker images for security vulnerabilities')
+        booleanParam(name: 'HELM_UPGRADE_TESTS', defaultValue: false, description: 'Run Helm upgrade in E2E tests (runs nightly on develop)')
+        string(name: 'InitialChartVersion', defaultValue: '1.1.2', description: 'Helm Chart Version to use for upgrade tests. (e.g. 1.1.2)', trim: true)
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
     }
 
@@ -206,6 +208,16 @@ pipeline {
             steps {
                 sh """
                     export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb testSelection=${params.KUBERNETES_TEST_SELECTION}
+                """
+            }
+        }
+        stage('Kubernetes-Run-Upgrade-Tests') {
+            when {
+                expression { return params.HELM_UPGRADE_TESTS }
+            }
+            steps {
+                sh """
+                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; export upgradeTest=true; export initialChartVersion=${params.InitialChartVersion}; make upgrade-test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
