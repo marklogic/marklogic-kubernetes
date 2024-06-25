@@ -20,21 +20,18 @@ import (
 	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
-func VerifyGrpNameChng(t *testing.T, groupEndpoint string, kubectlOptions *k8s.KubectlOptions, groupName string, newGroupName string) (int, error) {
+func VerifyGrpNameChng(t *testing.T, groupEndpoint string, newGroupName string) (int, error) {
 	client := req.C().
 		SetCommonDigestAuth("admin", "admin").
 		SetCommonRetryCount(10).
 		SetCommonRetryFixedInterval(10 * time.Second)
 
-	t.Log("====Updating group name")
-
 	t.Logf(`Endpoint: %s`, groupEndpoint)
-	strJsonData := fmt.Sprintf(`{"group-name":"%s"}`, newGroupName)
-	t.Logf("New group name: %s", strJsonData)
+	strJSONData := fmt.Sprintf(`{"group-name":"%s"}`, newGroupName)
 
 	resp, err := client.R().
 		SetContentType("application/json").
-		SetBodyJsonString(strJsonData).
+		SetBodyJsonString(strJSONData).
 		Put(groupEndpoint)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -43,7 +40,7 @@ func VerifyGrpNameChng(t *testing.T, groupEndpoint string, kubectlOptions *k8s.K
 	return resp.GetStatusCode(), resp.Err
 }
 
-func TestSingleGrpNameChng(t *testing.T) {
+func TestSingleGrpCfgChng(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -99,8 +96,10 @@ func TestSingleGrpNameChng(t *testing.T) {
 	tunnel.ForwardPort(t)
 
 	// change the group name for dnode and verify it passes
+	newgroupName := "newDefault"
+	t.Logf("====Test updating group name for %s to %s", groupName, newgroupName)
 	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), groupName)
-	responseCode, err := VerifyGrpNameChng(t, groupEndpoint, kubectlOptions, groupName, "newDefault")
+	responseCode, err := VerifyGrpNameChng(t, groupEndpoint, newgroupName)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -109,7 +108,7 @@ func TestSingleGrpNameChng(t *testing.T) {
 	}
 }
 
-func TestGroupNameChng(t *testing.T) {
+func TestMultiGroupCfgChng(t *testing.T) {
 	username := "admin"
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
@@ -179,8 +178,10 @@ func TestGroupNameChng(t *testing.T) {
 	tunnel.ForwardPort(t)
 
 	// change the group name for dnode and verify it passes
+	newDnodeGrpName := "newDnode"
+	t.Logf("====Test updating group name for %s to %s", dnodeGrpName, newDnodeGrpName)
 	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), dnodeGrpName)
-	responseCode, err := VerifyGrpNameChng(t, groupEndpoint, kubectlOptions, dnodeGrpName, "newDnode")
+	responseCode, err := VerifyGrpNameChng(t, groupEndpoint, newDnodeGrpName)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -227,18 +228,23 @@ func TestGroupNameChng(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
 
 	// change the enode group name to a existing group name in the cluster and verify it fails
+	t.Logf("====Test updating group name for %s to an existing group name(%s) should fail", enodeGrpName, newDnodeGrpName)
 	groupEndpoint = fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), enodeGrpName)
-	responseCode, err = VerifyGrpNameChng(t, groupEndpoint, kubectlOptions, enodeGrpName, "newDnode")
+	responseCode, err = VerifyGrpNameChng(t, groupEndpoint, newDnodeGrpName)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	assert.Equal(t, 400, responseCode)
 
 	// change the enode group name to a new group name and verify it passes
+	newEnodeGrpName := "newEnode"
+	t.Logf("====Test updating group name for %s to %s", enodeGrpName, newEnodeGrpName)
 	groupEndpoint = fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), enodeGrpName)
-	responseCode, err = VerifyGrpNameChng(t, groupEndpoint, kubectlOptions, enodeGrpName, "newEnode")
+	responseCode, err = VerifyGrpNameChng(t, groupEndpoint, newEnodeGrpName)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	assert.Equal(t, 204, responseCode)
+	if responseCode != 204 {
+		t.Fatal("Failed to change group name")
+	}
 }
