@@ -42,12 +42,12 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	password := "AdminPa$s_with@!#%^&*()"
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
