@@ -28,7 +28,7 @@ func TestChartTemplateNoLogCollection(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":      "marklogicdb/marklogic-db",
+			"image.repository":      "progressofficial/marklogic-db",
 			"image.tag":             "latest",
 			"persistence.enabled":   "false",
 			"logCollection.enabled": "false",
@@ -46,7 +46,7 @@ func TestChartTemplateNoLogCollection(t *testing.T) {
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
 	// Verify the image matches
-	expectedImage := "marklogicdb/marklogic-db:latest"
+	expectedImage := "progressofficial/marklogic-db:latest"
 	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
 	require.Equal(t, len(statefulSetContainers), 1)
 	require.Equal(t, statefulSetContainers[0].Image, expectedImage)
@@ -66,7 +66,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":      "marklogicdb/marklogic-db",
+			"image.repository":      "progressofficial/marklogic-db",
 			"image.tag":             "latest",
 			"persistence.enabled":   "true",
 			"logCollection.enabled": "true",
@@ -85,7 +85,7 @@ func TestChartTemplateLogCollection(t *testing.T) {
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
 	// Verify the image matches
-	expectedImage1 := "marklogicdb/marklogic-db:latest"
+	expectedImage1 := "progressofficial/marklogic-db:latest"
 	expectedImage2 := "fluent/fluent-bit:2.2.2"
 
 	statefulSetContainers := statefulset.Spec.Template.Spec.Containers
@@ -111,7 +111,7 @@ func TestTemplatePersistence(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository": "marklogicdb/marklogic-db",
+			"image.repository": "progressofficial/marklogic-db",
 			"image.tag":        "latest",
 			"additionalVolumeClaimTemplates[0].metadata.name":                   additionalVolumeClaimTemplatesName,
 			"additionalVolumeClaimTemplates[0].spec.accessModes[0]":             additionalVolumeClaimTemplatesAccessModes,

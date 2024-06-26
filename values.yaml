@@ -1,0 +1,16 @@
+replicaCount: 2
+ 
+auth:
+  adminUsername: "admin"
+  adminPassword: "admin"
+ 
+persistence:
+  enabled: false
+ 
+image:
+  repository: ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless
+  tag: latest-11
+ 
+tls:
+  enableOnDefaultAppServers: true
+

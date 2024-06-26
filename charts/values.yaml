@@ -44,7 +44,7 @@ rootToRootlessUpgrade: false
 
 ## Marklogic image parameters
 image:
-  repository: marklogicdb/marklogic-db
+  repository: progressofficial/marklogic-db
   tag: 11.2.0-ubi-rootless
   pullPolicy: IfNotPresent
 

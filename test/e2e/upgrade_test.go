@@ -77,7 +77,7 @@ func TestHelmUpgrade(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      "marklogicdb/marklogic-db",
+			"image.repository":      "progressofficial/marklogic-db",
 			"image.tag":             "latest",
 			"logCollection.enabled": "false",
 		},

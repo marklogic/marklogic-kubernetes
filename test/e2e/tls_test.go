@@ -40,7 +40,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	password := "admin"
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -183,7 +183,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
 	}
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -410,7 +410,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	}
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 

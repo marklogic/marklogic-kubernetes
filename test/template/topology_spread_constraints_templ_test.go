@@ -28,7 +28,7 @@ func TestChartTemplateTopologySpreadConstraintClass(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
+			"image.repository":    "progressofficial/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
 		},
