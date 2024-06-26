@@ -33,7 +33,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	password := "admin"
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -139,7 +139,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -326,7 +326,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	}
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
