@@ -28,7 +28,7 @@ func TestChartTemplateEnableConvertersEnabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
+			"image.repository":    "progressofficial/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
 			"enableConverters":    "true",
@@ -66,7 +66,7 @@ func TestChartTemplateEnableConvertersDisabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
+			"image.repository":    "progressofficial/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
 			"enableConverters":    "false",
@@ -105,7 +105,7 @@ func TestChartTemplateLicenseValues(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
+			"image.repository":    "progressofficial/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
 			"license.key":         "Test License Key",
@@ -148,7 +148,7 @@ func TestChartTemplateAuthRealmValue(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":    "marklogicdb/marklogic-db",
+			"image.repository":    "progressofficial/marklogic-db",
 			"image.tag":           "latest",
 			"persistence.enabled": "false",
 			"realm":               "public",

@@ -28,7 +28,7 @@ func TestChartTemplateSecurityEnabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
+			"image.repository":                 "progressofficial/marklogic-db",
 			"image.tag":                        "latest",
 			"persistence.enabled":              "false",
 			"containerSecurityContext.enabled": "true",
@@ -68,7 +68,7 @@ func TestChartTemplateSecurityDisabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
+			"image.repository":                 "progressofficial/marklogic-db",
 			"image.tag":                        "latest",
 			"persistence.enabled":              "false",
 			"containerSecurityContext.enabled": "false",

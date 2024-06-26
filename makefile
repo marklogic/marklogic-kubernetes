@@ -82,7 +82,7 @@ lint:
 #***************************************************************************
 ## Run all end to end tests
 ## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [prevDockerImage] optional. used for marklogic upgrade tests
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
@@ -186,7 +186,7 @@ template-test: prepare
 #***************************************************************************
 ## Run all tests
 ## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
