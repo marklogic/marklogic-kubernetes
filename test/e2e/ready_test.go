@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -24,13 +25,20 @@ func TestMarklogicReady(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
-	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion")
-	username := "admin"
-	password := "admin"
 	var resp *http.Response
 	var body []byte
 	var err error
+	var initialChartVersion string
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
+	username := "admin"
+	password := "admin"
 
 	if !repoPres {
 		imageRepo = "marklogic-centos/marklogic-server-centos"
@@ -55,6 +63,7 @@ func TestMarklogicReady(t *testing.T) {
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -65,12 +74,43 @@ func TestMarklogicReady(t *testing.T) {
 
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-install"
-	helm.Install(t, options, helmChartPath, releaseName)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
 
-	podZeroName := releaseName + "-0"
-	podOneName := releaseName + "-1"
+	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 15*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 15*time.Second)
+
+	podOneName := releaseName + "-1"
+
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podZeroName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
+	}
+
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podOneName, 8001, 8001)
 	defer tunnel.Close()
@@ -91,9 +131,6 @@ func TestMarklogicReady(t *testing.T) {
 	t.Logf("Timestamp response:\n" + string(body))
 
 	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

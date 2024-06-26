@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
@@ -136,9 +139,16 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 
 func TestMlDbBackupRestore(t *testing.T) {
 	// var resp *http.Response
-
+	var helmChartPath string
 	var err error
 	var podName string
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
@@ -155,21 +165,24 @@ func TestMlDbBackupRestore(t *testing.T) {
 	username := "admin"
 	password := "admin"
 
-	options := map[string]string{
-		"persistence.enabled":   "true",
-		"replicaCount":          "1",
-		"image.repository":      imageRepo,
-		"image.tag":             imageTag,
-		"auth.adminUsername":    username,
-		"auth.adminPassword":    password,
-		"logCollection.enabled": "false",
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
+		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Installing Helm Chart")
 	releaseName := "bkuprestore"
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
@@ -177,14 +190,50 @@ func TestMlDbBackupRestore(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for backup restore test")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
 
-	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+
+	if runUpgradeTest {
+		// create options for helm upgrade
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
 
 	//create backup directories and setup permissions
 	k8s.RunKubectl(t, kubectlOptions, "exec", podName, "--", "/bin/bash", "-c", "cd /tmp && mkdir backup && chmod 777 backup && mkdir backup/incrBackup && chmod 777 backup/incrBackup")
@@ -327,6 +376,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 		t.Errorf("Both docs are restored")
 	}
 
+	tlsConfig := tls.Config{}
 	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

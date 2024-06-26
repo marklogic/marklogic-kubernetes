@@ -7,13 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
-	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
@@ -29,6 +29,13 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	username := "admin"
 	password := "admin"
 
@@ -56,6 +63,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 			"logCollection.enabled":         "false",
 			"tls.enableOnDefaultAppServers": "true",
 		},
+		Version: initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -66,18 +74,47 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test-join"
-	helm.Install(t, options, helmChartPath, releaseName)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
 
-	podName := releaseName + "-0"
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	tlsConfig := tls.Config{InsecureSkipVerify: true}
 
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
 
 	// verify MarkLogic is ready
-	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
+	}
+
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":           "true",
+			"replicaCount":                  "1",
+			"tls.enableOnDefaultAppServers": "true",
+			"logCollection.enabled":         "false",
+			"allowLongHostnames":            "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helmOptions for upgrade
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}
 
 	tunnel := k8s.NewTunnel(
@@ -138,6 +175,13 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	var err error
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
@@ -155,6 +199,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 			"image.repository": imageRepo,
 			"image.tag":        imageTag,
 		},
+		Version:        initialChartVersion,
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -199,10 +244,17 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	t.Logf("====Creating secret for pod-1 certificate")
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "marklogic-1-cert", "--from-file=../test_data/pod_one_certs/tls.crt", "--from-file=../test_data/pod_one_certs/tls.key")
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
-	helm.Install(t, options, helmChartPath, releaseName)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
 
-	podName := releaseName + "-0"
+	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 	podOneName := releaseName + "-1"
 
 	tlsConfig := tls.Config{InsecureSkipVerify: true}
@@ -211,6 +263,31 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 30*time.Second)
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 15, 30*time.Second)
 
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"allowLongHostnames": "true",
+		}
+
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			ValuesFiles:    []string{"../test_data/values/tls_twonode_values.yaml"},
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is set. Running helmupgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
+	}
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 	// verify MarkLogic is ready
 	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
 	if err != nil {
@@ -303,13 +380,21 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	}
 
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
+	testUtil.RestartPodAndVerify(t, true, []string{podName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
 
 func TestTlsOnEDnode(t *testing.T) {
 
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	var err error
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	namespaceName := "marklogic-tlsednode"
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "dnode"
@@ -317,7 +402,6 @@ func TestTlsOnEDnode(t *testing.T) {
 	dnodePodName := dnodeReleaseName + "-0"
 	enodePodName0 := enodeReleaseName + "-0"
 	enodePodName1 := enodeReleaseName + "-1"
-	var err error
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -339,9 +423,10 @@ func TestTlsOnEDnode(t *testing.T) {
 	options := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_dnode_values.yaml"},
 		SetValues: map[string]string{
-			"image.repository": imageRepo,
-			"image.tag":        imageTag,
+			"image.repository": "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
+			"image.tag":        "latest-11",
 		},
+		Version:        initialChartVersion,
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -350,6 +435,14 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
 
 	// generate CA certificates for pods
 	err = GenerateCACertificate("../test_data/ca_certs")
@@ -369,78 +462,30 @@ func TestTlsOnEDnode(t *testing.T) {
 	t.Logf("====Creating secret for pod-0 certificate")
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "dnode-0-cert", "--from-file=../test_data/dnode_zero_certs/tls.crt", "--from-file=../test_data/dnode_zero_certs/tls.key")
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	helm.Install(t, options, helmChartPath, dnodeReleaseName)
+	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
-
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-
-	totalHosts := 0
-	bootstrapHost := ""
-	client := req.C().
-		EnableInsecureSkipVerify().
-		SetCommonDigestAuth("admin", "admin").
-		SetCommonRetryCount(10).
-		SetCommonRetryFixedInterval(10 * time.Second)
-
-	resp, err := client.R().
-		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if err != nil {
-				t.Logf("===error from retryFunc : %s", err.Error())
-			}
-			t.Log("====Before getting body")
-			t.Log("====Response: ", resp)
-			body, err := io.ReadAll(resp.Body)
-			t.Log("====Body: ", string(body))
-			if err != nil {
-				t.Logf("error: %s", err.Error())
-			}
-			totalHosts = int(gjson.Get(string(body), `host-default-list.list-items.list-count.value`).Num)
-			bootstrapHost = (gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)).Str
-			if totalHosts != 1 {
-				t.Log("Waiting for host to configure")
-			}
-			return totalHosts != 1
-		}).
-		Get("https://localhost:8002/manage/v2/hosts?format=json")
-	defer resp.Body.Close()
-
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 20*time.Second)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-
-	// verify bootstrap host exists on the cluster
-	t.Log("====Verifying bootstrap host exists on the cluster")
-	if bootstrapHost == "" {
-		t.Errorf("Bootstrap does not exists on cluster")
+	if output != "Running" {
+		t.Error(output)
 	}
-
-	t.Log("====Verifying xdqp-ssl-enabled is set to true for dnode group")
-	resp, err = client.R().
-		Get("https://localhost:8002/manage/v2/groups/dnode/properties?format=json")
-	defer resp.Body.Close()
-
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	body, err := io.ReadAll(resp.Body)
-	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`).Bool()
-
-	// verify xdqp-ssl-enabled is set to true
-	assert.Equal(t, true, xdqpSSLEnabled, "xdqp-ssl-enabled should be set to true")
+	bootstrapHostStr, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
 
 	// Setup the args for helm install using custom values.yaml file
 	enodeOptions := &helm.Options{
 		ValuesFiles: []string{"../test_data/values/tls_enode_values.yaml"},
 		SetValues: map[string]string{
-			"image.repository": imageRepo,
-			"image.tag":        imageTag,
+			"image.repository":  imageRepo,
+			"image.tag":         imageTag,
+			"bootstrapHostName": bootstrapHostStr,
 		},
+		Version:        initialChartVersion,
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
@@ -462,75 +507,63 @@ func TestTlsOnEDnode(t *testing.T) {
 	t.Logf("====Creating secret for enode-1 certificates")
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "enode-1-cert", "--from-file=../test_data/enode_one_certs/tls.crt", "--from-file=../test_data/enode_one_certs/tls.key")
 
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	helm.Install(t, enodeOptions, helmChartPath, enodeReleaseName)
+	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 20, 20*time.Second)
 
-	t.Log("====Verify xdqp-ssl-enabled is set to false on Enode")
-	resp, err = client.R().
-		Get("https://localhost:8002/manage/v2/hosts?format=json")
+	if runUpgradeTest {
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		dnodeUpgradeOptionsMap := map[string]string{
+			"allowLongHostnames": "true",
+		}
+		enodeUpgradeOptionsMap := map[string]string{
+			"allowLongHostnames": "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			dnodePodName = dnodeReleaseName + "-marklogic-0"
+			enodePodName0 = enodeReleaseName + "-marklogic-0"
+			enodePodName1 = enodeReleaseName + "-marklogic-1"
+			dnodeUpgradeOptionsMap["useLegacyHostnames"] = "true"
+			enodeUpgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		dnodeHelmUpgradeOptions := &helm.Options{
+			ValuesFiles:    []string{"../test_data/values/tls_dnode_values.yaml"},
+			KubectlOptions: kubectlOptions,
+			SetValues:      dnodeUpgradeOptionsMap,
+		}
+		testUtil.HelmUpgrade(t, dnodeHelmUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
+		output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 20*time.Second)
+		if err != nil {
+			t.Error(err.Error())
+		}
+		if output != "Running" {
+			t.Error(output)
+		}
+		bootstrapHostStr, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
 
+		enodeUpgradeOptionsMap["bootstrapHostName"] = bootstrapHostStr
+		enodeHelmUpgradeOptions := &helm.Options{
+			ValuesFiles:    []string{"../test_data/values/tls_enode_values.yaml"},
+			KubectlOptions: kubectlOptions,
+			SetValues:      enodeUpgradeOptionsMap,
+		}
+		testUtil.HelmUpgrade(t, enodeHelmUpgradeOptions, enodeReleaseName, kubectlOptions, []string{enodePodName0, enodePodName1}, initialChartVersion)
+	}
+
+	// wait until the enode pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 20, 20*time.Second)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Error(err.Error())
 	}
-	defer resp.Body.Close()
-	body, err = io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
+	if output != "Running" {
+		t.Error(output)
 	}
-
-	xdqpSSLEnabled = gjson.Get(string(body), `xdqp-ssl-enabled`).Bool()
-	// verify xdqp-ssl-enabled is set to false
-	assert.Equal(t, false, xdqpSSLEnabled)
-
-	resp, err = client.R().
-		Get("https://localhost:8002/manage/v2/groups")
-
-	defer resp.Body.Close()
-	if body, err = io.ReadAll(resp.Body); err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	// verify groups dnode, enode exists on the cluster
-	if !strings.Contains(string(body), "<nameref>dnode</nameref>") && !strings.Contains(string(body), "<nameref>enode</nameref>") {
-		t.Errorf("Groups does not exists on cluster")
-	}
-
-	// wait until the second enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName1, 20, 20*time.Second)
-
-	t.Log("====Verifying two hosts joined enode group")
-	enodeHostCount := 0
-	resp, err = client.R().
-		AddRetryCondition(func(resp *req.Response, err error) bool {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Logf("error: %s", err.Error())
-			}
-			enodeHostCount = int((gjson.Get(string(body), `group-default.relations.relation-group.#(typeref="hosts").relation-count.value`)).Num)
-			if enodeHostCount != 2 {
-				t.Log("Waiting for second host to join MarkLogic cluster")
-			}
-			return enodeHostCount != 2
-		}).
-		Get("https://localhost:8002/manage/v2/groups/enode?format=json")
-
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer resp.Body.Close()
-
-	t.Log(`enodeHostCount:= `, enodeHostCount)
-
-	// verify enode hosts exists on the cluster
-	if enodeHostCount != 2 {
-		t.Errorf("enode hosts does not exists on cluster")
-	}
+	VerifyEnodeConfig(t, dnodePodName, kubectlOptions, "https")
 
 	tlsConfig := tls.Config{}
-	// // restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
-
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{dnodePodName, enodePodName0, enodePodName1}, namespaceName, kubectlOptions, &tlsConfig)
 }
