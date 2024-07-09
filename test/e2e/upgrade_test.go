@@ -20,7 +20,6 @@ import (
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmUpgrade(t *testing.T) {
@@ -233,9 +232,14 @@ func TestMLupgrade(t *testing.T) {
 	clusterEndpoint := fmt.Sprintf("http://%s/manage/v2?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, clusterEndpoint)
 
-	getMLversion := digestAuth.NewRequest(username, password, "GET", clusterEndpoint, "")
+	reqClient := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	resp, err := getMLversion.Execute()
+	resp, err := reqClient.R().
+		Get(clusterEndpoint)
+
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

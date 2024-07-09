@@ -330,6 +330,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/certificate-templates/defaultTemplate?format=json")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -340,6 +343,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	resp, err = client.R().
 		Get("https://localhost:8002/manage/v2/certificates?format=json")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
@@ -351,6 +357,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	endpoint := strings.Replace("https://localhost:8002/manage/v2/certificates/certId?format=json", "certId", certID.Str, -1)
 	resp, err = client.R().
 		Get(endpoint)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)

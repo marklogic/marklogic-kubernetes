@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,13 +14,12 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestEnableConvertersAndLicense(t *testing.T) {
-	var resp *http.Response
 	var body []byte
 	var err error
 	// Path to the helm chart we will test
@@ -122,12 +120,19 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	endpoint := fmt.Sprintf("http://%s/admin/v1/timestamp", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, endpoint)
 
-	// Make request to server as soon as it is ready
-	timestamp := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	if resp, err = timestamp.Execute(); err != nil {
+	// Make request to server as soon as it is ready
+	resp, err := client.R().
+		Get(endpoint)
+
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}

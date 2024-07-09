@@ -17,7 +17,6 @@ import (
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func VerifyGrpNameChng(t *testing.T, groupEndpoint string, newGroupName string) (int, error) {
@@ -192,9 +191,12 @@ func TestMultiGroupCfgChng(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-
-	resp, err := getHostsDR.Execute()
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+	resp, err := client.R().
+		Get(hostsEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
