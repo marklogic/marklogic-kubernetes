@@ -68,7 +68,7 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
 
-	dnodeEndpoint := fmt.Sprintf("%s://%s/manage/v2/hosts?format=json", protocol, tunnel.Endpoint())
+	dnodeEndpoint := fmt.Sprintf("%s://%s/manage/v2/groups/dnode/properties?format=json", protocol, tunnel.Endpoint())
 	t.Log("====Verifying xdqp-ssl-enabled is set to true for dnode group")
 	resp, err = client.R().
 		Get(dnodeEndpoint)
@@ -239,11 +239,13 @@ func TestSeparateEDnode(t *testing.T) {
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
-
+	t.Logf("====Before VerifyDnodeConfig")
 	bootstrapHost, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+	t.Logf("====Before VerifyDnodeConfig")
+
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
