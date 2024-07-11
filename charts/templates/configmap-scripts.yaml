@@ -790,9 +790,9 @@ data:
     }
 
 
-    function configure_authentication {
+    function configure_path_based_routing {
         # Authentication configuration when path based is used
-        if [[ "$IS_BOOTSTRAP_HOST" == "true" ]] && [[ $PATH_BASED_ROUTING == "true" ]]; then                    
+        if [[ $PATH_BASED_ROUTING == "true" ]]; then                    
             log "Info:  path based routing is set. Adapting authentication method"
             resp=$(curl --anyauth -w "%{http_code}" --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD -m 20 -s -X PUT -H "Content-type: application/json" -d '{"authentication":"basic"}' http://localhost:8002/manage/v2/servers/Admin/properties?group-id=${MARKLOGIC_GROUP})
             log "Info:  Admin-Servers response code: $resp"
@@ -865,6 +865,7 @@ data:
             configure_group
             join_cluster $HOST_FQDN
         fi
+        configure_path_based_routing
     else 
         check_status_file_for_nonbootstrap
         wait_until_marklogic_ready $HOST_FQDN
