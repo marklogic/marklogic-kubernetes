@@ -306,7 +306,7 @@ readinessProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.2.2
+  image: fluent/fluent-bit:3.1.1
   resources:
     requests:
       cpu: "100m"
