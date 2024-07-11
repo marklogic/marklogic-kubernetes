@@ -345,7 +345,7 @@ data:
     # return values: 0 - successfully initialized
     #                1 - host not reachable
     ################################################################
-    function wait_until_marklogic_ready {
+    function init_marklogic {
         local host=$1
         info "wait until $host is ready"
         timestamp=$( curl -s --anyauth -m 4 \
@@ -354,7 +354,7 @@ data:
         if [ -z "${timestamp}" ]; then
             info "${host} - not responding yet"
             sleep 10s
-            wait_until_marklogic_ready $host
+            init_marklogic $host
             return 0
         else 
             info "${host} - responding with $timestamp"
@@ -854,21 +854,20 @@ data:
     # Only do this if the bootstrap host is in the statefulset we are configuring
     if [[ "$IS_BOOTSTRAP_HOST" == "true" ]]; then
        check_status_file_for_boostrap
-       wait_until_marklogic_ready $HOST_FQDN
+       init_marklogic $HOST_FQDN
        if [[ "${MARKLOGIC_CLUSTER_TYPE}" == "bootstrap" ]]; then
             log "Info:  bootstrap host is ready"
             init_security_db
             configure_group
         else 
             log "Info:  bootstrap host is ready"
-            wait_until_marklogic_ready $HOST_FQDN
             configure_group
             join_cluster $HOST_FQDN
         fi
         configure_path_based_routing
     else 
         check_status_file_for_nonbootstrap
-        wait_until_marklogic_ready $HOST_FQDN
+        init_marklogic $HOST_FQDN
         wait_bootstrap_ready
         join_cluster $HOST_FQDN
     fi
