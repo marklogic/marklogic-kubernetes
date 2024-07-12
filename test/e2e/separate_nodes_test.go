@@ -279,6 +279,8 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		enodeUpgradeOptionsMap := map[string]string{
 			"persistence.enabled":   "true",
@@ -289,6 +291,8 @@ func TestSeparateEDnode(t *testing.T) {
 			"group.name":            "enode",
 			"group.enableXdqpSsl":   "false",
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			dnodePodName = dnodeReleaseName + "-marklogic-0"

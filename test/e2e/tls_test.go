@@ -98,11 +98,13 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	if runUpgradeTest {
 		upgradeOptionsMap := map[string]string{
-			"persistence.enabled":           "true",
-			"replicaCount":                  "1",
-			"tls.enableOnDefaultAppServers": "true",
-			"logCollection.enabled":         "false",
-			"allowLongHostnames":            "true",
+			"persistence.enabled":                               "true",
+			"replicaCount":                                      "1",
+			"tls.enableOnDefaultAppServers":                     "true",
+			"logCollection.enabled":                             "false",
+			"allowLongHostnames":                                "true",
+			"rootToRootlessUpgrade":                             "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			podName = releaseName + "-marklogic-0"
@@ -265,7 +267,9 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	if runUpgradeTest {
 		upgradeOptionsMap := map[string]string{
-			"allowLongHostnames": "true",
+			"allowLongHostnames":                                "true",
+			"rootToRootlessUpgrade":                             "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 
 		if strings.HasPrefix(initialChartVersion, "1.0") {

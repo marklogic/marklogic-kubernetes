@@ -220,6 +220,8 @@ func TestMlDbBackupRestore(t *testing.T) {
 			"replicaCount":          "1",
 			"logCollection.enabled": "false",
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			podName = releaseName + "-marklogic-0"

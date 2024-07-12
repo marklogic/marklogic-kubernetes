@@ -93,6 +93,8 @@ func TestClusterJoin(t *testing.T) {
 			"auth.adminPassword":    password,
 			"logCollection.enabled": "false",
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			podZeroName = releaseName + "-marklogic-0"

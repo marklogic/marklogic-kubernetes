@@ -100,6 +100,8 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 			"enableConverters":      "true",
 			"logCollection.enabled": "false",
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			podName = releaseName + "-marklogic-0"

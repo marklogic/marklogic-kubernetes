@@ -109,14 +109,16 @@ func TestHugePagesSettings(t *testing.T) {
 
 	if runUpgradeTest {
 		upgradeOptionsMap := map[string]string{
-			"persistence.enabled":            "true",
-			"replicaCount":                   "1",
-			"hugepages.enabled":              "true",
-			"hugepages.mountPath":            "/dev/hugepages",
-			"resources.limits.hugepages-2Mi": "1Gi",
-			"resources.limits.memory":        "8Gi",
-			"resources.requests.memory":      "8Gi",
-			"allowLongHostnames":             "true",
+			"persistence.enabled":                               "true",
+			"replicaCount":                                      "1",
+			"hugepages.enabled":                                 "true",
+			"hugepages.mountPath":                               "/dev/hugepages",
+			"resources.limits.hugepages-2Mi":                    "1Gi",
+			"resources.limits.memory":                           "8Gi",
+			"resources.requests.memory":                         "8Gi",
+			"allowLongHostnames":                                "true",
+			"rootToRootlessUpgrade":                             "true",
+			"containerSecurityContext.allowPrivilegeEscalation": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			podName = releaseName + "-marklogic-0"
