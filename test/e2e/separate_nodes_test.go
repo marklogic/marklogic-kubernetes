@@ -67,7 +67,7 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		t.Errorf("Bootstrap does not exists on cluster")
 	}
 
-	dnodeEndpoint := fmt.Sprintf("%s://%s/manage/v2/hosts?format=json", protocol, tunnel.Endpoint())
+	dnodeEndpoint := fmt.Sprintf("%s://%s/manage/v2/groups/dnode/properties?format=json", protocol, tunnel.Endpoint())
 	t.Log("====Verifying xdqp-ssl-enabled is set to true for dnode group")
 	resp, err = client.R().
 		Get(dnodeEndpoint)
@@ -238,7 +238,6 @@ func TestSeparateEDnode(t *testing.T) {
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
-
 	bootstrapHost, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
 	if err != nil {
 		t.Errorf(err.Error())
@@ -279,6 +278,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
 		}
 		enodeUpgradeOptionsMap := map[string]string{
 			"persistence.enabled":   "true",
@@ -289,6 +289,7 @@ func TestSeparateEDnode(t *testing.T) {
 			"group.name":            "enode",
 			"group.enableXdqpSsl":   "false",
 			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			dnodePodName = dnodeReleaseName + "-marklogic-0"

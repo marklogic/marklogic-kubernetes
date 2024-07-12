@@ -117,6 +117,7 @@ func TestHugePagesSettings(t *testing.T) {
 			"resources.limits.memory":        "8Gi",
 			"resources.requests.memory":      "8Gi",
 			"allowLongHostnames":             "true",
+			"rootToRootlessUpgrade":          "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
 			podName = releaseName + "-marklogic-0"
