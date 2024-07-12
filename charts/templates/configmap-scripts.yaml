@@ -881,7 +881,7 @@ data:
 
     info "helm script completed"
 
-root-rootless-upgrade.sh: |
+  root-rootless-upgrade.sh: |
     #!/bin/bash
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
