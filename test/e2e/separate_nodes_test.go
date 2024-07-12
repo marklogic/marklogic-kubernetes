@@ -243,7 +243,6 @@ func TestSeparateEDnode(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
