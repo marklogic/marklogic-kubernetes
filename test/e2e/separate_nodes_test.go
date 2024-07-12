@@ -239,12 +239,10 @@ func TestSeparateEDnode(t *testing.T) {
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
-	t.Logf("====Before VerifyDnodeConfig")
 	bootstrapHost, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	t.Logf("====Before VerifyDnodeConfig")
 
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
