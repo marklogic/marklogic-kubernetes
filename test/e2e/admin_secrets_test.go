@@ -44,8 +44,8 @@ func TestMlAdminSecrets(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled": "true",
 			"replicaCount":        "1",
-			"image.repository":    "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless",
-			"image.tag":           "latest-11",
+			"image.repository":    imageRepo,
+			"image.tag":           imageTag,
 			"auth.adminUsername":  "admin",
 			"auth.adminPassword":  "admin",
 			"auth.walletPassword": "admin",
