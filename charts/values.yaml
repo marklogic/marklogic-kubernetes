@@ -45,13 +45,13 @@ rootToRootlessUpgrade: false
 ## Marklogic image parameters
 image:
   repository: progressofficial/marklogic-db
-  tag: 11.2.0-ubi-rootless
+  tag: 11.3.0-ubi-rootless
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
 initContainers:
   configureGroup:
-    image: "curlimages/curl:8.6.0"
+    image: "curlimages/curl:8.8.0"
     pullPolicy: IfNotPresent
   utilContainer:
     image: "redhat/ubi9:9.3"
@@ -306,7 +306,7 @@ readinessProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.2.2
+  image: fluent/fluent-bit:3.1.1
   resources:
     requests:
       cpu: "100m"
