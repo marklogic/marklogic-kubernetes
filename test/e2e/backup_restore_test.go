@@ -87,7 +87,7 @@ func DeleteDocs(client *req.Client, deleteEndpoint string) (string, error) {
 	return result, err
 }
 
-func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string, error) {
+func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint string) (string, error) {
 	var err error
 	var body []byte
 	headerMap := map[string]string{
@@ -99,11 +99,11 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 	operation := (gjson.Get(dbReq, `operation`)).Str
 	var retryFn = (func(resp *req.Response, err error) bool {
 		if err != nil {
-			fmt.Println(err.Error())
+			t.Fatalf(err.Error())
 		}
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err.Error())
+			t.Fatalf(err.Error())
 		}
 		result = (string(body))
 		return true
@@ -112,7 +112,7 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 	if operation == "backup-status" {
 		retryFn = (func(resp *req.Response, err error) bool {
 			if err != nil {
-				fmt.Printf("error: %s", err.Error())
+				t.Fatalf(err.Error())
 			}
 			body, _ := io.ReadAll(resp.Body)
 			status = (gjson.Get(string(body), `status`)).Str
@@ -130,7 +130,7 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 		SetBodyString(dbReq).
 		Post(hostsEndpoint)
 	if err != nil {
-		return "", err
+		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -287,8 +287,9 @@ func TestMlDbBackupRestore(t *testing.T) {
 		IncludeReplicas: "true"}
 	bkupReqRes, _ := json.Marshal(bkupReq)
 
+	t.Log("====Full backup for Documents DB")
 	//full backup for Documents DB
-	result, err = RunRequests(client, string(bkupReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(bkupReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -302,7 +303,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	bkupStatusReqRes, _ := json.Marshal(bkupStatusReq)
 
 	//get status of full backup job
-	result, err = RunRequests(client, string(bkupStatusReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(bkupStatusReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -324,7 +325,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	incrBkupReqRes, _ := json.Marshal(incrBkupReq)
 
 	//incremnetal backup for Documents DB
-	result, err = RunRequests(client, string(incrBkupReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(incrBkupReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -338,7 +339,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	incrBkupStatusReqRes, _ := json.Marshal(incrBkupStatusReq)
 
 	//get status of backup job
-	result, err = RunRequests(client, string(incrBkupStatusReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(incrBkupStatusReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -361,7 +362,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	brstrReqRes, _ := json.Marshal(rstrReq)
 
 	//restore Documents DB from incremental backup
-	result, err = RunRequests(client, string(brstrReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(brstrReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
