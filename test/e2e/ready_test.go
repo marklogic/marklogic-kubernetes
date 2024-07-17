@@ -3,8 +3,7 @@ package e2e
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,8 +14,8 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestMarklogicReady(t *testing.T) {
@@ -25,7 +24,6 @@ func TestMarklogicReady(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
-	var resp *http.Response
 	var body []byte
 	var err error
 	var initialChartVersion string
@@ -120,12 +118,21 @@ func TestMarklogicReady(t *testing.T) {
 	t.Logf(`Endpoint: %s`, endpoint)
 
 	// Make request to server as soon as it is ready
-	timestamp := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	if resp, err = timestamp.Execute(); err != nil {
+	// Make request to server as soon as it is ready
+	resp, err := client.R().
+		Get(endpoint)
+
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	defer resp.Body.Close()
+
+	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
 
