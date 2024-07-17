@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"fmt"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
@@ -72,7 +73,7 @@ func TestFailover(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	releaseName := "failover"
-	hostName1 := "failover-1.failover." + namespaceName + ".svc.cluster.local"
+	hostName1 := fmt.Sprintf("%s-1.%s.%s.svc.cluster.local", releaseName, releaseName, namespaceName)
 	forestName := "security1"
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
@@ -84,14 +85,6 @@ func TestFailover(t *testing.T) {
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
 
-	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 10, 15*time.Second)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	if output != "Running" {
-		t.Error(output)
-	}
-
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	tunnel.ForwardPort(t)
@@ -102,6 +95,19 @@ func TestFailover(t *testing.T) {
 	resp, err := client.R().
 		SetDigestAuth(username, password).
 		SetBody(&Forest{ForestName: forestName, Host: hostName1}).
+		SetRetryCount(5).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp == nil {
+				t.Logf("error getting response")
+				return true
+			}
+			return resp.StatusCode != 201
+		}).
 		Post("http://localhost:8002/manage/v2/forests")
 
 	if err != nil {
@@ -111,7 +117,6 @@ func TestFailover(t *testing.T) {
 
 	if resp.StatusCode != 201 {
 		t.Error("Response code is not 201 when creating forest. Actual response code", resp.Status)
-		t.Fatalf(err.Error())
 	}
 
 	t.Logf("Forest %s created successfully", forestName)
@@ -129,7 +134,6 @@ func TestFailover(t *testing.T) {
 
 	if resp.StatusCode != 204 {
 		t.Error("Response code is not 204 when updating forest replica. Actual response code", resp.Status)
-		t.Fatalf(err.Error())
 	}
 
 	t.Log("Replica forest set for Security")
@@ -140,13 +144,17 @@ func TestFailover(t *testing.T) {
 		SetRetryCount(5).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if resp == nil || err != nil || resp.Body == nil {
+			if err != nil {
 				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp == nil || resp.Body == nil {
+				t.Logf("error in getting response body")
 				return true
 			}
 			body, err := io.ReadAll(resp.Body)
 			if body == nil || err != nil {
-				t.Logf("error in read response body: %s", err.Error())
+				t.Logf("error in read response body")
 				return true
 			}
 			forestStatus := gjson.Get(string(body), `forest-status.status-properties.state.value`)
@@ -175,8 +183,12 @@ func TestFailover(t *testing.T) {
 		SetRetryCount(5).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if resp == nil || err != nil || resp.Body == nil {
+			if err != nil {
 				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp == nil || resp.Body == nil {
+				t.Logf("error in getting response body")
 				return true
 			}
 			body, err := io.ReadAll(resp.Body)
