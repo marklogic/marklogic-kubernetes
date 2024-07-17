@@ -125,6 +125,19 @@ func TestFailover(t *testing.T) {
 	resp, err = client.R().
 		SetDigestAuth(username, password).
 		SetBody(&ForestProperties{ForestReplica: []ForestReplica{{ReplicaName: forestName, Host: hostName1}}}).
+		SetRetryCount(5).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			if resp == nil {
+				t.Logf("error getting response")
+				return true
+			}
+			return resp.StatusCode != 204
+		}).
 		Put("http://localhost:8002/manage/v2/forests/Security/properties")
 
 	if err != nil {
