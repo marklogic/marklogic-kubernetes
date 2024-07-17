@@ -188,6 +188,7 @@ func TestFailover(t *testing.T) {
 	tunnel.Close()
 	tunnel = k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
+	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
 	// Make sure the security1 forest1 is primary forest now and status is open
