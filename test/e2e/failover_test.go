@@ -57,12 +57,12 @@ func TestFailover(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "3",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
+			"persistence.enabled": "true",
+			"replicaCount":        "3",
+			"image.repository":    imageRepo,
+			"image.tag":           imageTag,
+			"auth.adminUsername":  username,
+			"auth.adminPassword":  password,
 		},
 	}
 
@@ -72,7 +72,7 @@ func TestFailover(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	releaseName := "failover"
-	hostName1 := "failover-1.failover."+namespaceName+".svc.cluster.local"
+	hostName1 := "failover-1.failover." + namespaceName + ".svc.cluster.local"
 	forestName := "security1"
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
@@ -97,7 +97,7 @@ func TestFailover(t *testing.T) {
 	tunnel.ForwardPort(t)
 
 	client := req.C().DevMode()
-	
+
 	// Create a new forest
 	resp, err := client.R().
 		SetDigestAuth(username, password).
@@ -150,17 +150,17 @@ func TestFailover(t *testing.T) {
 				return true
 			}
 			forestStatus := gjson.Get(string(body), `forest-status.status-properties.state.value`)
-			t.Logf("Forest status waiting to be sync replicating, current status: %s" , forestStatus.String())
+			t.Logf("Forest status waiting to be sync replicating, current status: %s", forestStatus.String())
 			return forestStatus.String() != "sync replicating"
 		}).
-		Get("http://localhost:8002/manage/v2/forests/"+forestName+"?view=status&format=json")
+		Get("http://localhost:8002/manage/v2/forests/" + forestName + "?view=status&format=json")
 
 	if err != nil {
 		t.Errorf("Error getting forest status for %s and waiting for sync replicating", forestName)
 		t.Fatalf(err.Error())
 	}
 
-	// delete the pod 0 to trigger Security forest failover to security1 
+	// delete the pod 0 to trigger Security forest failover to security1
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podZeroName)
 
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
@@ -171,30 +171,30 @@ func TestFailover(t *testing.T) {
 
 	// Make sure the security1 forest1 is primary forest now and status is open
 	_, err = client.R().
-	SetDigestAuth(username, password).
-	SetRetryCount(5).
-	SetRetryFixedInterval(10 * time.Second).
-	AddRetryCondition(func(resp *req.Response, err error) bool {
-		if resp == nil || err != nil || resp.Body == nil {
-			t.Logf("error in AddRetryCondition: %s", err.Error())
-			return true
-		}
-		body, err := io.ReadAll(resp.Body)
-		if body == nil || err != nil {
-			t.Logf("error in read response body: %s", err.Error())
-			return true
-		}
-		forestStatus := gjson.Get(string(body), `forest-status.status-properties.state.value`)
-		t.Logf("Forest status waiting to be open, current status: %s" , forestStatus.String())
-		return forestStatus.String() != "open"
-	}).
-	Get("http://localhost:8002/manage/v2/forests/"+forestName+"?view=status&format=json")
+		SetDigestAuth(username, password).
+		SetRetryCount(5).
+		SetRetryFixedInterval(10 * time.Second).
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if resp == nil || err != nil || resp.Body == nil {
+				t.Logf("error in AddRetryCondition: %s", err.Error())
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body: %s", err.Error())
+				return true
+			}
+			forestStatus := gjson.Get(string(body), `forest-status.status-properties.state.value`)
+			t.Logf("Forest status waiting to be open, current status: %s", forestStatus.String())
+			return forestStatus.String() != "open"
+		}).
+		Get("http://localhost:8002/manage/v2/forests/" + forestName + "?view=status&format=json")
 
 	if err != nil {
 		t.Error("Error getting forest status for security1 and waiting for open")
 		t.Fatalf(err.Error())
 	}
-	
+
 	tlsConfig := tls.Config{}
 	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
