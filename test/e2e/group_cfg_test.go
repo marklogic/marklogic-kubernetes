@@ -126,8 +126,6 @@ func TestMultiGroupCfgChng(t *testing.T) {
 	enodeGrpName := "enode"
 	dnodeReleaseName := "dnode"
 	enodeReleaseName := "enode"
-	dnodePodName := dnodeReleaseName + "-0"
-	enodePodName0 := enodeReleaseName + "-0"
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -168,7 +166,7 @@ func TestMultiGroupCfgChng(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
+	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
@@ -222,7 +220,7 @@ func TestMultiGroupCfgChng(t *testing.T) {
 		},
 	}
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
+	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
