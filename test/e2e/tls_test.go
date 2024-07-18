@@ -548,11 +548,11 @@ func TestTlsOnEDnode(t *testing.T) {
 	if runUpgradeTest {
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		dnodeUpgradeOptionsMap := map[string]string{
-			"allowLongHostnames": "true",
+			"allowLongHostnames":    "true",
 			"rootToRootlessUpgrade": "true",
 		}
 		enodeUpgradeOptionsMap := map[string]string{
-			"allowLongHostnames": "true",
+			"allowLongHostnames":    "true",
 			"rootToRootlessUpgrade": "true",
 		}
 		if strings.HasPrefix(initialChartVersion, "1.0") {
