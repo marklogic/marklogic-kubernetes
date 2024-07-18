@@ -158,7 +158,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	}
 
 	if !tagPres {
-		imageTag = "11.1.0-centos-1.1.2"
+		imageTag = "11.3.0-ubi-rootless"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -167,18 +167,20 @@ func TestMlDbBackupRestore(t *testing.T) {
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{
+		"persistence.enabled":   "true",
+		"replicaCount":          "1",
+		"image.repository":      imageRepo,
+		"image.tag":             imageTag,
+		"auth.adminUsername":    username,
+		"auth.adminPassword":    password,
+		"logCollection.enabled": "false",
+	}
+
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"logCollection.enabled": "false",
-		},
-		Version: initialChartVersion,
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
 	}
 
 	t.Logf("====Installing Helm Chart")
@@ -198,6 +200,8 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
 	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		defer helm.RemoveRepo(t, options, "marklogic")
 		helmChartPath = "marklogic/marklogic"
@@ -234,6 +238,15 @@ func TestMlDbBackupRestore(t *testing.T) {
 
 		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
+
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
 	}
 
 	//create backup directories and setup permissions
@@ -312,10 +325,12 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//verify full backup is completed
 	assert.Equal(t, "completed", bkupStatus)
 
+	t.Log("====Delete a document from Documents DB")
 	deleteEndpoint := fmt.Sprintf("http://%s/v1/documents?database=Documents&uri=%s", tunnel8000.Endpoint(), docs[1])
 	fmt.Println(deleteEndpoint)
 
 	//incremental backup
+	t.Log("====Incremental backup for Documents DB")
 	incrBkupReq := &BackupRestoreReq{
 		Operation:       "backup-database",
 		BackupDir:       "/tmp/backup",
