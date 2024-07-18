@@ -31,7 +31,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	var initialChartVersion string
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
@@ -91,7 +91,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 20*time.Second)
 
 	// verify MarkLogic is ready
-	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podName, &tlsConfig)
 	if err != nil {
 		t.Fatal("MarkLogic failed to start")
 	}
@@ -178,7 +178,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	var initialChartVersion string
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
@@ -310,9 +310,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	resp, err := client.R().
 		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in getting the response: %s", err.Error())
+			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("error: %s", err.Error())
+				t.Logf("error in reading the response: %s", err.Error())
 			}
 			totalHosts = int(gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`).Num)
 			if totalHosts != 2 {
@@ -321,16 +324,15 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 			return totalHosts != 2
 		}).
 		Get("https://localhost:8002/manage/v2/hosts?view=status&format=json")
-	defer resp.Body.Close()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-
+	defer resp.Body.Close()
 	if totalHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
 
-	resp, err = client.R().
+	resp, _ = client.R().
 		Get("https://localhost:8002/manage/v2/certificate-templates/defaultTemplate?format=json")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -343,7 +345,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	}
 	defaultCertTemplID := gjson.Get(string(body), `certificate-template-default.id`)
 
-	resp, err = client.R().
+	resp, _ = client.R().
 		Get("https://localhost:8002/manage/v2/certificates?format=json")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -357,7 +359,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	certID := (gjson.Get(string(body), `certificate-default-list.list-items.list-item.1.idref`))
 
 	endpoint := strings.Replace("https://localhost:8002/manage/v2/certificates/certId?format=json", "certId", certID.Str, -1)
-	resp, err = client.R().
+	resp, _ = client.R().
 		Get(endpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -401,7 +403,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	var err error
 	var initialChartVersion string
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
@@ -410,8 +412,6 @@ func TestTlsOnEDnode(t *testing.T) {
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "dnode"
 	enodeReleaseName := "enode"
-	dnodePodName := dnodeReleaseName + "-0"
-	enodePodName0 := enodeReleaseName + "-0"
 	enodePodName1 := enodeReleaseName + "-1"
 
 	// Path to the helm chart we will test
@@ -475,7 +475,7 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
+	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
@@ -486,7 +486,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	if output != "Running" {
 		t.Error(output)
 	}
-	bootstrapHostStr, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
+	bootstrapHostStr, _ := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
 
 	// Setup the args for helm install using custom values.yaml file
 	enodeOptions := &helm.Options{
@@ -520,7 +520,7 @@ func TestTlsOnEDnode(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
+	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 20, 20*time.Second)
@@ -553,7 +553,7 @@ func TestTlsOnEDnode(t *testing.T) {
 		if output != "Running" {
 			t.Error(output)
 		}
-		bootstrapHostStr, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
+		bootstrapHostStr, _ = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
 
 		enodeUpgradeOptionsMap["bootstrapHostName"] = bootstrapHostStr
 		enodeHelmUpgradeOptions := &helm.Options{

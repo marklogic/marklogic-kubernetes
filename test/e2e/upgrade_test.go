@@ -120,9 +120,13 @@ func TestHelmUpgrade(t *testing.T) {
 
 	resp, err := client.R().
 		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in getting the response: %s", err.Error())
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("error: %s", err.Error())
+				t.Logf("error in reading the response: %s", err.Error())
 			}
 			totalHosts = int(gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`).Num)
 			if totalHosts != 2 {
