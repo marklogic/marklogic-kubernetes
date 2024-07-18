@@ -39,18 +39,19 @@ func TestMlAdminSecrets(t *testing.T) {
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{"persistence.enabled": "true",
+		"replicaCount":        "1",
+		"image.repository":    imageRepo,
+		"image.tag":           imageTag,
+		"auth.adminUsername":  "admin",
+		"auth.adminPassword":  "admin",
+		"auth.walletPassword": "admin",
+	}
+
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled": "true",
-			"replicaCount":        "1",
-			"image.repository":    imageRepo,
-			"image.tag":           imageTag,
-			"auth.adminUsername":  "admin",
-			"auth.adminPassword":  "admin",
-			"auth.walletPassword": "admin",
-		},
-		Version: initialChartVersion,
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -68,6 +69,8 @@ func TestMlAdminSecrets(t *testing.T) {
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
 	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		defer helm.RemoveRepo(t, options, "marklogic")
 		helmChartPath = "marklogic/marklogic"

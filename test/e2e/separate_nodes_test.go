@@ -199,20 +199,32 @@ func TestSeparateEDnode(t *testing.T) {
 		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
-
+	dnodeValuesMap := map[string]string{"persistence.enabled": "true",
+		"replicaCount":          "1",
+		"image.repository":      imageRepo,
+		"image.tag":             imageTag,
+		"auth.adminUsername":    username,
+		"auth.adminPassword":    password,
+		"group.name":            "dnode",
+		"logCollection.enabled": "false",
+	}
+	bootstrapHost := ""
+	enodeValuesMap := map[string]string{
+		"persistence.enabled":   "true",
+		"replicaCount":          "2",
+		"image.repository":      imageRepo,
+		"image.tag":             imageTag,
+		"auth.adminUsername":    username,
+		"auth.adminPassword":    password,
+		"group.name":            "enode",
+		"bootstrapHostName":     bootstrapHost,
+		"group.enableXdqpSsl":   "false",
+		"logCollection.enabled": "false",
+	}
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"group.name":            "dnode",
-			"logCollection.enabled": "false",
-		},
-		Version: initialChartVersion,
+		SetValues:      dnodeValuesMap,
+		Version:        initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -224,6 +236,10 @@ func TestSeparateEDnode(t *testing.T) {
 	//add the helm chart repo and install the last helm chart release from repository
 	//to test and upgrade this chart to the latest one to be released
 	if runUpgradeTest {
+		delete(dnodeValuesMap, "image.repository")
+		delete(dnodeValuesMap, "image.tag")
+		delete(enodeValuesMap, "image.repository")
+		delete(enodeValuesMap, "image.tag")
 		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
 		defer helm.RemoveRepo(t, options, "marklogic")
 		helmChartPath = "marklogic/marklogic"
@@ -239,20 +255,10 @@ func TestSeparateEDnode(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+	enodeValuesMap["bootstrapHostName"] = bootstrapHost
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"group.name":            "enode",
-			"bootstrapHostName":     bootstrapHost,
-			"group.enableXdqpSsl":   "false",
-			"logCollection.enabled": "false",
-		},
+		SetValues:      enodeValuesMap,
 	}
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
