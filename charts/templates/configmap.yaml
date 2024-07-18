@@ -47,7 +47,7 @@ data:
       @INCLUDE outputs.conf
 
   inputs.conf: |
-      {{- if .Values.logCollection.files.errorLogs }}
+      {{- if and .Values.logCollection .Values.logCollection.files .Values.logCollection.files.errorLogs }}
       [INPUT]
         Name tail
         Path /var/opt/MarkLogic/Logs/*ErrorLog.txt
@@ -58,7 +58,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
       
-      {{- if .Values.logCollection.files.accessLogs }}
+      {{- if and .Values.logCollection .Values.logCollection.files .Values.logCollection.files.accessLogs }}
       [INPUT]
         Name tail
         Path /var/opt/MarkLogic/Logs/*AccessLog.txt
@@ -69,7 +69,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-      {{- if .Values.logCollection.files.requestLogs }}
+      {{- if and .Values.logCollection .Values.logCollection.files .Values.logCollection.files.requestLogs }}
       [INPUT]
         Name tail
         Path /var/opt/MarkLogic/Logs/*RequestLog.txt
@@ -80,7 +80,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-      {{- if .Values.logCollection.files.crashLogs }}
+      {{- if and .Values.logCollection .Values.logCollection.files .Values.logCollection.files.crashLogs }}
       [INPUT]
         Name tail
         Path /var/opt/MarkLogic/Logs/CrashLog.txt
@@ -90,7 +90,7 @@ data:
         Mem_Buf_Limit 4MB
       {{- end }}
 
-      {{- if .Values.logCollection.files.auditLogs }}
+      {{- if and .Values.logCollection .Values.logCollection.files .Values.logCollection.files.auditLogs }}
       [INPUT]
         Name tail
         Path /var/opt/MarkLogic/Logs/AuditLog.txt

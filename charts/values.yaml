@@ -306,23 +306,23 @@ readinessProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:3.1.1
-  resources:
-    requests:
-      cpu: "100m"
-      memory: "128Mi"
-    limits:
-      cpu: "100m"
-      memory: "128Mi"
-  files:
-    errorLogs: true
-    accessLogs: true
-    requestLogs: true
-    crashLogs: true
-    auditLogs: true
+  # image: fluent/fluent-bit:3.1.1
+  # resources:
+  #   requests:
+  #     cpu: "100m"
+  #     memory: "128Mi"
+  #   limits:
+  #     cpu: "100m"
+  #     memory: "128Mi"
+#   files:
+#     errorLogs: true
+#     accessLogs: true
+#     requestLogs: true
+#     crashLogs: true
+#     auditLogs: true
   ## Configure desired output
   ## Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
-  outputs: |-
+  # outputs: |-
       # [OUTPUT]
       #   name loki
       #   match *
