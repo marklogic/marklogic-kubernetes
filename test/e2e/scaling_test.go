@@ -28,7 +28,7 @@ func TestHelmScaleUp(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)

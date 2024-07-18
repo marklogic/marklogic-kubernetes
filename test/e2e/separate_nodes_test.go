@@ -19,7 +19,6 @@ import (
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 var username = "admin"
@@ -57,10 +56,10 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 			return totalHosts != 1
 		}).
 		Get(hostManageEndpoint)
-	defer resp.Body.Close()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 
 	// verify bootstrap host exists on the cluster
 	t.Log("====Verifying bootstrap host exists on the cluster")
@@ -72,10 +71,10 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 	t.Log("====Verifying xdqp-ssl-enabled is set to true for dnode group")
 	resp, err = client.R().
 		Get(dnodeEndpoint)
-	defer resp.Body.Close()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`).Bool()
 
@@ -100,10 +99,10 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		SetCommonRetryFixedInterval(10 * time.Second)
 	resp, err := client.R().
 		Get(endpoint)
-	defer resp.Body.Close()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -115,12 +114,12 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 	t.Log("====Verify both dnode and enode groups exist")
 	groupEndpoint := fmt.Sprintf("%s://%s/manage/v2/groups", protocol, tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, groupEndpoint)
-	resp, err = client.R().
+	resp, _ = client.R().
 		Get(groupEndpoint)
-	defer resp.Body.Close()
 	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 	// verify groups dnode, enode exists on the cluster
 	if !strings.Contains(string(body), "<nameref>dnode</nameref>") && !strings.Contains(string(body), "<nameref>enode</nameref>") {
 		t.Errorf("Groups does not exists on cluster")
@@ -184,10 +183,7 @@ func TestSeparateEDnode(t *testing.T) {
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeReleaseName := "dnode"
 	enodeReleaseName := "enode"
-	dnodePodName := dnodeReleaseName + "-0"
-	enodePodName0 := enodeReleaseName + "-0"
 	enodePodName1 := enodeReleaseName + "-1"
-
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -251,7 +247,7 @@ func TestSeparateEDnode(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
+	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
@@ -265,7 +261,7 @@ func TestSeparateEDnode(t *testing.T) {
 		SetValues:      enodeValuesMap,
 	}
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
+	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 45, 20*time.Second)
@@ -320,7 +316,7 @@ func TestSeparateEDnode(t *testing.T) {
 		if output != "Running" {
 			t.Error(output)
 		}
-		bootstrapHost, err = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
+		bootstrapHost, _ = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
 		enodeUpgradeOptionsMap["bootstrapHostName"] = bootstrapHost
 
 		//set helm options for upgrading Enode releases
@@ -412,15 +408,20 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	getHostsRequest := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-	resp, err := getHostsRequest.Execute()
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	resp, err := client.R().
+		Get(hostsEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -458,9 +459,9 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 
 	// Verify clustering failed given incorrect hostname
 	clusterStatusEndpoint := fmt.Sprintf("http://%s/manage/v2?view=status", tunnel.Endpoint())
-	clusterStatus := digestAuth.NewRequest(username, password, "GET", clusterStatusEndpoint, "")
 	t.Logf(`clusterStatusEndpoint: %s`, clusterStatusEndpoint)
-	resp, err = clusterStatus.Execute()
+	resp, err = client.R().
+		Get(clusterStatusEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -471,9 +472,15 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 
 	// Verify enode group creation failed given incorrect hostname
 	enodeGroupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/enode", tunnel.Endpoint())
-	groupStatus := digestAuth.NewRequest(username, password, "GET", enodeGroupStatusEndpoint, "")
 	t.Logf(`enodeGroupStatusEndpoint: %s`, enodeGroupStatusEndpoint)
-	resp, err = groupStatus.Execute()
+	resp, err = client.R().
+		Get(enodeGroupStatusEndpoint)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer resp.Body.Close()
+
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

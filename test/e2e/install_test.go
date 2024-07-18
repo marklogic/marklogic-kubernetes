@@ -3,8 +3,7 @@ package e2e
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,14 +14,13 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmInstall(t *testing.T) {
-	var resp *http.Response
 	var body []byte
 	var err error
 	var podZeroName string
@@ -33,7 +31,7 @@ func TestHelmInstall(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
@@ -138,26 +136,31 @@ func TestHelmInstall(t *testing.T) {
 	tunnel8002.ForwardPort(t)
 	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel8002.Endpoint())
 
-	request := digestAuth.NewRequest(username, password, "GET", endpointManage, "")
-	response, err := request.Execute()
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	resp, err := client.R().
+		Get(endpointManage)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 	// the generated password should be able to access the manage endpoint
-	assert.Equal(t, 200, response.StatusCode)
+	assert.Equal(t, 200, resp.StatusCode)
 
 	t.Log("====Verify xdqp-ssl-enabled is set to true by default")
 	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/Default/properties?format=json", tunnel8002.Endpoint())
 	t.Logf(`Endpoint for group properties: %s`, endpoint)
 
-	request = digestAuth.NewRequest(username, password, "GET", endpoint, "")
-	resp, err = request.Execute()
+	resp, err = client.R().
+		Get(endpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -168,12 +171,16 @@ func TestHelmInstall(t *testing.T) {
 
 	t.Log("====Verify no groups beyond default were created/modified====")
 	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel8002.Endpoint())
-	groupStatus := digestAuth.NewRequest(username, password, "GET", groupStatusEndpoint, "")
 	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
-	if resp, err = groupStatus.Execute(); err != nil {
+	resp, err = client.R().
+		Get(groupStatusEndpoint)
+
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+	defer resp.Body.Close()
+
+	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
 	groupQuantityJSON := gjson.Get(string(body), "group-default-list.list-items.list-count.value")

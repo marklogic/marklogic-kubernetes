@@ -19,7 +19,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	var helmChartPath string
 	var initialChartVersion string
 	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
 	if runUpgradeTest {
 		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
 		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
@@ -61,7 +61,7 @@ func TestMlAdminSecrets(t *testing.T) {
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	// Path to the helm chart we will test
-	helmChartPath, err = filepath.Abs("../../charts")
+	helmChartPath, err := filepath.Abs("../../charts")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

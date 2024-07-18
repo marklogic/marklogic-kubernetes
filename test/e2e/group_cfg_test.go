@@ -17,7 +17,6 @@ import (
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func VerifyGrpNameChng(t *testing.T, groupEndpoint string, newGroupName string) (int, error) {
@@ -126,8 +125,6 @@ func TestMultiGroupCfgChng(t *testing.T) {
 	enodeGrpName := "enode"
 	dnodeReleaseName := "dnode"
 	enodeReleaseName := "enode"
-	dnodePodName := dnodeReleaseName + "-0"
-	enodePodName0 := enodeReleaseName + "-0"
 
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -168,7 +165,7 @@ func TestMultiGroupCfgChng(t *testing.T) {
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
-	dnodePodName = testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
+	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
@@ -192,9 +189,12 @@ func TestMultiGroupCfgChng(t *testing.T) {
 	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, hostsEndpoint)
 
-	getHostsDR := digestAuth.NewRequest(username, password, "GET", hostsEndpoint, "")
-
-	resp, err := getHostsDR.Execute()
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+	resp, err := client.R().
+		Get(hostsEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -222,7 +222,7 @@ func TestMultiGroupCfgChng(t *testing.T) {
 		},
 	}
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
-	enodePodName0 = testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
+	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
