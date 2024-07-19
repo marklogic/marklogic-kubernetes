@@ -220,7 +220,7 @@ upgrade-test: prepare
 image-scan:
 
 	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
-	@for depImage in $(shell grep -E "^.*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
+	@for depImage in $(shell grep -E "^\s*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
 		echo " - $${depImage}" $(if $(saveOutput), | tee -a dep-image-scan.txt,) ; \
 		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype:latest $${depImage} | grep 'High\|Critical' $(if $(saveOutput), | tee -a dep-image-scan.txt,);\
 		echo $(if $(saveOutput), | tee -a dep-image-scan.txt,) ;\
