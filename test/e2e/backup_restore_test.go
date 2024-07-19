@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
@@ -84,7 +87,7 @@ func DeleteDocs(client *req.Client, deleteEndpoint string) (string, error) {
 	return result, err
 }
 
-func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string, error) {
+func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint string) (string, error) {
 	var err error
 	var body []byte
 	headerMap := map[string]string{
@@ -96,11 +99,11 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 	operation := (gjson.Get(dbReq, `operation`)).Str
 	var retryFn = (func(resp *req.Response, err error) bool {
 		if err != nil {
-			fmt.Println(err.Error())
+			t.Fatalf(err.Error())
 		}
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err.Error())
+			t.Fatalf(err.Error())
 		}
 		result = (string(body))
 		return true
@@ -109,7 +112,7 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 	if operation == "backup-status" {
 		retryFn = (func(resp *req.Response, err error) bool {
 			if err != nil {
-				fmt.Printf("error: %s", err.Error())
+				t.Fatalf(err.Error())
 			}
 			body, _ := io.ReadAll(resp.Body)
 			status = (gjson.Get(string(body), `status`)).Str
@@ -127,7 +130,7 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 		SetBodyString(dbReq).
 		Post(hostsEndpoint)
 	if err != nil {
-		return "", err
+		t.Fatalf(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -136,26 +139,35 @@ func RunRequests(client *req.Client, dbReq string, hostsEndpoint string) (string
 
 func TestMlDbBackupRestore(t *testing.T) {
 	// var resp *http.Response
-
+	var helmChartPath string
 	var err error
 	var podName string
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "11.1.0-centos-1.1.2"
+		imageTag = "11.3.0-ubi-rootless"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
 	username := "admin"
 	password := "admin"
 
-	options := map[string]string{
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{
 		"persistence.enabled":   "true",
 		"replicaCount":          "1",
 		"image.repository":      imageRepo,
@@ -165,11 +177,14 @@ func TestMlDbBackupRestore(t *testing.T) {
 		"logCollection.enabled": "false",
 	}
 
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
+	}
+
 	t.Logf("====Installing Helm Chart")
 	releaseName := "bkuprestore"
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
@@ -177,14 +192,62 @@ func TestMlDbBackupRestore(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for backup restore test")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
 
-	tlsConfig := tls.Config{}
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 10, 15*time.Second)
+
+	if runUpgradeTest {
+		// create options for helm upgrade
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "1",
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
+
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	//create backup directories and setup permissions
 	k8s.RunKubectl(t, kubectlOptions, "exec", podName, "--", "/bin/bash", "-c", "cd /tmp && mkdir backup && chmod 777 backup && mkdir backup/incrBackup && chmod 777 backup/incrBackup")
@@ -237,8 +300,9 @@ func TestMlDbBackupRestore(t *testing.T) {
 		IncludeReplicas: "true"}
 	bkupReqRes, _ := json.Marshal(bkupReq)
 
+	t.Log("====Full backup for Documents DB")
 	//full backup for Documents DB
-	result, err = RunRequests(client, string(bkupReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(bkupReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -252,7 +316,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	bkupStatusReqRes, _ := json.Marshal(bkupStatusReq)
 
 	//get status of full backup job
-	result, err = RunRequests(client, string(bkupStatusReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(bkupStatusReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -261,10 +325,12 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//verify full backup is completed
 	assert.Equal(t, "completed", bkupStatus)
 
+	t.Log("====Delete a document from Documents DB")
 	deleteEndpoint := fmt.Sprintf("http://%s/v1/documents?database=Documents&uri=%s", tunnel8000.Endpoint(), docs[1])
 	fmt.Println(deleteEndpoint)
 
 	//incremental backup
+	t.Log("====Incremental backup for Documents DB")
 	incrBkupReq := &BackupRestoreReq{
 		Operation:       "backup-database",
 		BackupDir:       "/tmp/backup",
@@ -274,7 +340,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	incrBkupReqRes, _ := json.Marshal(incrBkupReq)
 
 	//incremnetal backup for Documents DB
-	result, err = RunRequests(client, string(incrBkupReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(incrBkupReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -288,7 +354,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	incrBkupStatusReqRes, _ := json.Marshal(incrBkupStatusReq)
 
 	//get status of backup job
-	result, err = RunRequests(client, string(incrBkupStatusReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(incrBkupStatusReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -311,7 +377,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	brstrReqRes, _ := json.Marshal(rstrReq)
 
 	//restore Documents DB from incremental backup
-	result, err = RunRequests(client, string(brstrReqRes), manageEndpoint)
+	result, err = RunRequests(t, client, string(brstrReqRes), manageEndpoint)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -327,6 +393,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 		t.Errorf("Both docs are restored")
 	}
 
+	tlsConfig := tls.Config{}
 	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

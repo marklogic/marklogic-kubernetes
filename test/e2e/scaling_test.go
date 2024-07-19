@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,13 +24,20 @@ func TestHelmScaleUp(t *testing.T) {
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
+	var initialChartVersion string
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	username := "admin"
 	password := "admin"
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -40,17 +48,18 @@ func TestHelmScaleUp(t *testing.T) {
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{"persistence.enabled": "true",
+		"replicaCount":          "1",
+		"image.repository":      imageRepo,
+		"image.tag":             imageTag,
+		"auth.adminUsername":    username,
+		"auth.adminPassword":    password,
+		"logCollection.enabled": "false",
+	}
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"logCollection.enabled": "false",
-		},
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -58,33 +67,80 @@ func TestHelmScaleUp(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	t.Logf("====Installing Helm Chart")
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
+
 	releaseName := "test-scale-up"
-	helm.Install(t, options, helmChartPath, releaseName)
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+
+	// wait until first pod is in Ready status
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 30, 10*time.Second)
 
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 		},
 	}
-	podZeroName := releaseName + "-0"
 
-	// wait until second pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 30, 10*time.Second)
-
-	t.Logf("====Upgrading Helm Chart")
+	t.Logf("====Scaling up pods using helm upgrade")
 	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
 
 	podOneName := releaseName + "-1"
-
 	// wait until second pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podZeroName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		t.Logf("====Upgrading Helm Chart")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
+	}
+
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podOneName, 20, 20*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
+	tlsConfig := tls.Config{}
+	_, err = testUtil.MLReadyCheck(t, kubectlOptions, podOneName, &tlsConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()
@@ -92,9 +148,9 @@ func TestHelmScaleUp(t *testing.T) {
 
 	numOfHosts := 1
 	client := req.C()
-	_, err := client.R().
+	_, err = client.R().
 		SetDigestAuth(username, password).
-		SetRetryCount(3).
+		SetRetryCount(5).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
 			if resp == nil || err != nil {
@@ -130,10 +186,6 @@ func TestHelmScaleUp(t *testing.T) {
 	if numOfHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts")
 	}
-
-	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)

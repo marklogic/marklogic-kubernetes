@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -25,12 +26,18 @@ func TestClusterJoin(t *testing.T) {
 	}
 	username := "admin"
 	password := "admin"
-
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -41,17 +48,18 @@ func TestClusterJoin(t *testing.T) {
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{"persistence.enabled": "true",
+		"replicaCount":          "2",
+		"image.repository":      imageRepo,
+		"image.tag":             imageTag,
+		"auth.adminUsername":    username,
+		"auth.adminPassword":    password,
+		"logCollection.enabled": "false",
+	}
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"logCollection.enabled": "false",
-		},
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -60,23 +68,65 @@ func TestClusterJoin(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	t.Logf("====Installing Helm Chart")
 	releaseName := "test-join"
-	helm.Install(t, options, helmChartPath, releaseName)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
 
-	podZeroName := releaseName + "-0"
-	podName := releaseName + "-1"
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+	podOneName := releaseName + "-1"
 
 	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 20*time.Second)
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podZeroName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podZeroName, podOneName}, initialChartVersion)
+	}
+
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
+
 	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
+		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
 	numOfHosts := 0
 	client := req.C()
-	_, err := client.R().
+	_, err = client.R().
 		SetDigestAuth(username, password).
 		SetRetryCount(5).
 		SetRetryFixedInterval(10 * time.Second).
@@ -100,8 +150,8 @@ func TestClusterJoin(t *testing.T) {
 			}
 			totalHosts := gjson.Get(string(body), `host-default-list.list-items.list-count.value`)
 			numOfHosts = int(totalHosts.Num)
+			t.Log("Number of hosts: " + string(totalHosts.Raw))
 			if numOfHosts != 2 {
-				t.Log("Number of hosts: " + string(totalHosts.Raw))
 				t.Log("Waiting for MarkLogic count of MarkLogic hosts to be 2")
 			}
 			return numOfHosts != 2
@@ -117,10 +167,15 @@ func TestClusterJoin(t *testing.T) {
 		t.Errorf("Wrong number of hosts")
 	}
 
-	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, podOneName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
+	tlsConfig := tls.Config{}
 	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podName}, namespaceName, kubectlOptions, &tlsConfig)
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }

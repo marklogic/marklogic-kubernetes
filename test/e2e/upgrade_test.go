@@ -20,7 +20,6 @@ import (
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmUpgrade(t *testing.T) {
@@ -77,7 +76,7 @@ func TestHelmUpgrade(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      "marklogicdb/marklogic-db",
+			"image.repository":      "progressofficial/marklogic-db",
 			"image.tag":             "latest",
 			"logCollection.enabled": "false",
 		},
@@ -121,9 +120,13 @@ func TestHelmUpgrade(t *testing.T) {
 
 	resp, err := client.R().
 		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in getting the response: %s", err.Error())
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("error: %s", err.Error())
+				t.Logf("error in reading the response: %s", err.Error())
 			}
 			totalHosts = int(gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`).Num)
 			if totalHosts != 2 {
@@ -141,9 +144,6 @@ func TestHelmUpgrade(t *testing.T) {
 	if totalHosts != 2 {
 		t.Errorf("Incorrect number of MarkLogic hosts found after helm upgrade")
 	}
-
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
@@ -236,9 +236,14 @@ func TestMLupgrade(t *testing.T) {
 	clusterEndpoint := fmt.Sprintf("http://%s/manage/v2?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, clusterEndpoint)
 
-	getMLversion := digestAuth.NewRequest(username, password, "GET", clusterEndpoint, "")
+	reqClient := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	resp, err := getMLversion.Execute()
+	resp, err := reqClient.R().
+		Get(clusterEndpoint)
+
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

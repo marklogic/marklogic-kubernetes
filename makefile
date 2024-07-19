@@ -82,7 +82,7 @@ lint:
 #***************************************************************************
 ## Run all end to end tests
 ## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [prevDockerImage] optional. used for marklogic upgrade tests
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
@@ -186,12 +186,30 @@ template-test: prepare
 #***************************************************************************
 ## Run all tests
 ## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
 test: template-test e2e-test
 
+#***************************************************************************
+# test
+#***************************************************************************
+## Run upgrade in e2e tests
+## Set following environment variables 
+## [upgradeTest] to true. Use `export upgradeTest=true`
+## [initialChartVersion] to a valid MarkLogic helm chart version for ex.: 1.1.2 to run upgrade tests. Use `export initialChartVersion=1.1.2`
+.PHONY: upgrade-test
+upgrade-test: prepare
+	@echo "=====upgradeTest env var for upgrade tests"
+	echo $(upgradeTest)
+
+	@echo "=====initialChartVersion env var for upgrade tests"
+	echo ${initialChartVersion}
+	
+	@echo "=====Running upgrades in e2e tests"
+	make e2e-test
+	
 #***************************************************************************
 # image-scan
 #***************************************************************************

@@ -27,7 +27,7 @@ func TestChartTemplateTLSEnabled(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -87,7 +87,7 @@ func TestChartTemplateTLSDisabled(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":              "marklogicdb/marklogic-db",
+			"image.repository":              "progressofficial/marklogic-db",
 			"image.tag":                     "latest",
 			"persistence.enabled":           "false",
 			"tls.enableOnDefaultAppServers": "false",

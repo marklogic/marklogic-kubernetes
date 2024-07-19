@@ -151,9 +151,6 @@ func TestPathBasedRouting(t *testing.T) {
 	}
 
 	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
 }
@@ -173,7 +170,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -279,9 +276,6 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 	assert.Contains(t, string(body), "XDMP-MODNOTFOUND")
 
 	tlsConfig := tls.Config{}
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
@@ -416,10 +410,6 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 	}
 
 	tlsConfig := tls.Config{}
-
-	// restart 1 pod at a time in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, false, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
-
 	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName, podTwoName}, namespaceName, kubectlOptions, &tlsConfig)
 }

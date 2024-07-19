@@ -1,19 +1,22 @@
-package hugePages
+package hugepages
 
 import (
 	"crypto/tls"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHugePagesSettings(t *testing.T) {
@@ -21,11 +24,19 @@ func TestHugePagesSettings(t *testing.T) {
 	var body []byte
 	var err error
 	var podName string
+	var helmChartPath string
+	var initialChartVersion string
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, err := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 
 	if !repoPres {
-		imageRepo = "marklogicdb/marklogic-db"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
@@ -37,7 +48,9 @@ func TestHugePagesSettings(t *testing.T) {
 	username := "admin"
 	password := "admin"
 
-	options := map[string]string{
+	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
+	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{
 		"persistence.enabled":            "true",
 		"replicaCount":                   "1",
 		"image.repository":               imageRepo,
@@ -51,11 +64,13 @@ func TestHugePagesSettings(t *testing.T) {
 		"resources.limits.memory":        "8Gi",
 		"resources.requests.memory":      "8Gi",
 	}
+	options := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
+	}
 	t.Logf("====Installing Helm Chart")
 	releaseName := "hugepages"
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 
 	t.Logf("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
@@ -63,7 +78,24 @@ func TestHugePagesSettings(t *testing.T) {
 	defer t.Logf("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions)
+	helmChartPath, err = filepath.Abs("../../charts")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
+
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podName = testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	t.Logf("====Describe pod for verifying huge pages")
 	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podName)
@@ -78,19 +110,52 @@ func TestHugePagesSettings(t *testing.T) {
 		t.Fatal("MarkLogic failed to start")
 	}
 
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":            "true",
+			"replicaCount":                   "1",
+			"hugepages.enabled":              "true",
+			"hugepages.mountPath":            "/dev/hugepages",
+			"resources.limits.hugepages-2Mi": "1Gi",
+			"resources.limits.memory":        "8Gi",
+			"resources.requests.memory":      "8Gi",
+			"allowLongHostnames":             "true",
+			"rootToRootlessUpgrade":          "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
+	}
+
 	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podName, 8002, 8002)
 	defer tunnel8002.Close()
 	tunnel8002.ForwardPort(t)
 	endpointManage := fmt.Sprintf("http://%s/manage/v2/logs?format=text&filename=ErrorLog.txt", tunnel8002.Endpoint())
-	request := digestAuth.NewRequest(username, password, "GET", endpointManage, "")
-	response, err := request.Execute()
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
+
+	resp, err := client.R().
+		Get(endpointManage)
+
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer response.Body.Close()
-	assert.Equal(t, 200, response.StatusCode)
+	defer resp.Body.Close()
+	assert.Equal(t, 200, resp.StatusCode)
 
-	body, err = io.ReadAll(response.Body)
+	if body, err = io.ReadAll(resp.Body); err != nil {
+		t.Fatalf(err.Error())
+	}
 	t.Log(string(body))
 
 	// Verify if Huge pages are configured on the MarkLogic node
