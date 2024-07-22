@@ -153,16 +153,12 @@ func TestHelmScaleUp(t *testing.T) {
 		SetRetryCount(5).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if resp == nil || err != nil {
+			if err != nil {
 				t.Logf("error in AddRetryCondition: %s", err.Error())
 				return true
 			}
-			if resp.Response == nil {
-				t.Log("Could not get the Response Object, Retrying...")
-				return true
-			}
-			if resp.Body == nil {
-				t.Log("Could not get the body for the response, Retrying...")
+			if resp == nil || resp.Body == nil {
+				t.Log("Could not get the Response Body, Retrying...")
 				return true
 			}
 			body, err := io.ReadAll(resp.Body)

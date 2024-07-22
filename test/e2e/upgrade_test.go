@@ -124,6 +124,10 @@ func TestHelmUpgrade(t *testing.T) {
 				t.Logf("error in getting the response: %s", err.Error())
 				return true
 			}
+			if resp == nil || resp.Body == nil 	{
+				t.Logf("error in getting the response body")
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Logf("error in reading the response: %s", err.Error())

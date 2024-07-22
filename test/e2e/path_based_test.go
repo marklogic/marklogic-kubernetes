@@ -97,6 +97,7 @@ func TestPathBasedRouting(t *testing.T) {
 			AddRetryCondition(func(resp *req.Response, err error) bool {
 				if err != nil {
 					t.Logf("error: %s", err.Error())
+					return true
 				}
 				if resp.GetStatusCode() != 200 {
 					t.Logf("Server with response code: %d", resp.GetStatusCode())
@@ -122,6 +123,7 @@ func TestPathBasedRouting(t *testing.T) {
 			AddRetryCondition(func(resp *req.Response, err error) bool {
 				if err != nil {
 					t.Logf("error: %s", err.Error())
+					return true
 				}
 				t.Logf("StatusCode: %d", resp.GetStatusCode())
 				if resp.GetStatusCode() != 200 {
@@ -230,6 +232,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 		AddRetryCondition(func(resp *req.Response, err error) bool {
 			if err != nil {
 				t.Logf("error: %s", err.Error())
+				return true
 			}
 			t.Logf("StatusCode: %d", resp.GetStatusCode())
 			if resp.GetStatusCode() != 201 {
@@ -251,6 +254,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 		AddRetryCondition(func(resp *req.Response, err error) bool {
 			if err != nil {
 				t.Logf("error: %s", err.Error())
+				return true
 			}
 			t.Logf("StatusCode: %d", resp.GetStatusCode())
 			if resp.GetStatusCode() != 500 {
@@ -360,6 +364,7 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 			AddRetryCondition(func(resp *req.Response, err error) bool {
 				if err != nil {
 					t.Logf("error: %s", err.Error())
+					return true
 				}
 				if resp.GetStatusCode() != 200 {
 					t.Log("Waiting for MarkLogic cluster to be ready")

@@ -43,10 +43,16 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		AddRetryCondition(func(resp *req.Response, err error) bool {
 			if err != nil {
 				t.Logf("===Error from retryFunc : %s", err.Error())
+				return true
+			}
+			if resp == nil || resp.Body == nil { 
+				t.Log("Could not get the Response Body, Retrying...")
+				return true
 			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("error: %s", err.Error())
+				t.Logf("Could not read the response body: %s", err.Error())
+				return true
 			}
 			totalHosts = int(gjson.Get(string(body), `host-default-list.list-items.list-count.value`).Num)
 			bootstrapHost = (gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)).Str
@@ -132,20 +138,16 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		SetRetryCount(3).
 		SetRetryFixedInterval(10 * time.Second).
 		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if resp == nil || err != nil {
-				t.Logf("error in AddRetryCondition: %s", err.Error())
+			if err != nil {
+				t.Logf("error in getting enode groups config: %s", err.Error())
 				return true
 			}
-			if resp.Response == nil {
-				t.Log("Could not get the Response Object, Retrying...")
-				return true
-			}
-			if resp.Body == nil {
-				t.Log("Could not get the body for the response, Retrying...")
+			if resp == nil || resp.Body == nil {
+				t.Log("Could not get the Response Body, Retrying...")
 				return true
 			}
 			body, err := io.ReadAll(resp.Body)
-			if body == nil || err != nil {
+			if err != nil {
 				t.Logf("error in read response body: %s", err.Error())
 				return true
 			}
