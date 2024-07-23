@@ -588,7 +588,7 @@ data:
                 response_code=$( \
                     curl -s --anyauth \
                     --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} \
-                    -w '%{http_code}' \
+                    -w '%{http_code}' --retry 5 \
                     -X PUT \
                     -H "Content-type: application/json" \
                     $LOCAL_HTTPS_OPTION -d "${group_cfg}" \
@@ -613,11 +613,11 @@ data:
                 info "creating group for other Helm Chart"
 
                 # Create a group if group is not already exits
-                GROUP_RESP_CODE=$( curl --anyauth -m 20 -s -o /dev/null -w "%{http_code}" $HTTPS_OPTION -X GET $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} )
+                GROUP_RESP_CODE=$( curl --anyauth --retry 5 -m 20 -s -o /dev/null -w "%{http_code}" $HTTPS_OPTION -X GET $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups/${MARKLOGIC_GROUP} --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} )
                 if [[ ${GROUP_RESP_CODE} -eq 200 ]]; then
                     info "Skipping creation of group $MARKLOGIC_GROUP as it already exists on the MarkLogic cluster." 
                 else 
-                    res_code=$(curl --anyauth --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} $HTTPS_OPTION -m 20 -s -w '%{http_code}' -X POST -d "${group_cfg}" -H "Content-type: application/json" $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups)
+                    res_code=$(curl --anyauth --retry 5 --user ${MARKLOGIC_ADMIN_USERNAME}:${MARKLOGIC_ADMIN_PASSWORD} $HTTPS_OPTION -m 20 -s -w '%{http_code}' -X POST -d "${group_cfg}" -H "Content-type: application/json" $HTTP_PROTOCOL://${MARKLOGIC_BOOTSTRAP_HOST}:8002/manage/v2/groups)
                     if [[ ${res_code} -eq 201 ]]; then
                         log "Info: [initContainer] Successfully configured group $MARKLOGIC_GROUP on the MarkLogic cluster."
                     else
