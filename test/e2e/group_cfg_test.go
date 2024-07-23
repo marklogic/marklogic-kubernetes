@@ -49,10 +49,9 @@ func VerifyGroupChange(t *testing.T, groupEndpoint string, newGroupName string) 
 			if groupName.Str != newGroupName {
 				t.Logf("group name is not updated yet. retrying...")
 				return true
-			} else {
-				groupChanged = true
-				return false
 			}
+			groupChanged = true
+			return false
 		}).
 		Get(groupEndpoint)
 	if err != nil {

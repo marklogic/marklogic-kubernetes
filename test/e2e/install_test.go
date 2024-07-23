@@ -164,10 +164,9 @@ func TestHelmInstall(t *testing.T) {
 			if xdqpSSLEnabled.Bool() != true {
 				t.Logf("xdqpSSLEnabled is not set to true yet. retrying...")
 				return true
-			} else {
-				xdqpEnabledValue = true
-				return false
 			}
+			xdqpEnabledValue = true
+			return false
 		}).
 		Get(endpoint)
 	if err != nil {
