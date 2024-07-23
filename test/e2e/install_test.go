@@ -171,7 +171,7 @@ func TestHelmInstall(t *testing.T) {
 		}).
 		Get(endpoint)
 	if err != nil {
-		t.Fatalf("Error in getting xdqpSSLEnabled: %s",err.Error())
+		t.Fatalf("Error in getting xdqpSSLEnabled: %s", err.Error())
 	}
 
 	// verify xdqp-ssl-enabled is set to trues

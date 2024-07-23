@@ -45,7 +45,7 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 				t.Logf("===Error from retryFunc : %s", err.Error())
 				return true
 			}
-			if resp == nil || resp.Body == nil { 
+			if resp == nil || resp.Body == nil {
 				t.Log("Could not get the Response Body, Retrying...")
 				return true
 			}
