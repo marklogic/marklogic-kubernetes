@@ -26,7 +26,7 @@ func MLReadyCheck(t *testing.T, kubectlOpt *k8s.KubectlOptions, podName string, 
 		tlsConfig,
 		10,
 		15*time.Second,
-		func(statusCode int, body string) bool {
+		func(statusCode int, _ string) bool {
 			return statusCode == 200
 		},
 	)

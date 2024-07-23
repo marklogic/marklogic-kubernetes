@@ -100,13 +100,19 @@ func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint s
 	var retryFn = (func(resp *req.Response, err error) bool {
 		if err != nil {
 			t.Fatalf(err.Error())
+			return true
+		}
+		if resp == nil || resp.Body == nil {
+			t.Fatalf("error in getting response body")
+			return true
 		}
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatalf("error reading response body, %s", err.Error())
+			return true
 		}
 		result = (string(body))
-		return true
+		return false
 	})
 
 	if operation == "backup-status" {
@@ -114,7 +120,15 @@ func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint s
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			body, _ := io.ReadAll(resp.Body)
+			if resp == nil || resp.Body == nil {
+				t.Fatalf("error in getting response body")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Fatalf("error reading response body")
+				return true
+			}
 			status = (gjson.Get(string(body), `status`)).Str
 			if status != "completed" {
 				fmt.Println("Waiting for backup to be completed")
