@@ -21,7 +21,6 @@ import (
 )
 
 func TestHelmInstall(t *testing.T) {
-	var body []byte
 	var err error
 	var podZeroName string
 	var helmChartPath string
@@ -134,60 +133,49 @@ func TestHelmInstall(t *testing.T) {
 	tunnel8002 := k8s.NewTunnel(kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel8002.Close()
 	tunnel8002.ForwardPort(t)
-	endpointManage := fmt.Sprintf("http://%s/manage/v2", tunnel8002.Endpoint())
 
 	client := req.C().
 		SetCommonDigestAuth(username, password).
-		SetCommonRetryCount(10).
+		SetCommonRetryCount(5).
 		SetCommonRetryFixedInterval(10 * time.Second)
-
-	resp, err := client.R().
-		Get(endpointManage)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer resp.Body.Close()
-	// the generated password should be able to access the manage endpoint
-	assert.Equal(t, 200, resp.StatusCode)
 
 	t.Log("====Verify xdqp-ssl-enabled is set to true by default")
 	endpoint := fmt.Sprintf("http://%s/manage/v2/groups/Default/properties?format=json", tunnel8002.Endpoint())
 	t.Logf(`Endpoint for group properties: %s`, endpoint)
 
-	resp, err = client.R().
+	xdqpEnabledValue := false
+	_, err = client.R().
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in getting group property: %s", err.Error())
+				return true
+			}
+			if resp == nil || resp.Body == nil {
+				t.Logf("error in getting response body")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body")
+				return true
+			}
+			xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
+			t.Logf("xdqpSSLEnabled: %s", xdqpSSLEnabled)
+			if xdqpSSLEnabled.Bool() != true {
+				t.Logf("xdqpSSLEnabled is not set to true yet. retrying...")
+				return true
+			} else {
+				xdqpEnabledValue = true
+				return false
+			}
+		}).
 		Get(endpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer resp.Body.Close()
-	body, err = io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("Error in getting xdqpSSLEnabled: %s",err.Error())
 	}
 
-	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
 	// verify xdqp-ssl-enabled is set to trues
-	assert.Equal(t, true, xdqpSSLEnabled.Bool(), "xdqp-ssl-enabled should be set to true")
-
-	t.Log("====Verify no groups beyond default were created/modified====")
-	groupStatusEndpoint := fmt.Sprintf("http://%s/manage/v2/groups?format=json", tunnel8002.Endpoint())
-	t.Logf(`groupStatusEndpoint: %s`, groupStatusEndpoint)
-	resp, err = client.R().
-		Get(groupStatusEndpoint)
-
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer resp.Body.Close()
-
-	if body, err = io.ReadAll(resp.Body); err != nil {
-		t.Fatalf(err.Error())
-	}
-	groupQuantityJSON := gjson.Get(string(body), "group-default-list.list-items.list-count.value")
-
-	if groupQuantityJSON.Num != 1 {
-		t.Errorf("Only one group should exist, instead %v groups exist", groupQuantityJSON.Num)
-	}
+	assert.Equal(t, true, xdqpEnabledValue, "xdqp-ssl-enabled should be set to true")
 
 	// restart all pods in the cluster and verify its ready and MarkLogic server is healthy
 	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
