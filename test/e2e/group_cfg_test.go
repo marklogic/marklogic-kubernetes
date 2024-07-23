@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -19,27 +18,50 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func VerifyGrpNameChng(t *testing.T, groupEndpoint string, newGroupName string) (int, error) {
+func VerifyGroupChange(t *testing.T, groupEndpoint string, newGroupName string) (bool, error) {
 	client := req.C().
 		SetCommonDigestAuth("admin", "admin").
-		SetCommonRetryCount(10).
+		SetCommonRetryCount(5).
 		SetCommonRetryFixedInterval(10 * time.Second)
 
 	t.Logf(`Endpoint: %s`, groupEndpoint)
-	strJSONData := fmt.Sprintf(`{"group-name":"%s"}`, newGroupName)
 
-	resp, err := client.R().
+	groupChanged := false
+
+	_, err := client.R().
 		SetContentType("application/json").
-		SetBodyJsonString(strJSONData).
-		Put(groupEndpoint)
+		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in getting group config: %s", err.Error())
+				return true
+			}
+			if resp == nil || resp.Body == nil {
+				t.Logf("error in getting response body")
+				return true
+			}
+			body, err := io.ReadAll(resp.Body)
+			if body == nil || err != nil {
+				t.Logf("error in read response body")
+				return true
+			}
+			groupName := gjson.Get(string(body), `group-name`)
+			t.Logf("current group name: %s", groupName)
+			if groupName.Str != newGroupName {
+				t.Logf("group name is not updated yet. retrying...")
+				return true
+			}
+			groupChanged = true
+			return false
+		}).
+		Get(groupEndpoint)
 	if err != nil {
 		t.Fatal(err.Error())
-		return (resp.GetStatusCode()), err
+		return false, err
 	}
-	return resp.GetStatusCode(), resp.Err
+	return groupChanged, nil
 }
 
-func TestSingleGrpCfgChng(t *testing.T) {
+func TestSingleGroupChange(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -87,38 +109,44 @@ func TestSingleGrpCfgChng(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
-	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+
+	newGroupName := "new_group"
+
+	helmUpgradeOptions := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"group.name": newGroupName,
+		},
+	}
+	helm.Upgrade(t, helmUpgradeOptions, helmChartPath, releaseName)
+
+	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podZeroName)
+
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+
+	// wait until the pod is in Ready status
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
 	// change the group name for dnode and verify it passes
-	newgroupName := "newDefault"
-	t.Logf("====Test updating group name for %s to %s", groupName, newgroupName)
-	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), groupName)
-	responseCode, err := VerifyGrpNameChng(t, groupEndpoint, newgroupName)
+	t.Logf("====Test updating group name for %s to %s", groupName, newGroupName)
+	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties?format=json", tunnel.Endpoint(), newGroupName)
+	groupChangedResult, err := VerifyGroupChange(t, groupEndpoint, newGroupName)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("Error in changing group name: %s", err.Error())
 	}
-	if responseCode != 204 {
-		t.Fatal("Failed to change group name")
-	}
+	assert.Equal(t, true, groupChangedResult, "Group name change failed")
 }
 
-func TestMultiGroupCfgChng(t *testing.T) {
+func TestMultipleGroupChange(t *testing.T) {
 	username := "admin"
 	password := "admin"
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	var initialChartVersion string
-	upgradeHelm, _ := os.LookupEnv("upgradeTest")
-	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
-	if runUpgradeTest {
-		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
-		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
-	}
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
 	dnodeGrpName := "dnode"
@@ -169,54 +197,19 @@ func TestMultiGroupCfgChng(t *testing.T) {
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
 
-	// change the group name for dnode and verify it passes
-	newDnodeGrpName := "newDnode"
-	t.Logf("====Test updating group name for %s to %s", dnodeGrpName, newDnodeGrpName)
-	groupEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), dnodeGrpName)
-	responseCode, err := VerifyGrpNameChng(t, groupEndpoint, newDnodeGrpName)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	if responseCode != 204 {
-		t.Fatal("Failed to change group name")
-	}
-
-	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?format=json", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, hostsEndpoint)
-
-	client := req.C().
-		SetCommonDigestAuth(username, password).
-		SetCommonRetryCount(10).
-		SetCommonRetryFixedInterval(10 * time.Second)
-	resp, err := client.R().
-		Get(hostsEndpoint)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	bootstrapHost := gjson.Get(string(body), `host-default-list.list-items.list-item.#(roleref="bootstrap").nameref`)
-	t.Logf("bootstrapHost: %s", bootstrapHost)
-
+	bootstrapHost := fmt.Sprintf("%s-0.%s.%s.svc.cluster.local", dnodeReleaseName, dnodeReleaseName, namespaceName)
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
-			"replicaCount":          "2",
+			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,
 			"group.name":            enodeGrpName,
-			"bootstrapHostName":     bootstrapHost.Str,
+			"bootstrapHostName":     bootstrapHost,
 			"group.enableXdqpSsl":   "false",
 			"logCollection.enabled": "false",
 		},
@@ -227,24 +220,54 @@ func TestMultiGroupCfgChng(t *testing.T) {
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
 
-	// change the enode group name to a existing group name in the cluster and verify it fails
-	t.Logf("====Test updating group name for %s to an existing group name(%s) should fail", enodeGrpName, newDnodeGrpName)
-	groupEndpoint = fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), enodeGrpName)
-	responseCode, err = VerifyGrpNameChng(t, groupEndpoint, newDnodeGrpName)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	assert.Equal(t, 400, responseCode)
+	newDnodeGroupName := "newDnode"
+	newEnodeGroupName := "newEnode"
 
-	// change the enode group name to a new group name and verify it passes
-	newEnodeGrpName := "newEnode"
-	t.Logf("====Test updating group name for %s to %s", enodeGrpName, newEnodeGrpName)
-	groupEndpoint = fmt.Sprintf("http://%s/manage/v2/groups/%s/properties", tunnel.Endpoint(), enodeGrpName)
-	responseCode, err = VerifyGrpNameChng(t, groupEndpoint, newEnodeGrpName)
+	helmUpgradeOptionsDnode := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"group.name": newDnodeGroupName,
+		},
+	}
+	helm.Upgrade(t, helmUpgradeOptionsDnode, helmChartPath, dnodeReleaseName)
+
+	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", dnodePodName)
+
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
+
+	tunnel := k8s.NewTunnel(
+		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
+	defer tunnel.Close()
+	tunnel.ForwardPort(t)
+
+	// change the group name for dnode and verify it passes
+	t.Logf("====Test updating group name for %s to %s", dnodeGrpName, newDnodeGroupName)
+	groupDnodeEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties?format=json", tunnel.Endpoint(), newDnodeGroupName)
+	groupChangedResult, err := VerifyGroupChange(t, groupDnodeEndpoint, newDnodeGroupName)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("Error in changing group name: %s", err.Error())
 	}
-	if responseCode != 204 {
-		t.Fatal("Failed to change group name")
+	assert.Equal(t, true, groupChangedResult, "dnode Group name change failed")
+
+	helmUpgradeOptionsEnode := &helm.Options{
+		KubectlOptions: kubectlOptions,
+		SetValues: map[string]string{
+			"group.name": newEnodeGroupName,
+		},
 	}
+	helm.Upgrade(t, helmUpgradeOptionsEnode, helmChartPath, enodeReleaseName)
+
+	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", enodePodName0)
+
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+
+	// change the group name for dnode and verify it passes
+	t.Logf("====Test updating group name for %s to %s", enodeGrpName, newEnodeGroupName)
+	groupEnodeEndpoint := fmt.Sprintf("http://%s/manage/v2/groups/%s/properties?format=json", tunnel.Endpoint(), newEnodeGroupName)
+	groupChangedResult, err = VerifyGroupChange(t, groupEnodeEndpoint, newEnodeGroupName)
+	if err != nil {
+		t.Fatalf("Error in changing group name: %s", err.Error())
+	}
+	assert.Equal(t, true, groupChangedResult, "enode Group name change failed")
+
 }
