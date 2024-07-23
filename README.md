@@ -236,6 +236,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 
 1. If the hostname is greater than 64 characters there will be issues with certificates. It is highly recommended to use hostname shorter than 64 characters or use SANs for hostnames in the certificates. If you still choose to use hostname greater than 64 characters, set "allowLongHostnames" to True.
 2. The latest released version of fluent/fluent-bit:3.1.1 has known high and critical security vulnerabilities. If you decide to enable the log collection feature, choose and deploy the fluent-bit or an alternate image with no vulnerabilities as per your requirements. 
-3. The security context “allowPrivilegeEscalation” is set to False by default in values.yaml file and should not be changed to run the MarkLogic container with default rootless image. If you choose to use image with root privileges, set "allowPrivilegeEscalation" to True.
+3. The security context “allowPrivilegeEscalation” is set to False by default in the
+values.yaml file. This should not be changed when running the MarkLogic container with default rootless image. If you choose to use an image with root privileges, set "allowPrivilegeEscalation" to True.
 4. Known Issues and Limitations for the MarkLogic Server Docker image can be viewed using the link: https://github.com/marklogic/marklogic-docker?tab=readme-ov-file#Known-Issues-and-Limitations.
-5. Path based routing and Ingress features are only supported with MarkLogic 11.1 and higher.
+5. Path-based routing and Ingress features are only supported with MarkLogic 11.1 and higher.
