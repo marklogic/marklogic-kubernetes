@@ -68,9 +68,6 @@ oldFullname is the name used before 1.1.x release
 {{- end }}
 {{- end }}
 
-{{/*
-{{- end }}
-{{- end }}
 
 {{/*
 Create a default fully qualified app name.
@@ -148,6 +145,23 @@ app.kubernetes.io/name: {{ include "marklogic.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+{{- define "marklogic.annotations" -}}
+marklogic.com/group-name: {{ .Values.group.name | quote }}
+marklogic.com/group-xdqp-enabled: {{ .Values.group.enableXdqpSsl | quote }}
+marklogic.com/cluster-name: {{ include "marklogic.clusterName" . }}
+app.kubernetes.io/name: "marklogic"
+marklogic.com/fqdn: {{ include "marklogic.fqdn" . }}
+{{- end }}
+
+{{- define "marklogic.clusterName" -}}
+{{- $bootStrapHost := trim .Values.bootstrapHostName }}
+{{- if ne $bootStrapHost "" -}}
+{{ .Values.bootstrapHostName }}
+{{- else -}}
+{{ include "marklogic.fqdn" . }}
+{{- end }}
+{{- end }}
+
 {{/*
 Create the name of the service account to use
 */}}
@@ -197,6 +211,18 @@ Validate values file
 {{- end }}
 
 {{/*
+Validate root to rootless upgrade
+*/}}
+{{- define "marklogic.rootToRootlessUpgrade" -}}
+{{- if .Values.rootToRootlessUpgrade }}
+{{- if not (.Values.image.tag | contains "rootless") }}
+{{- $errorMessage := printf "%s" "Root to Rootless Upgrade is supported only if rootToRootlessUpgrade flag is true and image type is rootless."  }}
+{{- fail $errorMessage }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Name to distinguish marklogic image whether root or rootless
 */}}
 {{- define "marklogic.imageType" -}}
@@ -207,3 +233,16 @@ Name to distinguish marklogic image whether root or rootless
 {{- end }}
 {{- end }}
 
+{{/*
+Create the name of the Ingress to use.
+*/}}
+{{- define "marklogic.ingress" -}}
+{{- printf "%s-ingress" (include "marklogic.fullname" .) }}
+{{- end }}
+
+{{/*
+Name of the HAProxy Service name to use in Ingress.
+*/}}
+{{- define "marklogic.haproxy.servicename" -}}
+{{- printf "%s-haproxy" .Release.Name }}
+{{- end }}

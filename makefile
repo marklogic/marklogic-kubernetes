@@ -82,7 +82,7 @@ lint:
 #***************************************************************************
 ## Run all end to end tests
 ## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [prevDockerImage] optional. used for marklogic upgrade tests
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
@@ -100,11 +100,21 @@ e2e-test: prepare
 	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
 	minikube image load $(prevDockerImage)
 
+	@echo "=====Pull $(dockerImage) image for upgrade test"
+	docker pull $(dockerImage)
+
+	kubectl get nodes
+	kubectl -n kube-system get pods
+	minikube version
+	kubectl version
+	go version
+	docker version
+
 	@echo "=====Setting hugepages values to 0 for e2e tests"
 	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Running e2e tests"
-	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/... -count=1 -timeout 70m, go test -v -count=1 -timeout 70m ./test/e2e/...)
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/$(testSelection) -count=1 -timeout 180m, go test -v -count=1 -timeout 180m ./test/e2e/...)
 
 	@echo "=====Setting hugepages value to 1280 for hugepages-e2e test"
 	sudo sysctl -w vm.nr_hugepages=1280
@@ -121,6 +131,7 @@ e2e-test: prepare
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
+	docker image rm $(dockerImage)
 
 #***************************************************************************
 # hc-test
@@ -134,7 +145,6 @@ hc-test:
 
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
-
 
 	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
 	minikube image load $(dockerImage)
@@ -176,12 +186,30 @@ template-test: prepare
 #***************************************************************************
 ## Run all tests
 ## Options:
-## * [dockerImage] optional. default is marklogicdb/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
+## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
 test: template-test e2e-test
 
+#***************************************************************************
+# test
+#***************************************************************************
+## Run upgrade in e2e tests
+## Set following environment variables 
+## [upgradeTest] to true. Use `export upgradeTest=true`
+## [initialChartVersion] to a valid MarkLogic helm chart version for ex.: 1.1.2 to run upgrade tests. Use `export initialChartVersion=1.1.2`
+.PHONY: upgrade-test
+upgrade-test: prepare
+	@echo "=====upgradeTest env var for upgrade tests"
+	echo $(upgradeTest)
+
+	@echo "=====initialChartVersion env var for upgrade tests"
+	echo ${initialChartVersion}
+	
+	@echo "=====Running upgrades in e2e tests"
+	make e2e-test
+	
 #***************************************************************************
 # image-scan
 #***************************************************************************
@@ -192,7 +220,7 @@ test: template-test e2e-test
 image-scan:
 
 	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
-	@for depImage in $(shell grep -E "^.*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
+	@for depImage in $(shell grep -E "^\s*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
 		echo " - $${depImage}" $(if $(saveOutput), | tee -a dep-image-scan.txt,) ; \
 		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype:latest $${depImage} | grep 'High\|Critical' $(if $(saveOutput), | tee -a dep-image-scan.txt,);\
 		echo $(if $(saveOutput), | tee -a dep-image-scan.txt,) ;\

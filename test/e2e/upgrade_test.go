@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -11,14 +12,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/docker/client"
 	"github.com/gruntwork-io/terratest/modules/helm"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestHelmUpgrade(t *testing.T) {
@@ -45,7 +46,7 @@ func TestHelmUpgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "1",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
@@ -73,10 +74,10 @@ func TestHelmUpgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"replicaCount":          "2",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
+			"image.repository":      "progressofficial/marklogic-db",
+			"image.tag":             "latest",
 			"logCollection.enabled": "false",
 		},
 	}
@@ -97,24 +98,11 @@ func TestHelmUpgrade(t *testing.T) {
 	passwordAfterUpgrade := string(passwordArr[:])
 	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
 
-	tunnel := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podZeroName, 7997, 7997)
-
-	defer tunnel.Close()
-	tunnel.ForwardPort(t)
-	endpoint := fmt.Sprintf("http://%s", tunnel.Endpoint())
-	t.Logf(`Endpoint: %s`, endpoint)
-
-	http_helper.HttpGetWithRetryWithCustomValidation(
-		t,
-		endpoint,
-		&tlsConfig,
-		15,
-		20*time.Second,
-		func(statusCode int, body string) bool {
-			return statusCode == 200
-		},
-	)
+	// verify MarkLogic is ready
+	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
+	if err != nil {
+		t.Fatal("MarkLogic failed to start")
+	}
 
 	tunnel8002 := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
@@ -132,9 +120,17 @@ func TestHelmUpgrade(t *testing.T) {
 
 	resp, err := client.R().
 		AddRetryCondition(func(resp *req.Response, err error) bool {
+			if err != nil {
+				t.Logf("error in getting the response: %s", err.Error())
+				return true
+			}
+			if resp == nil || resp.Body == nil {
+				t.Logf("error in getting the response body")
+				return true
+			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("error: %s", err.Error())
+				t.Logf("error in reading the response: %s", err.Error())
 			}
 			totalHosts = int(gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`).Num)
 			if totalHosts != 2 {
@@ -153,7 +149,10 @@ func TestHelmUpgrade(t *testing.T) {
 		t.Errorf("Incorrect number of MarkLogic hosts found after helm upgrade")
 	}
 
+	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
 }
+
 func TestMLupgrade(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -185,7 +184,7 @@ func TestMLupgrade(t *testing.T) {
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled": "false",
+			"persistence.enabled": "true",
 			"replicaCount":        "1",
 			"updateStrategy.type": "OnDelete",
 			"image.repository":    imageRepo,
@@ -214,10 +213,12 @@ func TestMLupgrade(t *testing.T) {
 	newOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"persistence.enabled":   "false",
+			"persistence.enabled":   "true",
 			"image.repository":      imageRepo,
 			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
 		},
 	}
 
@@ -235,12 +236,18 @@ func TestMLupgrade(t *testing.T) {
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)
 
+	// Get MarkLogic version for a running instance
 	clusterEndpoint := fmt.Sprintf("http://%s/manage/v2?format=json", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, clusterEndpoint)
 
-	getMLversion := digestAuth.NewRequest(username, password, "GET", clusterEndpoint, "")
+	reqClient := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	resp, err := getMLversion.Execute()
+	resp, err := reqClient.R().
+		Get(clusterEndpoint)
+
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -249,11 +256,32 @@ func TestMLupgrade(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	mlVersionPattern := regexp.MustCompile(`(\d+\.\d+)`)
 	mlVersionResp := gjson.Get(string(body), `local-cluster-default.version`)
+	t.Logf("MarkLogic version: %s", mlVersionResp.Str)
+
+	// Get MarkLogic version from the image metadata
+	// Connect to Docker
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	// Get image details
+	imageDetails, _, err := cli.ImageInspectWithRaw(ctx, imageRepo+":"+imageTag)
+	if err != nil {
+		panic(err)
+	}
+	mlVersionInImage := imageDetails.Config.Labels["com.marklogic.release-version"]
+
+	// extract ML version from server response (actual) and image metadata (expected)
+	mlVersionPattern := regexp.MustCompile(`(\d+\.\d+)`)
 	actualMlVersion := mlVersionPattern.FindStringSubmatch(mlVersionResp.Str)
-	expectedMlVersion := mlVersionPattern.FindStringSubmatch(imageTag)
-	// expectedMlVersion := strings.Split(imageTag, "-centos")[0]
+	expectedMlVersion := mlVersionPattern.FindStringSubmatch(mlVersionInImage)
+
 	// verify latest MarkLogic version after upgrade
 	assert.Equal(t, actualMlVersion, expectedMlVersion)
+
+	tlsConfig := tls.Config{}
+	// restart pod in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }

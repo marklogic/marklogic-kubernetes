@@ -1,0 +1,22 @@
+# This is a custom values files for path based routing additional app servers e2e tests
+persistence:
+  enabled: true
+
+replicaCount: 2
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+haproxy:
+  enabled: true
+  replicaCount: 1
+  frontendPort: 80
+  pathbased:
+    enabled: true
+  additionalAppServers:    
+    - name: test-server
+      type: HTTP
+      port: 8010
+      targetPort: 8010
+      path: /test

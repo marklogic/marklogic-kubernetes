@@ -28,11 +28,11 @@ func TestChartTemplateAdminSecret(t *testing.T) {
 	// Setup the args for helm install
 	options := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":                 "marklogicdb/marklogic-db",
+			"image.repository":                 "progressofficial/marklogic-db",
 			"image.tag":                        "latest",
 			"persistence.enabled":              "false",
 			"containerSecurityContext.enabled": "true",
-			"secretName":                       "marklogic-admin-sec-test-admin",
+			"auth.secretName":                  "test-auth-secret",
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -47,7 +47,7 @@ func TestChartTemplateAdminSecret(t *testing.T) {
 	require.Equal(t, namespaceName, statefulset.Namespace)
 
 	// Verify the secret name is passed for MarkLogic admin credentials
-	expectedAdminSecName := "admin-sec-admin"
+	expectedAdminSecName := "test-auth-secret"
 	actualAdminSecName := statefulset.Spec.Template.Spec.Volumes[0].Secret.SecretName
 	require.Equal(t, actualAdminSecName, expectedAdminSecName)
 }

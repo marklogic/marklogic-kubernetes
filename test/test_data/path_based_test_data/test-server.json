@@ -1,0 +1,8 @@
+{
+   "server-name":"test-server",
+   "root":"/",
+   "port":8010,
+   "error-handler":"/error-switch.xqy",
+   "content-database":"Documents",
+   "authentication":"basic"
+}

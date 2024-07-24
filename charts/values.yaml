@@ -26,6 +26,9 @@ allowLongHostnames: false
 ## It should remain true for all future upgrades. For new installations, this flag should be set to false.
 useLegacyHostnames: false
 
+# -- Annotations for the all deployed pods
+podAnnotations: {}
+
 ## Group related settings
 group:
   ## the group name of the current Marklogic Helm Deployment
@@ -36,19 +39,22 @@ group:
 ## The name of the host to join. If not provided, the deployment is a bootstrap host.
 bootstrapHostName: ""
 
+## Flag to enable to migrate from MarkLogic root to rootless image
+rootToRootlessUpgrade: false
+
 ## Marklogic image parameters
 image:
-  repository: marklogicdb/marklogic-db
-  tag: 11.2.0-centos-1.1.2
+  repository: progressofficial/marklogic-db
+  tag: 11.3.0-ubi-rootless
   pullPolicy: IfNotPresent
 
 ## Init container image parameters
 initContainers:
   configureGroup:
-    image: "curlimages/curl:8.6.0"
+    image: "curlimages/curl:8.8.0"
     pullPolicy: IfNotPresent
-  copyCerts:
-    image: "redhat/ubi9:9.3"
+  utilContainer:
+    image: "redhat/ubi9:9.4"
     pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
@@ -266,7 +272,7 @@ containerSecurityContext:
   enabled: true
   runAsUser: 1000
   runAsNonRoot: true
-  allowPrivilegeEscalation: true
+  allowPrivilegeEscalation: false
 
 ## Below are the advanced configurations, please read the reference in detail before making changes
 
@@ -288,8 +294,8 @@ livenessProbe:
 ################################################################
 
 readinessProbe:
-  enabled: false
-  initialDelaySeconds: 10
+  enabled: true
+  initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
@@ -300,23 +306,23 @@ readinessProbe:
 ## And export them to a logging backend specified in the outputs section below
 logCollection:
   enabled: false
-  image: fluent/fluent-bit:2.2.2
-  resources:
-    requests:
-      cpu: "100m"
-      memory: "128Mi"
-    limits:
-      cpu: "100m"
-      memory: "128Mi"
-  files:
-    errorLogs: true
-    accessLogs: true
-    requestLogs: true
-    crashLogs: true
-    auditLogs: true
+  # image: fluent/fluent-bit:3.1.1
+  # resources:
+  #   requests:
+  #     cpu: "100m"
+  #     memory: "128Mi"
+  #   limits:
+  #     cpu: "100m"
+  #     memory: "128Mi"
+#   files:
+#     errorLogs: true
+#     accessLogs: true
+#     requestLogs: true
+#     crashLogs: true
+#     auditLogs: true
   ## Configure desired output
   ## Documentation on how to set up output can be found here: https://docs.fluentbit.io/manual/pipeline/outputs
-  outputs: |-
+  # outputs: |-
       # [OUTPUT]
       #   name loki
       #   match *
@@ -358,26 +364,72 @@ haproxy:
     ##  Default is ClusterIP which worked as Internal Load Balancer. Set to LoadBalancer type to expose to public internet. 
     type: ClusterIP
 
-  ## Ports and load balancing type configuration for HAproxy
-  ## There are three types of backends supported:
-  ## 1. HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections.
-  ## 2. TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.  
-  ports:
-    - name: app-service
-      type: HTTP
+# Used if MarkLogic Default APP-Servers are meant to be exposed under subpath different from /
+
+#######################################################################
+#  IMPORTANT NOTE:                                                    #
+#  This feature is only supported with MarkLogic 11.1 and higher.     #
+#  See Limitations and known Issues in the README file.               #
+#######################################################################
+
+  pathbased: 
+    enabled: false
+
+# This the default listening port in the Front-End section of the HAProxy when using Path based routing
+  frontendPort: 443
+
+
+# Path and port used on HAProxy 
+# The same path will be used on Ingress for Default AppServers 
+
+  defaultAppServers:
+    appservices:
+      path: /console
       port: 8000
-      targetPort: 8000
-    - name: admin
-      type: HTTP
+    admin:
+      path: /adminUI
       port: 8001
-      targetPort: 8001
-    - name: manage
-      type: HTTP
+    manage:
+      path: /manage
       port: 8002
-      targetPort: 8002
-    # - name: odbc
-    #   type: TCP
-    #   port: 5432
+
+
+  ## HTTP Ports, load balancing type and path configuration for HAproxy
+  ## HTTP: HTTP(Layer 7) proxy mode. This works for most of the App Servers handling HTTP connections. 
+  ## path : define the path to be used to expose the APP-Server on HAProxy and Ingress
+
+  ## To add new ports to be exposed using HTTP just uncoment the following lines and adapt the configuration
+
+  # additionalAppServers:    
+  #   - name: dhf-jobs
+  #     type: HTTP
+  #     port: 8010
+  #     targetPort: 8010
+  #     path: /DHF-jobs
+  #   - name: dhf-final
+  #     type: HTTP
+  #     port: 8011
+  #     targetPort: 8011
+  #     path: /DHF-final
+
+  ## TCP Ports, load balancing configuration for HAproxy
+  ## TCP: TCP(Layer 4) proxy mode. This works for the MarkLogic App Servers handling TCP connections like ODBC.   
+
+  tcpports:
+  # TCP port has to be explicitely enabled
+    enabled: false
+    # ports:
+    #   - name: odbc
+    #     type: TCP
+    #     port: 5432
+
+
+  # Timeout configuration for HAProxy. It is recommended to set the same timeout on HAproxy as it is on MarkLogic App-Server (default to 600 second).
+  # ref: https://www.haproxy.com/blog/the-four-essential-sections-of-an-haproxy-configuration#timeout-connect-timeout-client-timeout-server
+  timeout:
+    client: 600s
+    connect: 600s
+    server: 600s
 
   ## Configure TLS for HAProxy
   ## Put the PEM-formatted SSL certificate into a secret and provide the secret name in the secretName field.
@@ -406,3 +458,55 @@ haproxy:
     # limits:
     #   cpu: 250m
     #   memory: 128Mi
+
+## Configure Ingress
+
+#######################################################################
+#  IMPORTANT NOTE:                                                    #
+#  Ingress is only supported with MarkLogic 11.1 and higher.          #
+#  See Limitations and known Issues in the README file.               #
+#######################################################################
+
+## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+
+  ## Ingress class
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+  className: ""
+
+  ## Ingress labels
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  labels: {}
+    # app.kubernetes.io/instance: marklogic
+    # app.kubernetes.io/name: ml
+
+  ## Ingress annotations
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  annotations: {}
+    # alb.ingress.kubernetes.io/healthcheck-port: '443'
+    # alb.ingress.kubernetes.io/healthcheck-path: /adminUI
+    # alb.ingress.kubernetes.io/success-codes: '200-401'
+    # alb.ingress.kubernetes.io/load-balancer-name: ml
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    # alb.ingress.kubernetes.io/target-group-attributes: load_balancing.algorithm.type=least_outstanding_requests
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXXXXXXX:certificate/XxXXXXXX-xxxx-XXXX-XXXX-XXXXXXXxxxxXXX
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/group.name: ml-group
+    # alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600,routing.http.xff_header_processing.mode=append
+
+  ## Ingress hosts
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
+
+  host: ""
+  additionalHost: ""
+  
+
+  ## Ingress TLS
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+  tls:
+      []
+      # - secretName: your-certificate-name
+      #   hosts:
+      #     - marklogic.example.com

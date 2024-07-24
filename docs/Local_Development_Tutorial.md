@@ -21,9 +21,9 @@ This tutorial describes how to set up local Kubernetes development environment w
 
 ## Prerequisites
 The following steps assume you are running this tutorial from a desktop environment.
-- [Docker](https://docs.docker.com/engine/install/): Pull the latest MarkLogic Server image from: https://hub.docker.com/r/marklogicdb/marklogic-db
+- [Docker](https://docs.docker.com/engine/install/): Pull the latest MarkLogic Server image from: https://hub.docker.com/r/progressofficial/marklogic-db
   ```sh
-  docker pull marklogicdb/marklogic-db:latest
+  docker pull progressofficial/marklogic-db:latest
   ```
 - [Kubectl](https://kubernetes.io/docs/tasks/tools/):  Download and install this tool to assist with debugging in a Kubernetes environment.
 - [Helm](https://helm.sh/docs/intro/install/):  Clone or download the chart repository: https://github.com/marklogic/marklogic-kubernetes
@@ -53,7 +53,7 @@ minikube   Ready    control-plane,master   1d    v1.23.3
 
 ##  Installing a Single MarkLogic Host to Minikube
 - Push the image used for MarkLogic Server to the Minikube:
-`minikube image load marklogicdb/marklogic-db:latest`
+`minikube image load progressofficial/marklogic-db:latest`
 - Add the Helm repository
   `helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/`  
   Additionally create a `values.yaml` file for your installation, like the one found in the repository under `/charts`: https://marklogic.github.io/marklogic-kubernetes/. The `values.yaml` file controls configuration for MarkLogic Server running in kubernetes. 
@@ -107,7 +107,7 @@ Events:
   Type     Reason     Age   From               Message
   ----     ------     ----  ----               -------
   Normal   Scheduled  13m   default-scheduler  Successfully assigned default/marklogic-0 to minikube
-  Normal   Pulled     13m   kubelet            Container image "marklogicdb/marklogic-db:latest" already present on machine
+  Normal   Pulled     13m   kubelet            Container image "progressofficial/marklogic-db:latest" already present on machine
   Normal   Created    13m   kubelet            Created container marklogic
   Normal   Started    13m   kubelet            Started container marklogic
   Warning  Unhealthy  13m   kubelet            Startup probe failed: ls: cannot access /var/opt/MarkLogic/ready: No such file or directory

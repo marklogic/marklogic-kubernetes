@@ -1,6 +1,6 @@
 # MarkLogic Kubernetes Helm Chart
 
-This repository contains a Helm Chart that can be used to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/?lang=en) for detailed documentation about running this.
+This repository contains a Helm Chart that can be used to deploy MarkLogic on a Kubernetes cluster. Below is a brief description of how to easily create a MarkLogic StatefulSet for development and testing. See [MarkLogic Server on Kubernetes](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/marklogic-server-on-kubernetes.html) for detailed documentation about running this.
 
 ## Getting Started
 
@@ -8,14 +8,20 @@ This repository contains a Helm Chart that can be used to deploy MarkLogic on a 
 
 [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/)  must be installed locally in order to use this chart.
 
-For production environments, it is recommend to use a managed Kubenetes service such as AWS EKS. The [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) command line tool can be used to bring up a Kubernetes cluster on EKS. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4533330969176033593431540071) for detailed steps.
+For production environments, it is recommend to use a managed Kubenetes service such as AWS EKS. The [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) command line tool can be used to bring up a Kubernetes cluster on EKS. Please refer to [Using eksctl to Provision a Kubernetes Cluster on EKS](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/set-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html) for detailed steps.
 
-For non-production deployments, please see [MiniKube Setup Guide](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/setting-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html#UUID-44d2e035-b8d5-5c08-4b52-7a8b002d34aa_section-idm4480543593867233593415017144) to create the Kubernetes cluster locally.
+For non-production deployments, please see [MiniKube Setup Guide](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/set-up-the-required-tools/tools-for-setting-up-the-kubernetes-cluster.html) to create the Kubernetes cluster locally.
 
 ### Kubernetes Version
 
-This Helm-chart currently support Kubernetes 1.23 or later.
- 
+This Helm chart supports Kubernetes 1.23 or later.
+
+This Helm chart has been tested on EKS (Elastic Kubernetes Service on AWS) and AKS (Azure Kubernetes Service), nevertheless it is expected to work on GKE (Google Kubernetes Engine) and RedHat OpenShift.
+
+### MarkLogic Version
+
+This Helm chart supports MarkLogic starting release 10.0-10-2.
+
 ### Installing MarkLogic Helm Chart
 
 This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 20GB persistent volume, 2 vCPUs, and 4GB of RAM will be allocated for the pod.
@@ -40,7 +46,7 @@ Refer to the official Kubernetes documentation for detailed steps on how to [cre
 
 4. Create a `values.yaml` file to customize the settings. Specify the number of pods (one MarkLogic host in this case), add the secret name for the admin credentials (if not using the automatically generated one), and specify the resources that should be allocated to each MarkLiogic pod.
 
-Note: Please ensure to use the latest MarkLogic Docker image for the new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/marklogicdb/marklogic-db/tags](https://hub.docker.com/r/marklogicdb/marklogic-db/tags) for the latest image available.
+Note: Please ensure to use the latest MarkLogic Docker image for the new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/progressofficial/marklogic-db/tags](https://hub.docker.com/r/progressofficial/marklogic-db/tags) for the latest image available.
 ```
 # Create a single MarkLogic pod
 replicaCount: 1
@@ -48,7 +54,7 @@ replicaCount: 1
 # Marklogic image parameters
 # using the latest image 11.0.3-centos-1.0.2 
 image:
-  repository: marklogicdb/marklogic-db;
+  repository: progressofficial/marklogic-db;
   tag: 11.0.3-centos-1.0.2 
   pullPolicy: IfNotPresent
 
@@ -78,7 +84,7 @@ Once the installation is complete and the pod is in a running state, the MarkLog
 ```
 kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001
 ```
-Please refer [Official Documentation](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/accessing-marklogic-server-in-a-kubernetes-cluster.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
+Please refer [Official Documentation](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/marklogic-server-on-kubernetes.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
 
 If using the automatically generated admin credentials, use the following steps to extract the admin username, password and wallet-password from a secret:
 
@@ -109,16 +115,17 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `clusterDomain`                                     | Domain for the Kubernetes cluster                                                                                                                                                      | `cluster.local`            |
 | `allowLongHostnames`                                | Allow deployment with hostname over 64 characters                                                    | `false` |
 | `useLegacyHostnames`                                | Use the lagecy hostnames that is used before 1.1.0 version.                                          | `false` |
+| `podAnnotations`                                     | Pod Annotations                                                                                                                                                      | `{}`            |
 | `group.name`                                        | Group name for joining MarkLogic cluster                                                                                                                                               | `Default`                  |
 | `group.enableXdqpSsl`                               | SSL encryption for XDQP                                                                                                                                                                | `true`                     |
 | `bootstrapHostName`                                 | Host name of MarkLogic bootstrap host (to join a cluster)                                                                                                                              | `""`                       |
-| `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `marklogicdb/marklogic-db` |
-| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `11.2.0-centos-1.1.2`      |
+| `image.repository`                                  | Repository for MarkLogic image                                                                                                                                                         | `progressofficial/marklogic-db` |
+| `image.tag`                                         | Image tag for MarkLogic image                                                                                                                                                          | `11.3.0-ubi-rootless`      |
 | `image.pullPolicy`                                  | Image pull policy for MarkLogic image                                                                                                                                                  | `IfNotPresent`             |
-| `initContainers.configureGroup.image`               | Image for configureGroup InitContainer                                                                                                                                                 | `curlimages/curl:8.6.0`    |
+| `initContainers.configureGroup.image`               | Image for configureGroup InitContainer                                                                                                                                                 | `curlimages/curl:8.8.0`    |
 | `initContainers.configureGroup.pullPolicy`          | Pull policy for configureGroup InitContainer                                                                                                                                           | `IfNotPresent`             |
-| `initContainers.copyCerts.image`                    | Image for copyCerts InitContainer                                                                                                                                                      | `redhat/ubi9:9.3`          |
-| `initContainers.copyCerts.pullPolicy`               | Pull policy for copyCerts InitContainer                                                                                                                                                | `IfNotPresent`             |
+| `initContainers.utilContainer.image`                | Image for copyCerts and volume permission change for root to rootless upgrade InitContainer                                                                                                                                                      | `redhat/ubi9:9.4`          |
+| `initContainers.utilContainer.pullPolicy`           | Pull policy for copyCerts and volume permission change for root to rootless upgrade InitContainer                                                                                                                                                | `IfNotPresent`             |
 | `imagePullSecrets`                                  | Registry secret names as an array                                                                                                                                                      | `[]`                       |
 | `hugepages.enabled`                                 | Parameter to enable Hugepage on MarkLogic                                                                                                                                              | `false`                    |
 | `hugepages.mountPath`                               | Mountpath for Hugepages                                                                                                                                                                | `/dev/hugepages`           |
@@ -163,21 +170,21 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `containerSecurityContext.enabled`                  | Parameter to enable security context for MarkLogic containers                                                                                                                          | `true`                     |
 | `containerSecurityContext.runAsUser`                | User ID to run the entrypoint of the container process                                                                                                                                 | `1000`                     |
 | `containerSecurityContext.runAsNonRoot`             | Indicates that the container must run as a non-root user                                                                                                                               | `true`                     |
-| `containerSecurityContext.allowPrivilegeEscalation` | Controls whether a process can gain more privileges than its parent process                                                                                                            | `true`                     |
+| `containerSecurityContext.allowPrivilegeEscalation` | Controls whether a process can gain more privileges than its parent process                                                                                                            | `false`                     |
 | `livenessProbe.enabled`                             | Parameter to enable the liveness probe                                                                                                                                                 | `true`                     |
 | `livenessProbe.initialDelaySeconds`                 | Initial delay seconds for liveness probe                                                                                                                                               | `300`                      |
 | `livenessProbe.periodSeconds`                       | Period seconds for liveness probe                                                                                                                                                      | `10`                       |
 | `livenessProbe.timeoutSeconds`                      | Timeout seconds for liveness probe                                                                                                                                                     | `5`                        |
 | `livenessProbe.failureThreshold`                    | Failure threshold for liveness probe                                                                                                                                                   | `15`                       |
 | `livenessProbe.successThreshold`                    | Success threshold for liveness probe                                                                                                                                                   | `1`                        |
-| `readinessProbe.enabled`                            | Parameter to enable the readiness probe                                                                                                                                                | `false`                    |
+| `readinessProbe.enabled`                            | Parameter to enable the readiness probe                                                                                                                                                | `true`                    |
 | `readinessProbe.initialDelaySeconds`                | Initial delay seconds for readiness probe                                                                                                                                              | `10`                       |
 | `readinessProbe.periodSeconds`                      | Period seconds for readiness probe                                                                                                                                                     | `10`                       |
 | `readinessProbe.timeoutSeconds`                     | Timeout seconds for readiness probe                                                                                                                                                    | `5`                        |
 | `readinessProbe.failureThreshold`                   | Failure threshold for readiness probe                                                                                                                                                  | `3`                        |
 | `readinessProbe.successThreshold`                   | Success threshold for readiness probe                                                                                                                                                  | `1`                        |
 | `logCollection.enabled`                             | Parameter to enable cluster wide log collection of Marklogic server logs                                                                                                               | `false`                    |
-| `logCollection.image`                               | Image repository and tag for fluent-bit container                                                                                                                                      | `fluent/fluent-bit:2.2.2`  |
+| `logCollection.image`                               | Image repository and tag for fluent-bit container                                                                                                                                      | `fluent/fluent-bit:3.1.1`  |
 | `logCollection.resources.requests.cpu`              | The requested cpu resource for the fluent-bit container                                                                                                                                | `100m`                     |
 | `logCollection.resources.requests.memory`           | The requested memory resource for the fluent-bit container                                                                                                                             | `128Mi`                    |
 | `logCollection.resources.limits.cpu`                | The cpu resource limit for the fluent-bit container                                                                                                                                    | `100m`                     |
@@ -198,7 +205,17 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.stats.auth.username`                       | Username for stats page                                                                                                                                                                | `""`                       |
 | `haproxy.stats.auth.password`                       | Password for stats page                                                                                                                                                                | `""`                       |
 | `haproxy.service.type`                              | The service type of the HAproxy                                                                                                                                                        | `ClusterIP`                |
-| `haproxy.ports`                                     | Ports and load balancing type configuration for HAproxy                                                                                                                                | `[]`                       |
+| `haproxy.pathbased.enabled`                         | Parameter to enable path based routing on the HAProxy Load Balancer for MarkLogic       | `false`                    |
+| `haproxy.frontendPort`                              | Listening port in the Front-End section of the HAProxy when using Path based routing | `443`                  |
+| `haproxy.defaultAppServers.appservices.path`        | Path used to expose MarkLogic App-Services App-Server                           | `""`                     |
+| `haproxy.defaultAppServers.admin.path`              | Path used to expose MarkLogic Admin App-Server                                  | `""`                     |
+| `haproxy.defaultAppServers.manage.path`             | Path used to expose the MarkLogic Manage App-Server                             | `""`                     |
+| `haproxy.additionalAppServers`                      | List of additional HTTP Ports configuration for HAproxy                         | `[]`                     |
+| `haproxy.tcpports.enabled`                          | Parameter to enable TCP port routing on HAProxy                              | `false`                  |
+| `haproxy.tcpports`                                  | TCP Ports and load balancing type configuration for HAproxy                  | `[]`                     |
+| `haproxy.timemout.client`                           | Timeout client measures inactivity during periods that we would expect the client to be speaking  | `600s`  |
+| `haproxy.timeout.connect`                           | Timeout connect configures the time that HAProxy will wait for a TCP connection to a backend server to be established  | `600s`  |
+| `haproxy.timeout.server`                            | Timeout server measures inactivity when we’d expect the backend server to be speaking | `600s`  |
 | `haproxy.tls.enabled`                               | Parameter to enable TLS for HAProxy                                                                                                                                                    | `false`                    |
 | `haproxy.tls.secretName`                            | Name of the secret that stores the certificate                                                                                                                                         | `""`                       |
 | `haproxy.tls.certFileName`                          | The name of the certificate file in the secret                                                                                                                                         | `""`                       |
@@ -208,13 +225,18 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.resources.requests.memory`                 | The requested memory resource for the HAProxy container                                                                                                                                | `128Mi`                    |
 | `haproxy.resources.limits.cpu`                      | The cpu resource limit for the HAProxy container                                                                                                                                       | `250m`                     |
 | `haproxy.resources.limits.memory`                   | The memory resource limit for the HAProxy container                                                                                                                                    | `128Mi`                    |
+| `ingress.enabled`                                   | Enable an ingress resource for the MarkLogic cluster                                   | `false`| 
+| `ingress.className`                                 | Defines which ingress controller will implement the resource                          | `""` |
+| `ingress.labels`                                    | Additional ingress labels                                                             | `{}` |
+| `ingress.annotations`                               | Additional ingress annotations                                                       | `{}` |
+| `ingress.hosts`                                     | List of ingress hosts                                                                 | `[]` |
+| `ingress.additionalHost`                            | List of ingress additional hosts                                                      | `[]` |
 
 ## Known Issues and Limitations
 
-1. If the hostname is greater than 64 characters there will be issues with certificates. It is highly recommended to use hostname shorter than 64 characters or use SANs for hostnames in the certificates.
-2. The MarkLogic Docker image must be run in privileged mode. At the moment if the image isn't run as privileged many calls that use sudo during the startup script will fail due to lack of required permissions as the image will not be able to create a user with the required permissions.
-3. The latest released version of CentOS 7 has known security vulnerabilities with respect to glib2 CVE-2016-3191, CVE-2015-8385, CVE-2015-8387, CVE-2015-8390, CVE-2015-8394, CVE-2016-3191, glibc CVE-2019-1010022, pcre CVE-2015-8380, CVE-2015-8387, CVE-2015-8390, CVE-2015-8393, CVE-2015-8394, SQLite CVE-2019-5827. These libraries are included in the CentOS base image but, to-date, no fixes have been made available. Even though these libraries may be present in the base image that is used by MarkLogic Server, they are not used by MarkLogic Server itself, hence there is no impact or mitigation required.
-4. The latest released version of fluent/fluent-bit:2.2.2 has known security vulnerabilities with respect to libcom-err2 CVE-2022-1304, libgcrypt20 CVE-2021-33560, libgnutls30 CVE-2024-0567, libldap-2.4-2 CVE-2023-2953, libzstd1 CVE-2022-4899, zlib1g CVE-2023-45853. These libraries are included in the Debian base image but, to-date, no fixes have been made available. For libpq5 CVE-2024-0985, we wait for a future upgrade of the fluent-bit image to include the fix. We will provide updates and mitigation strategies as soon as more information becomes available.
-5. The latest released version of redhat/ubi9:9.3 has known security vulnerabilities with respect to setuptools GHSA-r9hx-vwmv-q579. We wait for a future upgrade of the redhad ubi image to include the fix.
-6. The security context “allowPrivilegeEscalation” is set to TRUE by default in values.yaml file and cannot be changed to run the current MarkLogic container. Work is in progress to run MarkLogic container in "rootless" mode.
-7. Known Issues and Limitations for the MarkLogic Server Docker image can be viewed using the link: https://github.com/marklogic/marklogic-docker?tab=readme-ov-file#Known-Issues-and-Limitations
+1. If the hostname is greater than 64 characters there will be issues with certificates. It is highly recommended to use hostname shorter than 64 characters or use SANs for hostnames in the certificates. If you still choose to use hostname greater than 64 characters, set "allowLongHostnames" to true.
+2. The latest released version of fluent/fluent-bit:3.1.1 has known high and critical security vulnerabilities. If you decide to enable the log collection feature, choose and deploy the fluent-bit or an alternate image with no vulnerabilities as per your requirements. 
+3. The security context “allowPrivilegeEscalation” is set to false by default in the
+values.yaml file. This should not be changed when running the MarkLogic container with default rootless image. If you choose to use an image with root privileges, set "allowPrivilegeEscalation" to true.
+4. Known Issues and Limitations for the MarkLogic Server Docker image can be viewed using the link: https://github.com/marklogic/marklogic-docker?tab=readme-ov-file#Known-Issues-and-Limitations.
+5. Path-based routing and Ingress features are only supported with MarkLogic 11.1 and higher.

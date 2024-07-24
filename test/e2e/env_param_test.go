@@ -1,11 +1,12 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -13,12 +14,14 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/imroc/req/v3"
+	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
 	"github.com/stretchr/testify/assert"
-	digestAuth "github.com/xinsnake/go-http-digest-auth-client"
 )
 
 func TestEnableConvertersAndLicense(t *testing.T) {
-
+	var body []byte
+	var err error
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
@@ -26,38 +29,41 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	var initialChartVersion string
+	upgradeHelm, _ := os.LookupEnv("upgradeTest")
+	runUpgradeTest, _ := strconv.ParseBool(upgradeHelm)
+	if runUpgradeTest {
+		initialChartVersion, _ = os.LookupEnv("initialChartVersion")
+		t.Logf("====Setting initial Helm chart version: %s", initialChartVersion)
+	}
 	username := "admin"
 	password := "AdminPa$s_with@!#%^&*()"
-	var resp *http.Response
-	var body []byte
-	var err error
 
 	if !repoPres {
-		imageRepo = "marklogic-centos/marklogic-server-centos"
+		imageRepo = "progressofficial/marklogic-db"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "10-internal"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
 	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
+	valuesMap := map[string]string{"persistence.enabled": "true",
+		"replicaCount":          "1",
+		"image.repository":      imageRepo,
+		"image.tag":             imageTag,
+		"auth.adminUsername":    username,
+		"auth.adminPassword":    password,
+		"logCollection.enabled": "false",
+		"enableConverters":      "true",
+	}
 	options := &helm.Options{
 		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "false",
-			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-			"logCollection.enabled": "false",
-			"enableConverters":      "true",
-			"license.key":           "3981-CE27-75BB-9D3C-B81C-E067-1B39-DDFE-0875-C37E-D3F0-A76C-34E5-2F86-76BB-ADDD-E677-CB3F-D5FE-4773-C3CD-5EE8-87BC-36E5-3F71-0C15",
-			"license.licensee":      "MarkLogic - Version 9 QA Test License",
-		},
+		SetValues:      valuesMap,
+		Version:        initialChartVersion,
 	}
 
 	t.Logf("====Creating namespace: " + namespaceName)
@@ -68,11 +74,48 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 
 	t.Logf("====Installing Helm Chart")
 	releaseName := "test"
-	helm.Install(t, options, helmChartPath, releaseName)
+	//add the helm chart repo and install the last helm chart release from repository
+	//to test and upgrade this chart to the latest one to be released
+	if runUpgradeTest {
+		delete(valuesMap, "image.repository")
+		delete(valuesMap, "image.tag")
+		helm.AddRepo(t, options, "marklogic", "https://marklogic.github.io/marklogic-kubernetes/")
+		defer helm.RemoveRepo(t, options, "marklogic")
+		helmChartPath = "marklogic/marklogic"
+	}
 
-	podName := releaseName + "-0"
+	t.Logf("====Setting helm chart path to %s", helmChartPath)
+	t.Logf("====Installing Helm Chart")
+	podName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+	podOneName := releaseName + "-1"
+
 	// wait until the pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podName, 15, 15*time.Second)
+	if runUpgradeTest {
+		upgradeOptionsMap := map[string]string{
+			"persistence.enabled":   "true",
+			"replicaCount":          "2",
+			"auth.adminUsername":    username,
+			"auth.adminPassword":    password,
+			"enableConverters":      "true",
+			"logCollection.enabled": "false",
+			"allowLongHostnames":    "true",
+			"rootToRootlessUpgrade": "true",
+		}
+		if strings.HasPrefix(initialChartVersion, "1.0") {
+			podName = releaseName + "-marklogic-0"
+			podOneName = releaseName + "-marklogic-1"
+			upgradeOptionsMap["useLegacyHostnames"] = "true"
+		}
+		//set helm options for upgrading helm chart version
+		helmUpgradeOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues:      upgradeOptionsMap,
+		}
+		t.Logf("UpgradeHelmTest is enabled. Running helm upgrade test")
+		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName, podOneName}, initialChartVersion)
+	}
+
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, podName, 8001, 8001)
 	defer tunnel.Close()
@@ -80,12 +123,19 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 	endpoint := fmt.Sprintf("http://%s/admin/v1/timestamp", tunnel.Endpoint())
 	t.Logf(`Endpoint: %s`, endpoint)
 
-	// Make request to server as soon as it is ready
-	timestamp := digestAuth.NewRequest(username, password, "GET", endpoint, "")
+	client := req.C().
+		SetCommonDigestAuth(username, password).
+		SetCommonRetryCount(10).
+		SetCommonRetryFixedInterval(10 * time.Second)
 
-	if resp, err = timestamp.Execute(); err != nil {
+	// Make request to server as soon as it is ready
+	resp, err := client.R().
+		Get(endpoint)
+
+	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	defer resp.Body.Close()
 	if body, err = io.ReadAll(resp.Body); err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -99,8 +149,10 @@ func TestEnableConvertersAndLicense(t *testing.T) {
 		t.Errorf("Failed to get logs for pod %s in namespace %s: %v", podName, namespaceName, err)
 	}
 
-	// Verify that the license is getting installed
-	assert.Contains(t, logs, "LICENSE_KEY and LICENSEE are defined")
 	// Verify that converters are getting installed
-	assert.Contains(t, logs, "converters.rpm to be installed")
+	assert.Contains(t, logs, "INSTALL_CONVERTERS is true, installing converters.")
+
+	tlsConfig := tls.Config{}
+	// restart pods in the cluster and verify its ready and MarkLogic server is healthy
+	testUtil.RestartPodAndVerify(t, false, []string{podName}, namespaceName, kubectlOptions, &tlsConfig)
 }
