@@ -15,25 +15,39 @@ The MarkLogic® Kubernetes Helm Chart container image utilizes the RedHat UBI co
 This document provides notices information for the third-party components used by MarkLogic® Kubernetes Helm Chart.
 
 Third Party Components
-    K8s.io/api  v0.29.1  (Apache-2.0)
-    gjson  v1.14.3  (MIT)
-    go-http-digest-auth-client  v0.6.0  (BSD-2-Clause)
-    terratest  v0.46.11  (Apache-2.0)
-    testify  v1.8.4  (MIT)
+    
+	Curl v8.8.0 (MIT)
+	gjson v1.14.3 (MIT)
+    go-http-digest-auth-client v0.6.0 (BSD-2-Clause)
     haproxy helm charts vhaproxy-1.18.0 (Apache-2.0)
+	K8s.io/api v0.29.1 (Apache-2.0)
+    MarkLogic® Docker Container Image v2.0 (Apache-2.0)
+    req v3.42.0 (MIT)
+	terratest v0.46.11 (Apache-2.0)
+    testify v1.8.4 (MIT)
 
  Common Licenses
-    Apache License 2.0  (Apache-2.0)
+
+    Apache License 2.0 (Apache-2.0)
 
 -------------------------------------------------------------------------
 
-The following software may be included in this project (last updated February 9, 2024):
+The following software may be included in this project (last updated July 24, 2024):
 
-K8s.io/api  v0.29.1  (Apache-2.0)
+Curl v8.8.0
 
-    https://pkg.go.dev/k8s.io/api
+	https://curl.se/download/
 
-    For the full text of the Apache-2.0 license, see Apache License 2.0  (Apache-2.0)
+COPYRIGHT AND PERMISSION NOTICE
+
+Copyright (c) 1996 - 2024, Daniel Stenberg, <daniel@haxx.se>, and many
+contributors, see the THANKS file. All rights reserved.
+
+Permission to use, copy, modify, and distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Except as contained in this notice, the name of a copyright holder shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization of the copyright holder.
 
 gjson  v1.14.3  (MIT)
 
@@ -52,13 +66,52 @@ Redistribution and use in source and binary forms, with or without modification,
 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.  
 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-terratest  v0.44.1  (Apache-2.0)
+Haproxy helm charts vhaproxy-1.18.0  (Apache-2.0)
+
+    https://github.com/haproxytech/helm-charts
+
+    For the full text of the Apache-2.0 license, see Apache License 2.0  (Apache-2.0)
+
+
+K8s.io/api  v0.29.1  (Apache-2.0)
+
+    https://pkg.go.dev/k8s.io/api
+
+    For the full text of the Apache-2.0 license, see Apache License 2.0  (Apache-2.0)
+
+
+MarkLogic® Docker Container Image v2.0 (Apache-2.0)
+
+       https://github.com/marklogic/marklogic-docker
+    	
+       For the full text of the Apache-2.0 license, see Apache License 2.0 (Apache-2.0)
+
+       See its NOTICE.txt file here https://github.com/marklogic/marklogic-docker/blob/master/NOTICE.txt	
+
+
+req v3.42.0 (MIT)
+
+    https://pkg.go.dev/github.com/imroc/req/v3
+
+MIT License  
+
+Copyright (c) 2017-2022 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:  
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.  
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+terratest  v0.46.11  (Apache-2.0)
 
     https://pkg.go.dev/github.com/gruntwork-io/terratest
 
     For the full text of the Apache-2.0 license, see Apache License 2.0 (Apache-2.0)
 
-testify  v1.8.1  (MIT)
+
+testify  v1.8.4  (MIT)
 
     https://pkg.go.dev/github.com/stretchr/testify
 
@@ -73,27 +126,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.  
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-v3  v3.42.0  (MIT)
-
-    https://pkg.go.dev/github.com/imroc/req/v3
-
-MIT License  
-
-Copyright (c) 2017-2022 
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:  
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.  
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Haproxy helm charts vhaproxy-0.29.1  (Apache-2.0)
-
-    https://github.com/haproxytech/helm-charts
-
-    For the full text of the Apache-2.0 license, see Apache License 2.0  (Apache-2.0)
-
 
 -----------------------------------------
 Common Licenses
@@ -176,3 +208,5 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+====================
