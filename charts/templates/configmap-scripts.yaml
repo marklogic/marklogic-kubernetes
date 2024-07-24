@@ -231,7 +231,7 @@ data:
         hostname="${1:-localhost}"
         port="${2:-8001}"
         protocol="http"
-        resp_code=$(curl -s -o /dev/null -w '%{http_code}' http://$hostname:$port)
+        resp_code=$(curl -s --retry 5 -o /dev/null -w '%{http_code}' http://$hostname:$port)
         if [[ $resp_code -eq 403 ]]; then
             protocol="https"
         fi
