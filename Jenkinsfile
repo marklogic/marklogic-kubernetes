@@ -39,6 +39,13 @@ void preBuildCheck() {
 
     // our VMs sometime disable bridge traffic. this should help to restore it.
     sh 'sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"'
+
+    // install local version of golangci-lint and gotestsum
+    sh '''
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v1.50.0
+        wget https://github.com/gotestyourself/gotestsum/releases/download/v1.12.0/gotestsum_1.12.0_linux_amd64.tar.gz -O gotestsum.tar.gz
+        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
+    '''
 }
 
 @NonCPS
@@ -163,13 +170,17 @@ pipeline {
     environment {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-${params.dockerImageType}"
+        PATH = "/space/go/bin:${env.PATH}"
+        MINIKUBE_HOME = "/space"
+        KUBECONFIG = "/space/.kube-config"
+        GOPATH = "/space/go"
     }
 
     parameters {
         choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi\ncentos', description: 'Platform type for Docker image')
         string(name: 'dockerVersion', defaultValue: 'latest-11', description: 'Docker tag to use for tests. (e.g. 11.2.nightly-ubi-rootless-1.1.2) Has to correspond with dockerImageType.', trim: true)
         string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
-        choice(name: 'K8_VERSION', choices: 'v1.28.10\nv1.29.5\nv1.27.14\nv1.26.15\nv1.25.16\nv1.24.17', description: 'Test Kubernetes version.')
+        choice(name: 'K8_VERSION', choices: 'v1.29.6\nv1.30.2\nv1.28.11\nv1.27.15\nv1.26.15\nv1.25.16', description: 'Test Kubernetes version.')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
@@ -207,7 +218,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb testSelection=${params.KUBERNETES_TEST_SELECTION}
+                    make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb testSelection=${params.KUBERNETES_TEST_SELECTION}
                 """
             }
         }
@@ -217,7 +228,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; export upgradeTest=true; export initialChartVersion=${params.InitialChartVersion}; make upgrade-test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
+                    export upgradeTest=true; export initialChartVersion=${params.InitialChartVersion}; make upgrade-test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
@@ -227,7 +238,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
+                    make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
                 """
             }
         }
@@ -238,7 +249,7 @@ pipeline {
             publishTestResults()
             sh '''
 	            sudo sysctl -w vm.nr_hugepages=0
-                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
+                minikube delete --all --purge
                 docker rm -f $(docker ps -a -q) || true
                 docker system prune --force --filter "until=720h"
                 docker volume prune --force
