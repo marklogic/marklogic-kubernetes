@@ -2,6 +2,7 @@ dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/mar
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
 kubernetesVersion?=v1.25.8
 minikubeMemory?=10gb
+testSelection?=...
 ## System requirement:
 ## - Go 
 ## 		- gotestsum (if you want to enable output saving for testing commands)
@@ -94,15 +95,7 @@ e2e-test: prepare
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
-	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
-	minikube image load $(dockerImage)
-
-	@echo "=====Loading marklogc image $(prevDockerImage) to minikube cluster"
-	minikube image load $(prevDockerImage)
-
-	@echo "=====Pull $(dockerImage) image for upgrade test"
-	docker pull $(dockerImage)
-
+	# Get env details for debugging
 	kubectl get nodes
 	kubectl -n kube-system get pods
 	minikube version
@@ -110,11 +103,16 @@ e2e-test: prepare
 	go version
 	docker version
 
+	# Update security context in values for ubi image
+ifneq ($(findstring rootless,$(dockerImage)),rootless)
+	sed -i 's/allowPrivilegeEscalation: false/allowPrivilegeEscalation: true/' charts/values.yaml
+endif
+
 	@echo "=====Setting hugepages values to 0 for e2e tests"
 	sudo sysctl -w vm.nr_hugepages=0
 
 	@echo "=====Running e2e tests"
-	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/$(testSelection) -count=1 -timeout 180m, go test -v -count=1 -timeout 180m ./test/e2e/...)
+	$(if $(saveOutput),gotestsum --junitfile test/test_results/e2e-tests.xml ./test/e2e/$(testSelection) -count=1 -timeout 180m, go test -v -count=1 -timeout 180m ./test/e2e/$(testSelection))
 
 	@echo "=====Setting hugepages value to 1280 for hugepages-e2e test"
 	sudo sysctl -w vm.nr_hugepages=1280
@@ -131,7 +129,6 @@ e2e-test: prepare
 
 	@echo "=====Delete minikube cluster"
 	minikube delete
-	docker image rm $(dockerImage)
 
 #***************************************************************************
 # hc-test
@@ -146,12 +143,22 @@ hc-test:
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
-	@echo "=====Loading marklogc image $(dockerImage) to minikube cluster"
-	minikube image load $(dockerImage)
-
 	@echo "=====Deploy helm with a single MarkLogic node"
 	helm install hc charts --set auth.adminUsername=admin --set auth.adminPassword=admin --set persistence.enabled=false --wait
 	kubectl wait -l statefulset.kubernetes.io/pod-name=hc-0 --for=condition=ready pod --timeout=30m
+
+	# Get env details for debugging
+	kubectl get nodes
+	kubectl -n kube-system get pods
+	minikube version
+	kubectl version
+	go version
+	docker version
+
+	# Update security context in values for rootless image
+ifeq ($(findstring rootless,$(dockerImage)),rootless)
+	sed -i 's/allowPrivilegeEscalation: true/allowPrivilegeEscalation: false/' charts/values.yaml
+endif
 
 	@echo "=====Clone Data Hub repository"
 	rm -rf marklogic-data-hub; git clone https://github.com/marklogic/marklogic-data-hub
