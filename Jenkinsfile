@@ -44,7 +44,8 @@ void preBuildCheck() {
     sh '''
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v1.50.0
         wget https://github.com/gotestyourself/gotestsum/releases/download/v1.12.0/gotestsum_1.12.0_linux_amd64.tar.gz -O gotestsum.tar.gz
-        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
+        mkdir -p /space/go/bin/
+        tar -xf gotestsum.tar.gz -C /space/go/bin/
     '''
 }
 
@@ -165,7 +166,8 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true
+                                                             00 04 * * * % dockerImageType=ubi''' : '')
     }
     environment {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
