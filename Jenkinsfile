@@ -165,7 +165,8 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true
+                                                             00 04 * * * % dockerImageType=ubi''' : '')
     }
     environment {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
