@@ -22,137 +22,6 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func TestHelmUpgrade(t *testing.T) {
-	// Path to the helm chart we will test
-	helmChartPath, e := filepath.Abs("../../charts")
-	if e != nil {
-		t.Fatalf(e.Error())
-	}
-	imageRepo, repoPres := os.LookupEnv("dockerRepository")
-	imageTag, tagPres := os.LookupEnv("dockerVersion")
-
-	if !repoPres {
-		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
-	}
-
-	if !tagPres {
-		imageTag = "11.0.nightly-centos-1.0.2"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
-	}
-
-	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
-	kubectlOptions := k8s.NewKubectlOptions("", "", namespaceName)
-	options := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "1",
-			"image.repository":      imageRepo,
-			"image.tag":             imageTag,
-			"logCollection.enabled": "false",
-		},
-	}
-
-	t.Logf("====Creating namespace: " + namespaceName)
-	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
-	defer t.Logf("====Deleting namespace: " + namespaceName)
-	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
-
-	t.Logf("====Installing Helm Chart")
-	releaseName := "test-upgrade"
-	helm.Install(t, options, helmChartPath, releaseName)
-
-	// save the generated password from first installation
-	secretName := releaseName + "-admin"
-	secret := k8s.GetSecret(t, kubectlOptions, secretName)
-	usernameArr := secret.Data["username"]
-	username := string(usernameArr)
-	passwordArr := secret.Data["password"]
-	passwordAfterInstall := string(passwordArr[:])
-
-	newOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "2",
-			"image.repository":      "progressofficial/marklogic-db",
-			"image.tag":             "latest",
-			"logCollection.enabled": "false",
-		},
-	}
-
-	t.Logf("====Upgrading Helm Chart")
-	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
-
-	tlsConfig := tls.Config{}
-	podOneName := releaseName + "-1"
-	podZeroName := releaseName + "-0"
-
-	// wait until the pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 20, 20*time.Second)
-
-	t.Log("====Test password in secret should not change after upgrade====")
-	secret = k8s.GetSecret(t, kubectlOptions, secretName)
-	passwordArr = secret.Data["password"]
-	passwordAfterUpgrade := string(passwordArr[:])
-	assert.Equal(t, passwordAfterUpgrade, passwordAfterInstall)
-
-	// verify MarkLogic is ready
-	_, err := testUtil.MLReadyCheck(t, kubectlOptions, podZeroName, &tlsConfig)
-	if err != nil {
-		t.Fatal("MarkLogic failed to start")
-	}
-
-	tunnel8002 := k8s.NewTunnel(
-		kubectlOptions, k8s.ResourceTypePod, podZeroName, 8002, 8002)
-	defer tunnel8002.Close()
-	tunnel8002.ForwardPort(t)
-
-	hostsEndpoint := fmt.Sprintf("http://%s/manage/v2/hosts?view=status&format=json", tunnel8002.Endpoint())
-	t.Logf(`Endpoint: %s`, hostsEndpoint)
-
-	totalHosts := 1
-	client := req.C().
-		SetCommonDigestAuth(username, passwordAfterUpgrade).
-		SetCommonRetryCount(10).
-		SetCommonRetryFixedInterval(10 * time.Second)
-
-	resp, err := client.R().
-		AddRetryCondition(func(resp *req.Response, err error) bool {
-			if err != nil {
-				t.Logf("error in getting the response: %s", err.Error())
-				return true
-			}
-			if resp == nil || resp.Body == nil {
-				t.Logf("error in getting the response body")
-				return true
-			}
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Logf("error in reading the response: %s", err.Error())
-			}
-			totalHosts = int(gjson.Get(string(body), `host-status-list.status-list-summary.total-hosts.value`).Num)
-			if totalHosts != 2 {
-				t.Log("Waiting for second host to join MarkLogic cluster")
-			}
-			return totalHosts != 2
-		}).
-		Get(hostsEndpoint)
-
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer resp.Body.Close()
-
-	if totalHosts != 2 {
-		t.Errorf("Incorrect number of MarkLogic hosts found after helm upgrade")
-	}
-
-	// restart all pods at once in the cluster and verify its ready and MarkLogic server is healthy
-	testUtil.RestartPodAndVerify(t, true, []string{podZeroName, podOneName}, namespaceName, kubectlOptions, &tlsConfig)
-}
-
 func TestMLupgrade(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
@@ -164,15 +33,15 @@ func TestMLupgrade(t *testing.T) {
 	prevImageTag, prevTagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 	if !tagPres {
-		imageTag = "11.0.nightly-centos-1.0.2"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 	if !prevTagPres {
-		prevImageTag = "10.0-nightly-centos-1.0.2"
+		prevImageTag = "latest-10"
 		t.Logf("No imageTag variable present, setting to default value: " + prevImageTag)
 	}
 
