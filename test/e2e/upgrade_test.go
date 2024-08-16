@@ -32,12 +32,12 @@ func TestHelmUpgrade(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 
 	if !tagPres {
-		imageTag = "11.0.nightly-centos-1.0.2"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 
@@ -164,15 +164,15 @@ func TestMLupgrade(t *testing.T) {
 	prevImageTag, prevTagPres := os.LookupEnv("dockerVersion")
 
 	if !repoPres {
-		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
+		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless"
 		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
 	}
 	if !tagPres {
-		imageTag = "11.0.nightly-centos-1.0.2"
+		imageTag = "latest-11"
 		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
 	}
 	if !prevTagPres {
-		prevImageTag = "10.0-nightly-centos-1.0.2"
+		prevImageTag = "latest-10"
 		t.Logf("No imageTag variable present, setting to default value: " + prevImageTag)
 	}
 

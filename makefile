@@ -95,6 +95,10 @@ e2e-test: prepare
 	@echo "=====Installing minikube cluster"
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
+	@echo "=====Pull $(dockerImage) image for upgrade test"
+	## This is only needed while we use minikube since the image is not accessible to go at runtime
+	docker pull $(dockerImage)
+
 	# Get env details for debugging
 	kubectl get nodes
 	kubectl -n kube-system get pods
@@ -105,7 +109,10 @@ e2e-test: prepare
 
 	# Update security context in values for ubi image
 ifneq ($(findstring rootless,$(dockerImage)),rootless)
+	echo "=Updating security context in values for root image."
 	sed -i 's/allowPrivilegeEscalation: false/allowPrivilegeEscalation: true/' charts/values.yaml
+else
+	echo "=Security context is not changed for rootless image."
 endif
 
 	@echo "=====Setting hugepages values to 0 for e2e tests"
