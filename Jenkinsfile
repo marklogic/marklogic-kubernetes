@@ -44,7 +44,7 @@ void preBuildCheck() {
     sh '''
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v1.50.0
         wget https://github.com/gotestyourself/gotestsum/releases/download/v1.12.0/gotestsum_1.12.0_linux_amd64.tar.gz -O gotestsum.tar.gz
-        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
+        tar -xf gotestsum.tar.gz -C /space/go/bin/gotestsum
     '''
 }
 
