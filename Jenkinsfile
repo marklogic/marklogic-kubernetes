@@ -45,7 +45,7 @@ void preBuildCheck() {
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v1.50.0
         wget https://github.com/gotestyourself/gotestsum/releases/download/v1.12.0/gotestsum_1.12.0_linux_amd64.tar.gz -O gotestsum.tar.gz
         mkdir -p /space/go/bin/
-        tar -xf gotestsum.tar.gz -C /space/go/bin/
+        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
     '''
 }
 
@@ -252,10 +252,10 @@ pipeline {
             sh '''
 	            sudo sysctl -w vm.nr_hugepages=0
                 minikube delete --all --purge
-                docker rm -f $(docker ps -a -q) || true
-                docker system prune --force --filter "until=720h"
-                docker volume prune --force
-                docker image prune --force --all
+                docker stop $(docker ps -a -q) || true
+                docker system prune --force --all
+                docker volume prune --force --all
+                docker system df
                 sudo rm -rf /space/.minikube /space/go /space/.kube-config
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
