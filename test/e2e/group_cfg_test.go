@@ -20,7 +20,7 @@ import (
 
 func VerifyGroupChange(t *testing.T, groupEndpoint string, newGroupName string) (bool, error) {
 	client := req.C().
-		SetCommonDigestAuth("admin", "admin").
+		SetCommonBasicAuth("admin", "admin").
 		SetCommonRetryCount(5).
 		SetCommonRetryFixedInterval(10 * time.Second)
 
@@ -123,7 +123,18 @@ func TestSingleGroupChange(t *testing.T) {
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podZeroName)
 
+	// for debugging on jenkins
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podZeroName)
+
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	// wait until the pod is in Ready status
 	tunnel := k8s.NewTunnel(
@@ -195,8 +206,18 @@ func TestMultipleGroupChange(t *testing.T) {
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
-	// wait until the pod is in ready status
+	// for debugging on jenkins
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", dnodePodName)
+
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	bootstrapHost := fmt.Sprintf("%s-0.%s.%s.svc.cluster.local", dnodeReleaseName, dnodeReleaseName, namespaceName)
 	enodeOptions := &helm.Options{
@@ -217,8 +238,21 @@ func TestMultipleGroupChange(t *testing.T) {
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
+	// for debugging on jenkins
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", enodePodName0)
+
 	// wait until the first enode pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+
+	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	newDnodeGroupName := "newDnode"
 	newEnodeGroupName := "newEnode"
@@ -233,7 +267,18 @@ func TestMultipleGroupChange(t *testing.T) {
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", dnodePodName)
 
+	// for debugging on jenkins
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", dnodePodName)
+
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
@@ -259,7 +304,18 @@ func TestMultipleGroupChange(t *testing.T) {
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", enodePodName0)
 
+	// for debugging on jenkins
+	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", enodePodName0)
+
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 10, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	// change the group name for dnode and verify it passes
 	t.Logf("====Test updating group name for %s to %s", enodeGrpName, newEnodeGroupName)
