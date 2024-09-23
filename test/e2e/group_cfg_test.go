@@ -20,7 +20,7 @@ import (
 
 func VerifyGroupChange(t *testing.T, groupEndpoint string, newGroupName string) (bool, error) {
 	client := req.C().
-		SetCommonBasicAuth("admin", "admin").
+		SetCommonDigestAuth("admin", "admin").
 		SetCommonRetryCount(5).
 		SetCommonRetryFixedInterval(10 * time.Second)
 
