@@ -123,12 +123,8 @@ func TestSingleGroupChange(t *testing.T) {
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podZeroName)
 
-	// for debugging on jenkins
-	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", podZeroName)
-
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
 	// wait until the pod is in Running status
-	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 10, 15*time.Second)
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 15*time.Second)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -206,12 +202,8 @@ func TestMultipleGroupChange(t *testing.T) {
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
-	// for debugging on jenkins
-	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", dnodePodName)
-
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 	// wait until the pod is in Running status
-	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 10, 15*time.Second)
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 15*time.Second)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -238,15 +230,8 @@ func TestMultipleGroupChange(t *testing.T) {
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
-	// for debugging on jenkins
-	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", enodePodName0)
-
-	// wait until the first enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
-
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
 	// wait until the pod is in Running status
-	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 10, 15*time.Second)
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 20, 15*time.Second)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -267,12 +252,8 @@ func TestMultipleGroupChange(t *testing.T) {
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", dnodePodName)
 
-	// for debugging on jenkins
-	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", dnodePodName)
-
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 	// wait until the pod is in Running status
-	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 10, 15*time.Second)
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 15*time.Second)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -304,12 +285,8 @@ func TestMultipleGroupChange(t *testing.T) {
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", enodePodName0)
 
-	// for debugging on jenkins
-	k8s.RunKubectl(t, kubectlOptions, "describe", "pod", enodePodName0)
-
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
 	// wait until the pod is in Running status
-	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 10, 15*time.Second)
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 20, 15*time.Second)
 	if err != nil {
 		t.Error(err.Error())
 	}
