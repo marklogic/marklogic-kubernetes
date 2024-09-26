@@ -90,6 +90,8 @@ func TestHelmScaleUp(t *testing.T) {
 		SetValues: map[string]string{
 			"persistence.enabled":   "true",
 			"replicaCount":          "2",
+			"image.repository":      imageRepo,
+			"image.tag":             imageTag,
 			"logCollection.enabled": "false",
 			"auth.adminUsername":    username,
 			"auth.adminPassword":    password,

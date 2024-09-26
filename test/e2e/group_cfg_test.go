@@ -110,13 +110,23 @@ func TestSingleGroupChange(t *testing.T) {
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	newGroupName := "new_group"
 
 	helmUpgradeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"group.name": newGroupName,
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+			"group.name":       newGroupName,
 		},
 	}
 	helm.Upgrade(t, helmUpgradeOptions, helmChartPath, releaseName)
@@ -124,7 +134,7 @@ func TestSingleGroupChange(t *testing.T) {
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podZeroName)
 
 	// wait until the pod is in Running status
-	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 15*time.Second)
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 15*time.Second)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -245,7 +255,9 @@ func TestMultipleGroupChange(t *testing.T) {
 	helmUpgradeOptionsDnode := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"group.name": newDnodeGroupName,
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+			"group.name":       newDnodeGroupName,
 		},
 	}
 	helm.Upgrade(t, helmUpgradeOptionsDnode, helmChartPath, dnodeReleaseName)
@@ -278,7 +290,9 @@ func TestMultipleGroupChange(t *testing.T) {
 	helmUpgradeOptionsEnode := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"group.name": newEnodeGroupName,
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+			"group.name":       newEnodeGroupName,
 		},
 	}
 	helm.Upgrade(t, helmUpgradeOptionsEnode, helmChartPath, enodeReleaseName)
