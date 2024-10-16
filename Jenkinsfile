@@ -173,7 +173,7 @@ pipeline {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-${params.dockerImageType}"
         PATH = "/space/go/bin:${env.PATH}"
-        MINIKUBE_HOME = "/space"
+        MINIKUBE_HOME = "/space/minikube/"
         KUBECONFIG = "/space/.kube-config"
         GOPATH = "/space/go"
     }
@@ -256,7 +256,7 @@ pipeline {
                 docker system prune --force --all
                 docker volume prune --force --all
                 docker system df
-                sudo rm -rf /space/.minikube /space/go /space/.kube-config
+                sudo rm -rf /space/minikube/ /space/go /space/.kube-config
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
