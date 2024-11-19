@@ -26,80 +26,95 @@ This Helm chart supports MarkLogic starting release 10.0-10-2.
 
 This below example Helm Chart installation will create a single-node MarkLogic cluster with a "Default" group. A 20GB persistent volume, 2 vCPUs, and 4GB of RAM will be allocated for the pod.
 
-1. Add MarkLogic Repo to Helm:
-```
-helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
-```
+1. Add MarkLogic Repo to Helm
+
+  ```shell
+  helm repo add marklogic https://marklogic.github.io/marklogic-kubernetes/
+  ```
+
 2. Create a Kubernetes namespace:
-```
-kubectl create namespace marklogic
-```
+
+  ```shell
+  kubectl create namespace marklogic
+  ```
+
 3. When installing the Helm Chart, if a secret is not provided, the MarkLogic admin credentials will be generated automatically. To create a secret to specify custom admin credentials including the username, password and wallet-password, use the following command (substituting the desired values):
-```
-kubectl create secret generic ml-admin-secrets \
-    --from-literal=username='' \
-    --from-literal=password='' \
-    --from-literal=wallet-password='' \
-    --namespace=marklogic
-```
+
+  ```shell
+  kubectl create secret generic ml-admin-secrets \
+      --from-literal=username='' \
+      --from-literal=password='' \
+      --from-literal=wallet-password='' \
+      --namespace=marklogic
+  ```
+
 Refer to the official Kubernetes documentation for detailed steps on how to [create a secret](https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/#create-a-secret).
 
 4. Create a `values.yaml` file to customize the settings. Specify the number of pods (one MarkLogic host in this case), add the secret name for the admin credentials (if not using the automatically generated one), and specify the resources that should be allocated to each MarkLiogic pod.
 
 Note: Please ensure to use the latest MarkLogic Docker image for the new implementation as specified in the values.yaml file below. Refer to [https://hub.docker.com/r/progressofficial/marklogic-db/tags](https://hub.docker.com/r/progressofficial/marklogic-db/tags) for the latest image available.
-```
-# Create a single MarkLogic pod
-replicaCount: 1
 
-# Marklogic image parameters
-# using the latest image 11.0.3-centos-1.0.2 
-image:
-  repository: progressofficial/marklogic-db;
-  tag: 11.0.3-centos-1.0.2 
-  pullPolicy: IfNotPresent
+  ```yaml
+  # Create a single MarkLogic pod
+  replicaCount: 1
 
-# Set the admin credentials secret. Leave this out or set to blank "" to use the automatically generated secret.
-auth:
-  secretName: "ml-admin-secrets" 
+  # Marklogic image parameters
+  # using the latest image 11.3.1-ubi-rootless-2.1.0
+  image:
+    repository: progressofficial/marklogic-db;
+    tag: 11.3.1-ubi-rootless-2.1.0 
+    pullPolicy: IfNotPresent
 
-# Configure compute resources
-resources:
-  requests:      
-    cpu: 2000m      
-    memory: 4000Mi
-  limits:
-    cpu: 2000m
-    memory: 4000Mi
+  # Set the admin credentials secret. Leave this out or set to blank "" to use the automatically generated secret.
+  auth:
+    secretName: "ml-admin-secrets" 
 
-# Configure the persistent volume
-persistence:
-  enabled: true
-  size: 20Gi
-```
+  # Configure compute resources
+  resources:
+    requests:      
+      cpu: 2000m      
+      memory: 4000Mi
+    limits:
+      cpu: 2000m
+      memory: 4000Mi
+
+  # Configure the persistent volume
+  persistence:
+    enabled: true
+    size: 20Gi
+  ```
+
 5. Install the MarkLogic Helm Chart with the above custom settings. The rest of the settings will default to the values as listed below in the [Parameters](#parameters) section.
-```
-helm install my-release marklogic/marklogic --values values.yaml --namespace=marklogic
-```
+
+  ```shell
+  helm install my-release marklogic/marklogic --values values.yaml --namespace=marklogic
+  ```
+
 Once the installation is complete and the pod is in a running state, the MarkLogic admin UI can be accessed using the port-forwarding command as below:
-```
-kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001
-```
+
+  ```shell
+  kubectl port-forward my-release-marklogic-0 8000:8000 8001:8001 --namespace=marklogic
+  ```
+
 Please refer [Official Documentation](https://docs.marklogic.com/11.0/guide/kubernetes-guide/en/marklogic-server-on-kubernetes.html) for more options on accessing MarkLogic server in a Kubernetes cluster.
 
 If using the automatically generated admin credentials, use the following steps to extract the admin username, password and wallet-password from a secret:
 
 1. Run the below command to fetch all of the secret names:
-``` 
-kubectl get secrets 
-```
+
+  ```shell
+  kubectl get secrets 
+  ```
+
 The MarkLogic admin secret name will be in the format  `RELEASE_NAME-marklogic-admin` (`my-release-marklogic-admin` for the example above).
 
 2. Using the secret name from step 1 to get MarkLogic admin credentials, retrieve the values using the following commands:
-``` 
-kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.username}' | base64 --decode 
-kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.password}' | base64 --decode 
-kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.wallet-password}' | base64 --decode 
-``` 
+
+  ```shell
+  kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.username}' | base64 --decode 
+  kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.password}' | base64 --decode 
+  kubectl get secret my-release-marklogic-admin -o jsonpath='{.data.wallet-password}' | base64 --decode 
+  ```
 
 To configure other settings, add them to the `values.yaml` file. See [Parameters](#parameters) section for more information about these settings.
 
@@ -223,7 +238,7 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 | `haproxy.resources.requests.memory`                 | The requested memory resource for the HAProxy container                                                                                                                                | `128Mi`                    |
 | `haproxy.resources.limits.cpu`                      | The cpu resource limit for the HAProxy container                                                                                                                                       | `250m`                     |
 | `haproxy.resources.limits.memory`                   | The memory resource limit for the HAProxy container                                                                                                                                    | `128Mi`                    |
-| `ingress.enabled`                                   | Enable an ingress resource for the MarkLogic cluster                                   | `false`| 
+| `ingress.enabled`                                   | Enable an ingress resource for the MarkLogic cluster                                   | `false`|
 | `ingress.className`                                 | Defines which ingress controller will implement the resource                          | `""` |
 | `ingress.labels`                                    | Additional ingress labels                                                             | `{}` |
 | `ingress.annotations`                               | Additional ingress annotations                                                       | `{}` |
@@ -233,8 +248,8 @@ Following table lists all the parameters supported by the latest MarkLogic Helm 
 ## Known Issues and Limitations
 
 1. If the hostname is greater than 64 characters there will be issues with certificates. It is highly recommended to use hostname shorter than 64 characters or use SANs for hostnames in the certificates. If you still choose to use hostname greater than 64 characters, set "allowLongHostnames" to true.
-2. The latest released version of fluent/fluent-bit:3.1.1 has known high and critical security vulnerabilities. If you decide to enable the log collection feature, choose and deploy the fluent-bit or an alternate image with no vulnerabilities as per your requirements. 
+2. The latest released version of fluent/fluent-bit:3.1.1 has known high and critical security vulnerabilities. If you decide to enable the log collection feature, choose and deploy the fluent-bit or an alternate image with no vulnerabilities as per your requirements.
 3. The security context “allowPrivilegeEscalation” is set to false by default in the
 values.yaml file. This should not be changed when running the MarkLogic container with default rootless image. If you choose to use an image with root privileges, set "allowPrivilegeEscalation" to true.
-4. Known Issues and Limitations for the MarkLogic Server Docker image can be viewed using the link: https://github.com/marklogic/marklogic-docker?tab=readme-ov-file#Known-Issues-and-Limitations.
+4. Known Issues and Limitations for the MarkLogic Server Docker image can be viewed using the link: <https://github.com/marklogic/marklogic-docker?tab=readme-ov-file#Known-Issues-and-Limitations>.
 5. Path-based routing and Ingress features are only supported with MarkLogic 11.1 and higher.
