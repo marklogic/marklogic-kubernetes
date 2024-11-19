@@ -61,7 +61,7 @@ Note: Please ensure to use the latest MarkLogic Docker image for the new impleme
   # Marklogic image parameters
   # using the latest image 11.3.1-ubi-rootless-2.1.0
   image:
-    repository: progressofficial/marklogic-db;
+    repository: progressofficial/marklogic-db
     tag: 11.3.1-ubi-rootless-2.1.0 
     pullPolicy: IfNotPresent
 
