@@ -22,7 +22,7 @@ Third Party Components
     haproxy helm charts vhaproxy-1.18.0 (Apache-2.0)
 	K8s.io/api v0.29.1 (Apache-2.0)
     MarkLogic® Docker Container Image v2.0 (Apache-2.0)
-    req v3.42.0 (MIT)
+    req v3.48.0 (MIT)
 	terratest v0.46.11 (Apache-2.0)
     testify v1.8.4 (MIT)
 
@@ -89,7 +89,7 @@ MarkLogic® Docker Container Image v2.0 (Apache-2.0)
        See its NOTICE.txt file here https://github.com/marklogic/marklogic-docker/blob/master/NOTICE.txt	
 
 
-req v3.42.0 (MIT)
+req v3.48.0 (MIT)
 
     https://pkg.go.dev/github.com/imroc/req/v3
 
