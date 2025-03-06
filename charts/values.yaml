@@ -238,16 +238,14 @@ networkPolicy:
   podSelector: {}
     # matchLabels:
       # app: marklogic
-  ## Note that all rules are OR-ed.
   policyTypes: []
     # - Ingress
     # - Egress
   # ingress: 
   #   - from:
   #     - ipBlock:
-  #         cidr: 172.17.0.0/16
-  #         except:
-  #         - 172.17.1.0/24
+  #         cidr: ""
+  #         except: []
   #     - namespaceSelector:
   #         matchLabels:
   #           project: marklogic
@@ -262,7 +260,7 @@ networkPolicy:
   # egress: 
   #   - to:
   #     - ipBlock:
-  #         cidr: 10.0.0.0/24
+  #         cidr: ""
   #     ports:
   #     - protocol: TCP
   #       port: 8000
