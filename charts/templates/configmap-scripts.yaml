@@ -41,6 +41,7 @@ data:
 
   copy-certs.sh: |
     #!/bin/bash
+    microdnf install -y openssl findutils
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/username)"
     log () {
@@ -60,7 +61,7 @@ data:
         cp -f /tmp/ca-cert-secret/* /run/secrets/marklogic-certs/;
         cert_paths=$(find /tmp/server-cert-secrets/tls_*.crt)
         for cert_path in $cert_paths; do
-        cert_cn=$(openssl x509 -noout -subject -in $cert_path | sed -n 's/.*CN = \([^,]*\).*/\1/p')
+        cert_cn=$(openssl x509 -noout -subject -in $cert_path | sed -n 's/.*CN *= *\([^,]*\).*/\1/p')
         log "Info: [copy-certs] FQDN for the certificate: $cert_cn"
         if [[ "$host_FQDN" == "$cert_cn" ]]; then
             log "Info: [copy-certs] found certificate for the server"
@@ -883,6 +884,7 @@ data:
 
   root-rootless-upgrade.sh: |
     #!/bin/bash
+    microdnf install -y openssl
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
       # Check to make sure pod doesn't terminate if PID value is empty for any reason
