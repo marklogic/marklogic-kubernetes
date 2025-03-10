@@ -1,6 +1,7 @@
 package template_test
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -21,17 +22,28 @@ func TestChartTemplateNetworkPolicyEnabled(t *testing.T) {
 	t.Log(helmChartPath, releaseName)
 	require.NoError(t, err)
 
+	imageRepo, repoPres := os.LookupEnv("dockerRepository")
+	imageTag, tagPres := os.LookupEnv("dockerVersion")
+	if !repoPres {
+		imageRepo = "progressofficial/marklogic-db"
+		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+	}
+
+	if !tagPres {
+		imageTag = "latest-11"
+		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+	}
+
 	// Set up the namespace; confirm that the template renders the expected value for the namespace.
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId()) + "-network-policy"
 	t.Logf("Namespace: %s\n", namespaceName)
 
-	// Setup the args for helm install
+	// Setup the args for helm install using custom values.yaml file
 	options := &helm.Options{
+		ValuesFiles: []string{"../test_data/values/nwPolicy_templ_values.yaml"},
 		SetValues: map[string]string{
-			"image.repository":      "progressofficial/marklogic-db",
-			"image.tag":             "latest",
-			"persistence.enabled":   "false",
-			"networkPolicy.enabled": "true",
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
 		},
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
@@ -45,6 +57,6 @@ func TestChartTemplateNetworkPolicyEnabled(t *testing.T) {
 
 	// Verify the network policy type matches
 	networkPolicies := networkpolicy.Spec
-	expectedPolicyTypes := "Ingress"
-	require.Equal(t, string(networkPolicies.PolicyTypes[0]), expectedPolicyTypes)
+	require.Equal(t, string(networkPolicies.PolicyTypes[0]), "Ingress")
+	require.Equal(t, string(networkPolicies.PolicyTypes[1]), "Egress")
 }
