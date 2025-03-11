@@ -1,0 +1,39 @@
+# This is a custom values files for template tests specific to TLS parameters
+replicaCount: 1  
+
+auth:
+  adminPassword: admin
+  adminUsername: admin
+
+terminationGracePeriod: 10
+
+persistence:
+  enabled: false
+
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: marklogic
+      ports:
+        - protocol: TCP
+          port: 7997
+      namespaceSelector:
+        matchLabels:
+          name: marklogic
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: marklogic
+      ports:
+        - protocol: TCP
+          port: 7997
+      namespaceSelector:
+        matchLabels:
+          name: marklogic

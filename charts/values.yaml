@@ -235,21 +235,35 @@ priorityClassName:  ""
 ## ref: https://kubernetes.io/docs/concepts/services-networking/network-policies
 networkPolicy:
   enabled: false
-  ## @param networkPolicy.customRules. Additional NetworkPolicy rules
-  ## Note that all rules are OR-ed.
-  customRules: {}
-    # - matchLabels:
-    #     - role: frontend
-    # - matchExpressions:
-    #     - key: role
-    #       operator: In
-    #       values:
-    #         - frontend
-  ## The endPort should be the last port exposed by an App Server
-  ports:
-    - port: 8000
-      endPort: 8020
-      protocol: TCP
+  podSelector: {}
+    # matchLabels:
+      # app: marklogic
+  policyTypes: []
+    # - Ingress
+    # - Egress
+  # ingress: 
+  #   - from:
+  #     - ipBlock:
+  #         cidr: ""
+  #         except: []
+  #     - namespaceSelector:
+  #         matchLabels:
+  #           project: marklogic
+  #     - podSelector:
+  #         matchLabels:
+  #           role: frontend
+  #   ## The endPort should be the last port exposed by an App Server
+  #     ports: 
+  #     # - port: 8000
+  #       # endPort: 8020
+  #       protocol: TCP
+  # egress: 
+  #   - to:
+  #     - ipBlock:
+  #         cidr: ""
+  #     ports:
+  #     - protocol: TCP
+  #       port: 8000
     
 ## Below are the security configuration at POD level, by default security will be enabled
 ## https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods
