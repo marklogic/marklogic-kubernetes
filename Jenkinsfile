@@ -179,7 +179,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi', description: 'Platform type for Docker image')
+        choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi\nubi9-rootless\nubi9', description: 'Platform type for Docker image')
         string(name: 'dockerVersion', defaultValue: 'latest-11', description: 'Docker tag to use for tests. (e.g. 11.2.nightly-ubi-rootless-1.1.2) Has to correspond with dockerImageType.', trim: true)
         string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
         choice(name: 'K8_VERSION', choices: 'v1.31.7\nv1.32.3\nv1.30.11\nv1.29.15\nv1.28.15\nv1.27.16\nv1.26.15\nv1.25.16', description: 'Test Kubernetes version.')
