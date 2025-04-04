@@ -1,6 +1,6 @@
 module github.com/marklogic/marklogic-kubernetes
 
-go 1.23.5
+go 1.23.6
 
 require (
 	github.com/docker/docker v24.0.7+incompatible
