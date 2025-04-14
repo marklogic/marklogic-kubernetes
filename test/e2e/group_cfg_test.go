@@ -110,20 +110,37 @@ func TestSingleGroupChange(t *testing.T) {
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
 
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	newGroupName := "new_group"
 
 	helmUpgradeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"group.name": newGroupName,
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+			"group.name":       newGroupName,
 		},
 	}
 	helm.Upgrade(t, helmUpgradeOptions, helmChartPath, releaseName)
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", podZeroName)
 
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, podZeroName, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	// wait until the pod is in Ready status
 	tunnel := k8s.NewTunnel(
@@ -195,8 +212,14 @@ func TestMultipleGroupChange(t *testing.T) {
 	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
-	// wait until the pod is in ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	bootstrapHost := fmt.Sprintf("%s-0.%s.%s.svc.cluster.local", dnodeReleaseName, dnodeReleaseName, namespaceName)
 	enodeOptions := &helm.Options{
@@ -217,8 +240,14 @@ func TestMultipleGroupChange(t *testing.T) {
 	t.Logf("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
-	// wait until the first enode pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	newDnodeGroupName := "newDnode"
 	newEnodeGroupName := "newEnode"
@@ -226,14 +255,23 @@ func TestMultipleGroupChange(t *testing.T) {
 	helmUpgradeOptionsDnode := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"group.name": newDnodeGroupName,
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+			"group.name":       newDnodeGroupName,
 		},
 	}
 	helm.Upgrade(t, helmUpgradeOptionsDnode, helmChartPath, dnodeReleaseName)
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", dnodePodName)
 
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	tunnel := k8s.NewTunnel(
 		kubectlOptions, k8s.ResourceTypePod, dnodePodName, 8002, 8002)
@@ -252,14 +290,23 @@ func TestMultipleGroupChange(t *testing.T) {
 	helmUpgradeOptionsEnode := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues: map[string]string{
-			"group.name": newEnodeGroupName,
+			"image.repository": imageRepo,
+			"image.tag":        imageTag,
+			"group.name":       newEnodeGroupName,
 		},
 	}
 	helm.Upgrade(t, helmUpgradeOptionsEnode, helmChartPath, enodeReleaseName)
 
 	k8s.RunKubectl(t, kubectlOptions, "delete", "pod", enodePodName0)
 
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, enodePodName0, 15, 20*time.Second)
+	// wait until the pod is in Running status
+	output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, enodePodName0, 20, 15*time.Second)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if output != "Running" {
+		t.Error(output)
+	}
 
 	// change the group name for dnode and verify it passes
 	t.Logf("====Test updating group name for %s to %s", enodeGrpName, newEnodeGroupName)

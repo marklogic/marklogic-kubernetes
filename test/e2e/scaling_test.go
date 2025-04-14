@@ -81,27 +81,31 @@ func TestHelmScaleUp(t *testing.T) {
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
 	t.Logf("====Installing Helm Chart")
 	podZeroName := testUtil.HelmInstall(t, options, releaseName, kubectlOptions, helmChartPath)
+	podOneName := releaseName + "-1"
 
 	// wait until first pod is in Ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, podZeroName, 30, 10*time.Second)
 
-	newOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"persistence.enabled":   "true",
-			"replicaCount":          "2",
-			"logCollection.enabled": "false",
-			"auth.adminUsername":    username,
-			"auth.adminPassword":    password,
-		},
+	if !runUpgradeTest {
+		newOptions := &helm.Options{
+			KubectlOptions: kubectlOptions,
+			SetValues: map[string]string{
+				"persistence.enabled":   "true",
+				"replicaCount":          "2",
+				"image.repository":      imageRepo,
+				"image.tag":             imageTag,
+				"logCollection.enabled": "false",
+				"auth.adminUsername":    username,
+				"auth.adminPassword":    password,
+			},
+		}
+
+		t.Logf("====Scaling up pods using helm upgrade")
+		helm.Upgrade(t, newOptions, helmChartPath, releaseName)
+
+		// wait until second pod is in Ready status
+		k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 	}
-
-	t.Logf("====Scaling up pods using helm upgrade")
-	helm.Upgrade(t, newOptions, helmChartPath, releaseName)
-
-	podOneName := releaseName + "-1"
-	// wait until second pod is in Ready status
-	k8s.WaitUntilPodAvailable(t, kubectlOptions, podOneName, 30, 10*time.Second)
 
 	if runUpgradeTest {
 		upgradeOptionsMap := map[string]string{
