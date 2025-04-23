@@ -233,8 +233,10 @@ upgrade-test: prepare
 .PHONY: image-scan
 image-scan:
 
+	@rm -f helm_image.list dep-image-scan.txt
 	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
 	@for depImage in $(shell grep -E "^\s*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
+		echo -n "$${depImage}," >> helm_image.list ; \
 		echo "= $${depImage}:" $(if $(saveOutput), | tee -a dep-image-scan.txt,) ; \
 		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype:latest --output json $${depImage} | jq -r '[(.matches[] | [.artifact.name, .artifact.version, .vulnerability.id, .vulnerability.severity])] | .[] | @tsv' | sort -k4 | column -t $(if $(saveOutput), | tee -a dep-image-scan.txt,);\
 		echo $(if $(saveOutput), | tee -a dep-image-scan.txt,) ;\
