@@ -10,13 +10,9 @@ metadata:
 data:
   liveness-probe.sh: |
     #!/bin/bash
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-      # Check to make sure pod doesn't terminate if PID value is empty for any reason
-      if [ -n "$pid" ]; then
-          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-      fi
+      echo "${TIMESTAMP} $@" > /proc/1/fd/1
     }
 
     # Check if ML service is running. Exit with 1 if it is other than running
@@ -118,15 +114,9 @@ data:
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
-
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-        # Check to make sure pod doesn't terminate if PID value is empty for any reason
-        # If PID value is empty preStart hook logs are not recorded
-        if [ -n "$pid" ]; then
-            echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-        fi
+        echo "${TIMESTAMP} $@" > /proc/1/fd/1
     }
 
     log "Info: [prestop] Prestop Hook Execution"
@@ -195,8 +185,6 @@ data:
         echo "IS_BOOTSTRAP_HOST false"
     fi
 
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
-
     ###############################################################
     # Logging utility
     ###############################################################
@@ -215,13 +203,8 @@ data:
 
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-        # Check to make sure pod doesn't terminate if PID value is empty for any reason
-        # If PID value is empty postStart hook logs are not recorded
         message="${TIMESTAMP} [postStart] $@"
-        if [ -n "$pid" ]; then
-            echo $message  > /proc/$pid/fd/1
-        fi
-        
+        echo $message  > /proc/1/fd/1
         echo $message >> /tmp/script.log
     }
 
@@ -889,13 +872,8 @@ data:
     #!/bin/bash
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-      # Check to make sure pod doesn't terminate if PID value is empty for any reason
-      if [ -n "$pid" ]; then
-          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-      fi
+      echo "${TIMESTAMP} $@" > /proc/1/fd/1
     }
-    
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
 
     log "Info: [root-rootless-upgrade] Execution Start"
 
