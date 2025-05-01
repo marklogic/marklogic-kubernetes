@@ -1,5 +1,4 @@
 # This configMap contains scirpts for MarkLogic Helm Chart:
-# liveness-probe.sh
 # copy-certs.sh
 # prestop-hook.sh
 # poststart-hook.sh
@@ -8,37 +7,6 @@ kind: ConfigMap
 metadata:
   name: {{ include "marklogic.fullname" . }}-scripts
 data:
-  liveness-probe.sh: |
-    #!/bin/bash
-    log () {
-      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-      echo "${TIMESTAMP} $@" > /proc/1/fd/1
-    }
-
-    # Check if ML service is running. Exit with 1 if it is other than running
-    if [ -e /etc/init.d/MarkLogic ]; then
-        ml_status=$(/etc/init.d/MarkLogic status)
-    else
-        ml_status=$(/etc/MarkLogic/MarkLogic-service.sh status)
-    fi
-    
-    if [[ "$ml_status" =~ "running" ]]; then
-        http_code=$(curl -o /tmp/probe_response.txt -s -w "%{http_code}" "http://${HOSTNAME}:8001/admin/v1/timestamp")
-        curl_code=$?
-        http_resp=$(cat /tmp/probe_response.txt)
-
-        if [[ $curl_code -ne 0 && $http_code -ne 401 ]]; then
-            log "Info: [Liveness Probe] Error with MarkLogic"
-            log "Info: [Liveness Probe] Curl response code: "$curl_code
-            log "Info: [Liveness Probe] Http response code: "$http_code
-            log "Info: [Liveness Probe] Http response message: "$http_resp 
-        fi
-        rm -f /tmp/probe_response.txt
-        exit 0
-    else
-        exit 1
-    fi
-
   copy-certs.sh: |
     #!/bin/bash
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
