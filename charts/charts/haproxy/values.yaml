@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Modifications copyright © 2022-2025 Progress Software Corporation and/or one of its subsidiaries or affiliates.
+# Modifications copyright © 2022-2025 Progress Software Corporation and/or its subsidiaries or affiliates.
 # This file is modified from the original file to support the MarkLogic Kubernetes Helm Chart.
 
 ## Default values for HAProxy
