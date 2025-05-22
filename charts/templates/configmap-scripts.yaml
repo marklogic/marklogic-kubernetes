@@ -175,6 +175,9 @@ data:
         echo $message >> /tmp/script.log
     }
 
+    # Function to retry a command based on the return code
+    # $1: The number of retries
+    # $2: The command to run
     retry() {
         local retries=$1
         shift
