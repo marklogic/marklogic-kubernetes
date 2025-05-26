@@ -348,6 +348,10 @@ logCollection:
 ## It also support multi-statement transaction and ODBC connections.  
 haproxy:
   enabled: false
+  image:
+    repository: haproxytech/haproxy-alpine
+    tag: "2.9.4"
+    pullPolicy: IfNotPresent
 
   ## Name of an existing configmap with configuration for HAProxy
   existingConfigmap: marklogic-haproxy

@@ -6,7 +6,7 @@
 import groovy.json.JsonSlurperClassic
 
 emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
-emailSecList = 'Rangan.Doreswamy@progress.com, Mahalakshmi.Srinivasan@progress.com'
+emailSecList = 'Mahalakshmi.Srinivasan@progress.com'
 gitCredID = 'marklogic-builder-github'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /(?i)(MLE)-\d{3,6}/
@@ -103,7 +103,7 @@ def getReviewState() {
     return reviewState
 }
 
-void resultNotification(message) {
+void resultNotification(status) {
     def author, authorEmail, emailList
     if (env.CHANGE_AUTHOR) {
         author = env.CHANGE_AUTHOR.toString().trim().toLowerCase()
@@ -117,11 +117,11 @@ void resultNotification(message) {
     jira_email_body = "${email_body} <br><br><b>Jira URL: </b><br><a href='${jira_link}'>${jira_link}</a>"
 
     if (JIRA_ID) {
-        def comment = [ body: "Jenkins pipeline build result: ${message}" ]
+        def comment = [ body: "Jenkins pipeline build result: ${status}" ]
         jiraAddComment site: 'JIRA', idOrKey: JIRA_ID, failOnError: false, input: comment
-        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${jira_email_body}", subject: "${message}: ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${JIRA_ID}"
+        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${jira_email_body}", subject: "🥷 ${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${JIRA_ID}"
     } else {
-        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${email_body}", subject: "${message}: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${email_body}", subject: "🥷 ${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
     }
 }
 
@@ -147,6 +147,11 @@ void imageScan() {
     }
 
     sh '''rm -f dep-image-scan.txt'''
+
+    // trigger BlackDuck scan
+    def rawImageList = readFile(file: 'helm_image.list').trim()
+    def imageList = rawImageList.endsWith(',') ? rawImageList[0..-2] : rawImageList
+    build job: 'securityscans/Blackduck/KubeNinjas/kubernetes-helm', wait: false, parameters: [ string(name: 'branch', value: "${env.BRANCH_NAME}"), string(name: 'CONTAINER_IMAGES', value: "${imageList}") ]
 }
 
 void publishTestResults() {
@@ -261,13 +266,16 @@ pipeline {
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
         success {
-            resultNotification('BUILD SUCCESS ✅')
+            resultNotification('✅ Success')
         }
         failure {
-            resultNotification('BUILD ERROR ❌')
+            resultNotification('❌ Failure')
         }
         unstable {
-            resultNotification('BUILD UNSTABLE ❌')
+            resultNotification('⚠️ Unstable')
+        }
+        aborted {
+            resultNotification('🚫 Aborted')
         }
     }
 }
