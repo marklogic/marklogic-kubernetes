@@ -232,11 +232,11 @@ upgrade-test: prepare
 ## * [saveOutput] optional. Save the output to a text file. Example: saveOutput=true
 .PHONY: image-scan
 image-scan:
+	@rm -f helm_image.list dep-image-scan.txt
 	@$(if $(saveOutput), > dep-image-scan.txt)
-	@echo "=====Scan dependent Docker images in charts/values.yaml and charts/charts/haproxy/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
+	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
 	set -e; \
 	scanned_images_tracker_file="$$(mktemp)"; \
-	trap 'rm -f "$$scanned_images_tracker_file"' EXIT; \
 	scan_image() { \
 	  img="$$1"; \
 	  src_file="$$2"; \
@@ -275,7 +275,7 @@ image-scan:
 	  else \
 	    scan_out_body=$$(echo "$$grype_json_output" | jq -r 'def sevorder: {Critical:0, High:1, Medium:2, Low:3, Negligible:4, Unknown:5}; [.matches[]? | {pkg: .artifact.name, ver: .artifact.version, cve: .vulnerability.id, sev: .vulnerability.severity}] | map(. + {sort_key: sevorder[.sev // "Unknown"]}) | sort_by(.sort_key) | .[] | [.pkg // "N/A", .ver // "N/A", .cve // "N/A", .sev // "N/A"] | @tsv'); \
 	    if [ -n "$$scan_out_body" ]; then \
-	      (echo -e "Package\tVersion\tCVE\tSeverity"; echo "$$scan_out_body") | column -t -s $$'\t' $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	      (echo "Package\tVersion\tCVE\tSeverity"; echo "$$scan_out_body") | column -t -s $$'\t' $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
 	    else \
 	      echo "No vulnerability details to display for $$img (though summary reported counts)." $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
 	    fi; \
@@ -284,11 +284,10 @@ image-scan:
 	}; \
 	util_image=$$(grep -A2 'utilContainer:' charts/values.yaml | grep 'image:' | sed 's/.*image:[[:space:]]*//g' | sed 's/"//g' | xargs); \
 	scan_image "$$util_image" "charts/values.yaml"; \
-	haproxy_image=$$(grep -A2 'image:' charts/charts/haproxy/values.yaml | grep 'repository:' | sed 's/.*repository:[[:space:]]*//g' | sed 's/"//g' | sed 's/#.*//g' | xargs); \
-	haproxy_tag=$$(grep -A2 'image:' charts/charts/haproxy/values.yaml | grep 'tag:' | sed 's/.*tag:[[:space:]]*//g' | sed 's/"//g' | sed 's/{{.*}}/latest/' | sed 's/#.*//g' | xargs); \
-	scan_image "$$haproxy_image:$$haproxy_tag" "charts/charts/haproxy/values.yaml"; \
-	for extra_image in $$(grep -v '^\s*#' charts/charts/haproxy/values.yaml | grep -E 'image:[[:space:]]*[^[:space:]]+' | grep -v 'repository:' | grep -v 'tag:' | sed 's/.*image:[[:space:]]*//g' | sed 's/"//g' | sed 's/#.*//g' | xargs -n1); do \
-	  if [ -n "$$extra_image" ] && [ "$$extra_image" != "image:" ]; then \
-	    scan_image "$${extra_image}" "charts/charts/haproxy/values.yaml"; \
-	  fi; \
-	done
+	haproxy_image=$$(grep -A 3 '^haproxy:' charts/values.yaml | grep -A 1 '^\s*image:' | grep '^\s*repository:' | sed 's/.*repository:[[:space:]]*//g' | sed 's/"//g' | sed 's/#.*//g' | xargs); \
+	haproxy_tag=$$(grep -A 4 '^haproxy:' charts/values.yaml | grep -A 2 '^\s*image:' | grep '^\s*tag:' | sed 's/.*tag:[[:space:]]*//g' | sed 's/"//g' | sed 's/{{.*}}/latest/' | sed 's/#.*//g' | xargs); \
+	scan_image "$$haproxy_image:$$haproxy_tag" "charts/values.yaml";
+	@# Remove trailing comma from helm_image.list if present
+	@if [ -f helm_image.list ]; then \
+		sed -i '' -e 's/,\s*$$//' helm_image.list; \
+	fi
