@@ -237,6 +237,7 @@ image-scan:
 	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
 	set -e; \
 	scanned_images_tracker_file="$$(mktemp)"; \
+	trap 'rm -f "$$scanned_images_tracker_file"' EXIT; \
 	scan_image() { \
 	  img="$$1"; \
 	  src_file="$$2"; \
@@ -289,5 +290,5 @@ image-scan:
 	scan_image "$$haproxy_image:$$haproxy_tag" "charts/values.yaml";
 	@# Remove trailing comma from helm_image.list if present
 	@if [ -f helm_image.list ]; then \
-		sed -i '' -e 's/,\s*$$//' helm_image.list; \
+		sed -i'' -e 's/,\s*$$//' helm_image.list; \
 	fi
