@@ -149,8 +149,7 @@ void imageScan() {
     sh '''rm -f dep-image-scan.txt'''
 
     // trigger BlackDuck scan
-    def rawImageList = readFile(file: 'helm_image.list').trim()
-    def imageList = rawImageList.endsWith(',') ? rawImageList[0..-2] : rawImageList
+    def imageList = readFile(file: 'helm_image.list').trim()
     build job: 'securityscans/Blackduck/KubeNinjas/kubernetes-helm', wait: false, parameters: [ string(name: 'branch', value: "${env.BRANCH_NAME}"), string(name: 'CONTAINER_IMAGES', value: "${imageList}") ]
 }
 
