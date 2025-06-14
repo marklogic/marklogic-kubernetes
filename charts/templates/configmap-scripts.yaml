@@ -581,7 +581,6 @@ data:
                 fi
             else
                 info "failed to get current group, response code: ${response_code}"
-                return 1
             fi
 
             if [[ "$MARKLOGIC_CLUSTER_TYPE" == "non-bootstrap" ]]; then
