@@ -10,8 +10,6 @@ metadata:
 data:
   copy-certs.sh: |
     #!/bin/bash
-    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
-    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/username)"
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
         echo "${TIMESTAMP}  $@"
@@ -175,6 +173,25 @@ data:
         message="${TIMESTAMP} [postStart] $@"
         echo $message  > /proc/1/fd/1
         echo $message >> /tmp/script.log
+    }
+
+    # Function to retry a command based on the return code
+    # $1: The number of retries
+    # $2: The command to run
+    retry() {
+        local retries=$1
+        shift
+        local count=0
+        until "$@"; do
+            exit_code=$?
+            count=$((count + 1))
+            if [ $count -ge $retries ]; then
+            echo "Command failed after $retries attempts."
+            return $exit_code
+            fi
+            echo "Attempt $count failed. Retrying..."
+            sleep 5
+        done
     }
 
     ###############################################################
@@ -560,6 +577,7 @@ data:
                     info "group \"${current_group}\" updated and a restart of all hosts in the group was triggered"
                 else
                     info "unexpected response when updating group \"${current_group}\": ${response_code}"
+                    return 1
                 fi
             else
                 info "failed to get current group, response code: ${response_code}"
@@ -585,7 +603,7 @@ data:
         else
             info "not bootstrap host. Skip group configuration"
         fi
-
+        return 0
     }
 
     function configure_tls {
@@ -814,10 +832,10 @@ data:
        if [[ "${MARKLOGIC_CLUSTER_TYPE}" == "bootstrap" ]]; then
             log "Info:  bootstrap host is ready"
             init_security_db
-            configure_group
+            retry 5 configure_group
         else 
             log "Info:  bootstrap host is ready"
-            configure_group
+            retry 5 configure_group
             join_cluster $HOST_FQDN
         fi
         configure_path_based_routing
