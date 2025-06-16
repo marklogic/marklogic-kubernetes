@@ -96,7 +96,7 @@ e2e-test: prepare
 	minikube start --driver=docker --kubernetes-version=$(kubernetesVersion) -n=1 --memory=$(minikubeMemory) --cpus=2
 
 	@echo "=====Pull $(dockerImage) image for upgrade test"
-	## This is only needed while we use minikube since the image is not accessible to go at runtime
+		## This is only needed while we use minikube since the image is not accessible to go at runtime
 	docker pull $(dockerImage)
 
 	# Get env details for debugging
@@ -229,15 +229,66 @@ upgrade-test: prepare
 #***************************************************************************
 ## Find and scan dependent Docker images for security vulnerabilities
 ## Options:
-## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
+## * [saveOutput] optional. Save the output to a text file. Example: saveOutput=true
 .PHONY: image-scan
 image-scan:
-
 	@rm -f helm_image.list dep-image-scan.txt
+	@$(if $(saveOutput), > dep-image-scan.txt)
 	@echo "=====Scan dependent Docker images in charts/values.yaml" $(if $(saveOutput), | tee -a dep-image-scan.txt,)
-	@for depImage in $(shell grep -E "^\s*\bimage:\s+(.*)" charts/values.yaml | sed 's/image: //g' | sed 's/"//g'); do\
-		echo -n "$${depImage}," >> helm_image.list ; \
-		echo "= $${depImage}:" $(if $(saveOutput), | tee -a dep-image-scan.txt,) ; \
-		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype:latest --output json $${depImage} | jq -r '[(.matches[] | [.artifact.name, .artifact.version, .vulnerability.id, .vulnerability.severity])] | .[] | @tsv' | sort -k4 | column -t $(if $(saveOutput), | tee -a dep-image-scan.txt,);\
-		echo $(if $(saveOutput), | tee -a dep-image-scan.txt,) ;\
-	done
+	set -e; \
+	scanned_images_tracker_file="$$(mktemp)"; \
+	trap 'rm -f "$$scanned_images_tracker_file"' EXIT; \
+	scan_image() { \
+	  img="$$1"; \
+	  src_file="$$2"; \
+	  if [ -z "$$img" ]; then \
+	    echo "Warning: Empty image name provided from $$src_file. Skipping." $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    return; \
+	  fi; \
+	  if grep -Fxq "$$img" "$$scanned_images_tracker_file"; then \
+	    echo "= $$img (from $$src_file) - Already Processed" $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    return; \
+	  fi; \
+	  echo "= Scanning $$img (from $$src_file)" $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	  if ! docker pull "$$img"; then \
+	    echo "Error: Failed to pull Docker image $$img. Skipping scan." $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    echo "$$img" >> "$$scanned_images_tracker_file"; \
+	    return; \
+	  fi; \
+	  echo "$$img" >> "$$scanned_images_tracker_file"; \
+	  printf "%s," "$${img}" >> helm_image.list ; \
+	  grype_json_output=$$(docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype:latest --output json "$$img" 2>/dev/null); \
+	  if [ -z "$$grype_json_output" ]; then \
+	    echo "Warning: Grype produced no output for $$img. Command might have failed or image not found/supported by grype." $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    echo $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    return; \
+	  fi; \
+	  if ! echo "$$grype_json_output" | jq -e '.descriptor.name' > /dev/null; then \
+	    echo "Warning: Grype output for $$img is not valid JSON or image metadata is missing. Output was:" $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    echo "$$grype_json_output" $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    echo $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    return; \
+	  fi; \
+	  summary=$$(echo "$$grype_json_output" | jq -r '([.matches[]?.vulnerability.severity] // []) as $$all_severities | reduce ["Critical","High","Medium","Low","Negligible","Unknown"][] as $$sev ( {Critical:0,High:0,Medium:0,Low:0,Negligible:0,Unknown:0} ; .[$$sev] = ([$$all_severities[] | select(. == $$sev)] | length) ) | "Critical=\(.Critical) High=\(.High) Medium=\(.Medium) Low=\(.Low) Negligible=\(.Negligible) Unknown=\(.Unknown)"'); \
+	  echo "Summary: $$summary" $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	  if echo "$$grype_json_output" | jq -e '.matches == null or (.matches | length == 0)' > /dev/null; then \
+	    echo "No vulnerabilities found to tabulate for $$img." $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	  else \
+	    scan_out_body=$$(echo "$$grype_json_output" | jq -r 'def sevorder: {Critical:0, High:1, Medium:2, Low:3, Negligible:4, Unknown:5}; [.matches[]? | {pkg: .artifact.name, ver: .artifact.version, cve: .vulnerability.id, sev: .vulnerability.severity}] | map(. + {sort_key: sevorder[.sev // "Unknown"]}) | sort_by(.sort_key) | .[] | [.pkg // "N/A", .ver // "N/A", .cve // "N/A", .sev // "N/A"] | @tsv'); \
+	    if [ -n "$$scan_out_body" ]; then \
+	      (echo "Package\tVersion\tCVE\tSeverity"; echo "$$scan_out_body") | column -t -s $$'\t' $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    else \
+	      echo "No vulnerability details to display for $$img (though summary reported counts)." $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	    fi; \
+	  fi; \
+	  echo $(if $(saveOutput), | tee -a dep-image-scan.txt,); \
+	}; \
+	util_image=$$(grep -A2 'utilContainer:' charts/values.yaml | grep 'image:' | sed 's/.*image:[[:space:]]*//g' | sed 's/"//g' | xargs); \
+	scan_image "$$util_image" "charts/values.yaml"; \
+	haproxy_image=$$(grep -A 3 '^haproxy:' charts/values.yaml | grep -A 1 '^\s*image:' | grep '^\s*repository:' | sed 's/.*repository:[[:space:]]*//g' | sed 's/"//g' | sed 's/#.*//g' | xargs); \
+	haproxy_tag=$$(grep -A 4 '^haproxy:' charts/values.yaml | grep -A 2 '^\s*image:' | grep '^\s*tag:' | sed 's/.*tag:[[:space:]]*//g' | sed 's/"//g' | sed 's/{{.*}}/latest/' | sed 's/#.*//g' | xargs); \
+	scan_image "$$haproxy_image:$$haproxy_tag" "charts/values.yaml";
+	@# Remove trailing comma from helm_image.list if present
+	@if [ -f helm_image.list ]; then \
+		sed -i'' -e 's/,\s*$$//' helm_image.list; \
+	fi
