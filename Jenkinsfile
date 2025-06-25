@@ -6,7 +6,7 @@
 import groovy.json.JsonSlurperClassic
 
 emailList = 'vitaly.korolev@progress.com, sumanth.ravipati@progress.com, peng.zhou@progress.com, fayez.saliba@progress.com, barkha.choithani@progress.com, romain.winieski@progress.com'
-emailSecList = 'Rangan.Doreswamy@progress.com, Mahalakshmi.Srinivasan@progress.com'
+emailSecList = 'Mahalakshmi.Srinivasan@progress.com'
 gitCredID = 'marklogic-builder-github'
 JIRA_ID = ''
 JIRA_ID_PATTERN = /(?i)(MLE)-\d{3,6}/
@@ -39,6 +39,14 @@ void preBuildCheck() {
 
     // our VMs sometime disable bridge traffic. this should help to restore it.
     sh 'sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"'
+
+    // install local version of golangci-lint and gotestsum
+    sh '''
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v1.50.0
+        wget https://github.com/gotestyourself/gotestsum/releases/download/v1.12.0/gotestsum_1.12.0_linux_amd64.tar.gz -O gotestsum.tar.gz
+        mkdir -p /space/go/bin/
+        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
+    '''
 }
 
 @NonCPS
@@ -95,7 +103,7 @@ def getReviewState() {
     return reviewState
 }
 
-void resultNotification(message) {
+void resultNotification(status) {
     def author, authorEmail, emailList
     if (env.CHANGE_AUTHOR) {
         author = env.CHANGE_AUTHOR.toString().trim().toLowerCase()
@@ -109,11 +117,11 @@ void resultNotification(message) {
     jira_email_body = "${email_body} <br><br><b>Jira URL: </b><br><a href='${jira_link}'>${jira_link}</a>"
 
     if (JIRA_ID) {
-        def comment = [ body: "Jenkins pipeline build result: ${message}" ]
+        def comment = [ body: "Jenkins pipeline build result: ${status}" ]
         jiraAddComment site: 'JIRA', idOrKey: JIRA_ID, failOnError: false, input: comment
-        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${jira_email_body}", subject: "${message}: ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${JIRA_ID}"
+        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${jira_email_body}", subject: "🥷 ${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${JIRA_ID}"
     } else {
-        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${email_body}", subject: "${message}: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        mail charset: 'UTF-8', mimeType: 'text/html', to: "${emailList}", body: "${email_body}", subject: "🥷 ${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
     }
 }
 
@@ -139,6 +147,10 @@ void imageScan() {
     }
 
     sh '''rm -f dep-image-scan.txt'''
+
+    // trigger BlackDuck scan
+    def imageList = readFile(file: 'helm_image.list').trim()
+    build job: 'securityscans/Blackduck/KubeNinjas/kubernetes-helm', wait: false, parameters: [ string(name: 'branch', value: "${env.BRANCH_NAME}"), string(name: 'CONTAINER_IMAGES', value: "${imageList}") ]
 }
 
 void publishTestResults() {
@@ -158,18 +170,23 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true''' : '')
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true
+                                                             00 04 * * * % dockerImageType=ubi''' : '')
     }
     environment {
         dockerRegistry = 'ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com'
         dockerRepository = "${dockerRegistry}/marklogic/marklogic-server-${params.dockerImageType}"
+        PATH = "/space/go/bin:${env.PATH}"
+        MINIKUBE_HOME = "/space/minikube/"
+        KUBECONFIG = "/space/.kube-config"
+        GOPATH = "/space/go"
     }
 
     parameters {
-        choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi\ncentos', description: 'Platform type for Docker image')
+        choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi\nubi9-rootless\nubi9', description: 'Platform type for Docker image')
         string(name: 'dockerVersion', defaultValue: 'latest-11', description: 'Docker tag to use for tests. (e.g. 11.2.nightly-ubi-rootless-1.1.2) Has to correspond with dockerImageType.', trim: true)
         string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
-        choice(name: 'K8_VERSION', choices: 'v1.28.10\nv1.29.5\nv1.27.14\nv1.26.15\nv1.25.16\nv1.24.17', description: 'Test Kubernetes version.')
+        choice(name: 'K8_VERSION', choices: 'v1.31.7\nv1.32.3\nv1.30.11\nv1.29.15\nv1.28.15\nv1.27.16\nv1.26.15\nv1.25.16', description: 'Test Kubernetes version.')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
@@ -207,7 +224,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb testSelection=${params.KUBERNETES_TEST_SELECTION}
+                    make test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb testSelection=${params.KUBERNETES_TEST_SELECTION}
                 """
             }
         }
@@ -217,7 +234,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; export upgradeTest=true; export initialChartVersion=${params.InitialChartVersion}; make upgrade-test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
+                    export upgradeTest=true; export initialChartVersion=${params.InitialChartVersion}; make upgrade-test dockerImage=${dockerRepository}:${dockerVersion} prevDockerImage=${dockerRepository}:${prevDockerVersion} kubernetesVersion=${params.K8_VERSION} saveOutput=true minikubeMemory=20gb
                 """
             }
         }
@@ -227,7 +244,7 @@ pipeline {
             }
             steps {
                 sh """
-                    export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
+                    make hc-test dockerImage=${dockerRepository}:${dockerVersion} kubernetesVersion=${params.K8_VERSION} minikubeMemory=20gb
                 """
             }
         }
@@ -238,23 +255,26 @@ pipeline {
             publishTestResults()
             sh '''
 	            sudo sysctl -w vm.nr_hugepages=0
-                export MINIKUBE_HOME=/space; export KUBECONFIG=/space/.kube-config; export GOPATH=/space/go; minikube delete --all --purge
-                docker rm -f $(docker ps -a -q) || true
-                docker system prune --force --filter "until=720h"
-                docker volume prune --force
-                docker image prune --force --all
-                sudo rm -rf /space/.minikube /space/go /space/.kube-config
+                minikube delete --all --purge
+                docker stop $(docker ps -a -q) || true
+                docker system prune --force --all
+                docker volume prune --force --all
+                docker system df
+                sudo rm -rf /space/minikube/ /space/go /space/.kube-config
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
         success {
-            resultNotification('BUILD SUCCESS ✅')
+            resultNotification('✅ Success')
         }
         failure {
-            resultNotification('BUILD ERROR ❌')
+            resultNotification('❌ Failure')
         }
         unstable {
-            resultNotification('BUILD UNSTABLE ❌')
+            resultNotification('⚠️ Unstable')
+        }
+        aborted {
+            resultNotification('🚫 Aborted')
         }
     }
 }

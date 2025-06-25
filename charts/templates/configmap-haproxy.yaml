@@ -112,7 +112,7 @@ data:
       balance leastconn
       option forwardfor
       http-request replace-path {{ $appservicespath }}(/)?(.*) /\2
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -121,9 +121,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -132,7 +132,7 @@ data:
       balance leastconn
       option forwardfor
       http-request replace-path {{ $adminpath }}(/)?(.*) /\2
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -141,9 +141,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -152,7 +152,7 @@ data:
       balance leastconn
       option forwardfor
       http-request replace-path {{ $managepath }}(/)?(.*) /\2
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -161,9 +161,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -177,7 +177,7 @@ data:
       balance leastconn
       option forwardfor
       http-request replace-path {{$path}}(/)?(.*) /\2
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -186,9 +186,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }} ssl verify none
       {{- else }}
-      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
+      server {{ printf "ml-%s-%s-%v" $releaseName $portNumber $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:{{ $portNumber }} resolvers dns init-addr none cookie {{ $releaseName }}-{{ $portNumber }}-{{ $i }}
       {{- end }}
       {{- end }}
     {{- end }}
@@ -209,7 +209,7 @@ data:
       mode http
       balance leastconn
       option forwardfor
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -218,9 +218,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
+      server {{ $releaseName }}-appservices-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8000 resolvers dns init-addr none cookie {{ $releaseName }}-appservices-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -238,7 +238,7 @@ data:
       mode http
       balance leastconn
       option forwardfor
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -247,9 +247,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
+      server {{ $releaseName }}-admin-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8001 resolvers dns init-addr none cookie {{ $releaseName }}-admin-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -267,7 +267,7 @@ data:
       mode http
       balance leastconn
       option forwardfor
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
@@ -276,9 +276,9 @@ data:
       default-server check
       {{- range $i := until $replicas }}
       {{- if $appServerTlsEnabled }}
-      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }} ssl verify none
       {{- else }}
-      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $releaseName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
+      server {{ $releaseName }}-manage-{{ $i }} {{ $releaseName }}-{{ $i }}.{{ $headlessServiceName }}.{{ $namespace }}.svc.{{ $clusterDomain }}:8002 resolvers dns init-addr none cookie {{ $releaseName }}-manage-{{ $i }}
       {{- end }}
       {{- end }}
 
@@ -300,7 +300,7 @@ data:
       mode http
       balance leastconn
       option forwardfor
-      cookie haproxy insert indirect nocache maxidle 30m maxlife 4h 
+      cookie haproxy insert indirect httponly nocache maxidle 30m maxlife 4h 
       stick-table type string len 32 size 10k expire 4h
       stick store-response res.cook(HostId)
       stick store-response res.cook(SessionId)
