@@ -1,5 +1,4 @@
 # This configMap contains scirpts for MarkLogic Helm Chart:
-# liveness-probe.sh
 # copy-certs.sh
 # prestop-hook.sh
 # poststart-hook.sh
@@ -7,46 +6,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "marklogic.fullname" . }}-scripts
+  namespace: {{ .Release.Namespace }}
 data:
-  liveness-probe.sh: |
-    #!/bin/bash
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
-    log () {
-      local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-      # Check to make sure pod doesn't terminate if PID value is empty for any reason
-      if [ -n "$pid" ]; then
-          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-      fi
-    }
-
-    # Check if ML service is running. Exit with 1 if it is other than running
-    if [ -e /etc/init.d/MarkLogic ]; then
-        ml_status=$(/etc/init.d/MarkLogic status)
-    else
-        ml_status=$(/etc/MarkLogic/MarkLogic-service.sh status)
-    fi
-    
-    if [[ "$ml_status" =~ "running" ]]; then
-        http_code=$(curl -o /tmp/probe_response.txt -s -w "%{http_code}" "http://${HOSTNAME}:8001/admin/v1/timestamp")
-        curl_code=$?
-        http_resp=$(cat /tmp/probe_response.txt)
-
-        if [[ $curl_code -ne 0 && $http_code -ne 401 ]]; then
-            log "Info: [Liveness Probe] Error with MarkLogic"
-            log "Info: [Liveness Probe] Curl response code: "$curl_code
-            log "Info: [Liveness Probe] Http response code: "$http_code
-            log "Info: [Liveness Probe] Http response message: "$http_resp 
-        fi
-        rm -f /tmp/probe_response.txt
-        exit 0
-    else
-        exit 1
-    fi
-
   copy-certs.sh: |
     #!/bin/bash
-    MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"            
-    MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/username)"
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
         echo "${TIMESTAMP}  $@"
@@ -118,15 +81,9 @@ data:
     MARKLOGIC_ADMIN_USERNAME="$(< /run/secrets/ml-secrets/username)"
     MARKLOGIC_ADMIN_PASSWORD="$(< /run/secrets/ml-secrets/password)"
 
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
-
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-        # Check to make sure pod doesn't terminate if PID value is empty for any reason
-        # If PID value is empty preStart hook logs are not recorded
-        if [ -n "$pid" ]; then
-            echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-        fi
+        echo "${TIMESTAMP} $@" > /proc/1/fd/1
     }
 
     log "Info: [prestop] Prestop Hook Execution"
@@ -195,8 +152,6 @@ data:
         echo "IS_BOOTSTRAP_HOST false"
     fi
 
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
-
     ###############################################################
     # Logging utility
     ###############################################################
@@ -215,14 +170,28 @@ data:
 
     log () {
         local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-        # Check to make sure pod doesn't terminate if PID value is empty for any reason
-        # If PID value is empty postStart hook logs are not recorded
         message="${TIMESTAMP} [postStart] $@"
-        if [ -n "$pid" ]; then
-            echo $message  > /proc/$pid/fd/1
-        fi
-        
+        echo $message  > /proc/1/fd/1
         echo $message >> /tmp/script.log
+    }
+
+    # Function to retry a command based on the return code
+    # $1: The number of retries
+    # $2: The command to run
+    retry() {
+        local retries=$1
+        shift
+        local count=0
+        until "$@"; do
+            exit_code=$?
+            count=$((count + 1))
+            if [ $count -ge $retries ]; then
+            echo "Command failed after $retries attempts."
+            return $exit_code
+            fi
+            echo "Attempt $count failed. Retrying..."
+            sleep 5
+        done
     }
 
     ###############################################################
@@ -608,6 +577,7 @@ data:
                     info "group \"${current_group}\" updated and a restart of all hosts in the group was triggered"
                 else
                     info "unexpected response when updating group \"${current_group}\": ${response_code}"
+                    return 1
                 fi
             else
                 info "failed to get current group, response code: ${response_code}"
@@ -633,7 +603,7 @@ data:
         else
             info "not bootstrap host. Skip group configuration"
         fi
-
+        return 0
     }
 
     function configure_tls {
@@ -862,10 +832,10 @@ data:
        if [[ "${MARKLOGIC_CLUSTER_TYPE}" == "bootstrap" ]]; then
             log "Info:  bootstrap host is ready"
             init_security_db
-            configure_group
+            retry 5 configure_group
         else 
             log "Info:  bootstrap host is ready"
-            configure_group
+            retry 5 configure_group
             join_cluster $HOST_FQDN
         fi
         configure_path_based_routing
@@ -889,13 +859,8 @@ data:
     #!/bin/bash
     log () {
       local TIMESTAMP=$(date +"%Y-%m-%d %T.%3N")
-      # Check to make sure pod doesn't terminate if PID value is empty for any reason
-      if [ -n "$pid" ]; then
-          echo "${TIMESTAMP} $@" > /proc/$pid/fd/1
-      fi
+      echo "${TIMESTAMP} $@" > /proc/1/fd/1
     }
-    
-    pid=$(ps aux | grep "/bin/bash /usr/local/bin/start-marklogic.sh" | grep -v grep | awk '{print $2}')
 
     log "Info: [root-rootless-upgrade] Execution Start"
 
