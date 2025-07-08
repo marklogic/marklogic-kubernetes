@@ -195,9 +195,9 @@ template-test: prepare
 	@echo "=====Running template tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/testplate-tests.xml ./test/template/... -count=1, go test -v -count=1 ./test/template/...) 
 
-.PHONY: upgrade-sanity-tests
+.PHONY: sanity-upgrade-tests
 sanity-upgrade-tests: prepare
-	@echo "=====Running upgrade tests"
+	@echo "=====Running sanity upgrade tests"
 	$(if $(saveOutput),gotestsum --junitfile test/test_results/upgrade-tests.xml ./test/upgrade/... -count=1, go test -v -count=1 ./test/upgrade/...)
 
 #***************************************************************************
