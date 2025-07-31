@@ -64,7 +64,6 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
       automountServiceAccountToken: false
-      {{- if .Values.tolerations }}
       {{- with .Values.affinity }}
       affinity: {{- toYaml . | nindent 8}}
       {{- end }}
