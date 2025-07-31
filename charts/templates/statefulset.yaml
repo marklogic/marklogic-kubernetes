@@ -63,6 +63,7 @@ spec:
       securityContext: {{- omit .Values.podSecurityContext "enabled" | toYaml | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "marklogic.serviceAccountName" . }}
+      automountServiceAccountToken: false
       {{- with .Values.affinity }}
       affinity: {{- toYaml . | nindent 8}}
       {{- end }}
