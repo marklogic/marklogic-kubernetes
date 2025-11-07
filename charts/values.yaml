@@ -104,7 +104,7 @@ auth:
 ## Configure TLS for default App Servers(8000, 8001, 8002)
 ## If certSecretNames is not provided, self-signed temporary certificate will be generated.
 tls:
-  enableOnDefaultAppServers: true
+  enableOnDefaultAppServers: false
   certSecretNames: []
   caSecretName: ""
 
@@ -148,7 +148,7 @@ nodeSelector: {}
 ## If set the enabled to false, it will use EmptyDir volume
 persistence:
   enabled: true
-  storageClass: "gp3"
+  storageClass: ""
   size: 10Gi
   annotations: {}
   accessModes:
