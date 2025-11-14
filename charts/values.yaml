@@ -51,7 +51,7 @@ image:
 ## Init container image parameters
 initContainers:
   utilContainer:
-    image: "redhat/ubi10:10.0"
+    image: "redhat/ubi10:10.1"
     pullPolicy: IfNotPresent
 
 ## Configure the imagePullSecrets to pull the image from private repository that requires credential
