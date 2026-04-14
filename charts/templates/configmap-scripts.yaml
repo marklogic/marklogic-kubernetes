@@ -739,10 +739,20 @@ data:
                 fi
             
                 log "Info:  enabling app-servers for HTTPS"
-                # Manage need be put in the last in the array to make sure http works for all the requests
+                # Manage must be last so http://8002 stays available for all preceding PUTs.
+                # ssl-allow-tls=true is set BEFORE the cert-template assignment for each server
+                # so that http://8002 is still HTTP when the PUT is issued. Once the cert-template
+                # is assigned the server restarts into HTTPS mode; at that point http://8002 is
+                # gone. ML11 auto-sets ssl-allow-tls on cert-template assignment; ML12 requires it
+                # to be set explicitly (setting it pre-assignment is accepted and harmless).
                 appServers=("App-Services" "Admin" "Manage")
                 for appServer in ${appServers[@]}; do
                 log "configuring SSL for App Server $appServer"
+                curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                    -o /dev/null -s \
+                    -X PUT -H "Content-type: application/json" -d '{"ssl-allow-tls":true}' \
+                http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP}
+                log "Info:  ssl-allow-tls configured for $appServer"
                 curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
                     -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
                 http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP}
