@@ -262,6 +262,7 @@ pipeline {
                 docker volume prune --force --all
                 docker system df
                 sudo rm -rf /space/minikube/ /space/go /space/.kube-config
+                sudo rm -rf /tmp/k8s_test_framework_*
             '''
             sh "rm -rf $WORKSPACE/test/test_results/"
         }
