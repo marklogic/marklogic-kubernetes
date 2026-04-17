@@ -350,7 +350,7 @@ haproxy:
   enabled: false
   image:
     repository: haproxytech/haproxy-alpine
-    tag: "3.2.1"
+    tag: "3.2.15"
     pullPolicy: IfNotPresent
 
   ## Name of an existing configmap with configuration for HAProxy
