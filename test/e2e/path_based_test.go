@@ -406,10 +406,11 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 			t.Errorf("basic authentication is not configured for %s AppServer", appServers[i])
 		}
 
-		sslAllowTLS := gjson.Get(string(body), `ssl-allow-tls`)
-		//verify ssl is enabled for AppServer
+		sslCertTemplate := gjson.Get(string(body), `ssl-certificate-template`)
+		//verify ssl is enabled for AppServer by checking ssl-certificate-template is set
+		// (ssl-allow-tls is not exposed in the Manage API response on ML12+)
 		t.Logf("Verifying ssl for %s AppServer", appServers[i])
-		if sslAllowTLS.Bool() != true {
+		if sslCertTemplate.Str != "defaultTemplate" {
 			t.Errorf("ssl is not enabled for %s AppServer", appServers[i])
 		}
 	}
