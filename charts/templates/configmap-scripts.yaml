@@ -739,14 +739,47 @@ data:
                 fi
             
                 log "Info:  enabling app-servers for HTTPS"
-                # Manage need be put in the last in the array to make sure http works for all the requests
+                # Manage must be last so http://8002 stays available for all preceding PUTs.
+                # After each cert-template assignment the server restarts into HTTPS mode;
+                # we poll until HTTPS is available on the correct port rather than using a
+                # fixed sleep, to handle timing differences across environments.
                 appServers=("App-Services" "Admin" "Manage")
                 for appServer in ${appServers[@]}; do
-                log "configuring SSL for App Server $appServer"
-                curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                log "Info:  configuring ssl-certificate-template for $appServer"
+                resp_code=$(curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                    -w "%{http_code}" -o /dev/null -s \
                     -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
-                http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP}
-                sleep 5s
+                http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP})
+                log "Info:  ssl-certificate-template response for $appServer: HTTP $resp_code"
+                if [[ "$resp_code" != "204" ]]; then
+                    log "Warning: unexpected response $resp_code for $appServer, retrying in 5s"
+                    sleep 5s
+                    resp_code=$(curl --anyauth --user $MARKLOGIC_ADMIN_USERNAME:$MARKLOGIC_ADMIN_PASSWORD \
+                        -w "%{http_code}" -o /dev/null -s \
+                        -X PUT -H "Content-type: application/json" -d '{"ssl-certificate-template":"defaultTemplate"}' \
+                    http://localhost:8002/manage/v2/servers/${appServer}/properties?group-id=${MARKLOGIC_GROUP})
+                    log "Info:  ssl-certificate-template retry response for $appServer: HTTP $resp_code"
+                fi
+                case "$appServer" in
+                    "App-Services") ssl_port=8000 ;;
+                    "Admin") ssl_port=8001 ;;
+                    "Manage") ssl_port=8002 ;;
+                esac
+                elapsed=0
+                max_wait=60
+                log "Info:  waiting for $appServer to restart with HTTPS on port $ssl_port"
+                while [[ $elapsed -lt $max_wait ]]; do
+                    http_status=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 5 "https://localhost:${ssl_port}/" 2>/dev/null || true)
+                    if [[ "$http_status" =~ ^[1-9][0-9]{2}$ ]]; then
+                        log "Info:  $appServer is ready on HTTPS port $ssl_port (HTTP $http_status)"
+                        break
+                    fi
+                    sleep 2s
+                    elapsed=$((elapsed + 2))
+                done
+                if [[ $elapsed -ge $max_wait ]]; then
+                    log "Error: $appServer did not become available on HTTPS after ${max_wait}s"
+                fi
                 done
                 log "Info:  Configure HTTPS in App Server finished"
 
