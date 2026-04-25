@@ -19,7 +19,7 @@ func RestartPodAndVerify(t *testing.T, delAtOnce bool, podList []string, namespa
 		output, err := k8s.RunKubectlAndGetOutputE(t, kubectlOpt, "get", "pods", "--namespace", namespaceName)
 		t.Log(output)
 		if err != nil {
-			t.Logf(err.Error())
+			t.Log(err.Error())
 		}
 		k8s.RunKubectl(t, kubectlOpt, "delete", "--all", "pod", "--namespace", namespaceName)
 	} else {

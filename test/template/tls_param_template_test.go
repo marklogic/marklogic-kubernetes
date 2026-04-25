@@ -28,12 +28,12 @@ func TestChartTemplateTLSEnabled(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	// Setup the args for helm install using custom values.yaml file

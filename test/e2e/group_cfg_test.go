@@ -65,7 +65,7 @@ func TestSingleGroupChange(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	username := "admin"
 	password := "admin"
@@ -76,12 +76,12 @@ func TestSingleGroupChange(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
@@ -99,10 +99,10 @@ func TestSingleGroupChange(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
@@ -174,17 +174,17 @@ func TestMultipleGroupChange(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	options := &helm.Options{
@@ -202,14 +202,14 @@ func TestMultipleGroupChange(t *testing.T) {
 		Version: initialChartVersion,
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
-	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
+	t.Log("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in Running status
@@ -237,7 +237,7 @@ func TestMultipleGroupChange(t *testing.T) {
 			"logCollection.enabled": "false",
 		},
 	}
-	t.Logf("====Installing Helm Chart " + enodeReleaseName)
+	t.Log("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in Running status

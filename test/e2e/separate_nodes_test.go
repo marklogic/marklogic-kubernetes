@@ -63,7 +63,7 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		}).
 		Get(hostManageEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -78,7 +78,7 @@ func VerifyDnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 	resp, err = client.R().
 		Get(dnodeEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
@@ -106,12 +106,12 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 	resp, err := client.R().
 		Get(endpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	xdqpSSLEnabled := gjson.Get(string(body), `xdqp-ssl-enabled`)
 	// verify xdqp-ssl-enabled is set to false
@@ -123,7 +123,7 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 	resp, _ = client.R().
 		Get(groupEndpoint)
 	if body, err = io.ReadAll(resp.Body); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	// verify groups dnode, enode exists on the cluster
@@ -163,7 +163,7 @@ func VerifyEnodeConfig(t *testing.T, dnodePodName string, kubectlOptions *k8s.Ku
 		Get(enodeEndpoint)
 
 	if reqErr != nil {
-		t.Fatalf(reqErr.Error())
+		t.Fatal(reqErr.Error())
 	}
 	// verify two host exists on the cluster
 	if enodeHostCount != 2 {
@@ -189,17 +189,17 @@ func TestSeparateEDnode(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 	dnodeValuesMap := map[string]string{"persistence.enabled": "true",
 		"replicaCount":          "1",
@@ -229,10 +229,10 @@ func TestSeparateEDnode(t *testing.T) {
 		Version:        initialChartVersion,
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	//add the helm chart repo and install the last helm chart release from repository
@@ -248,21 +248,21 @@ func TestSeparateEDnode(t *testing.T) {
 	}
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
-	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
+	t.Log("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 15, 20*time.Second)
 	bootstrapHost, err := VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "http")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 	enodeValuesMap["bootstrapHostName"] = bootstrapHost
 	enodeOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
 		SetValues:      enodeValuesMap,
 	}
-	t.Logf("====Installing Helm Chart " + enodeReleaseName)
+	t.Log("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
@@ -361,17 +361,17 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	helmChartPath, e := filepath.Abs("../../charts")
 
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	// Helm options for dnode creation
@@ -389,13 +389,13 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
-	t.Logf("====Installing D Node Helm Chart " + dnodeReleaseName)
+	t.Log("====Installing D Node Helm Chart " + dnodeReleaseName)
 	helm.Install(t, options, helmChartPath, dnodeReleaseName)
 
 	// wait until the pod is in ready status
@@ -418,14 +418,14 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	resp, err := client.R().
 		Get(hostsEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	t.Logf(`BootstrapHost: = %s`, incorrectBootstrapHost)
@@ -446,7 +446,7 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Installing E Node Helm Chart " + enodeReleaseName)
+	t.Log("====Installing E Node Helm Chart " + enodeReleaseName)
 	helm.Install(t, enodeOptions, helmChartPath, enodeReleaseName)
 
 	// Give pod time to fail before checking if it did
@@ -465,11 +465,11 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	resp, err = client.R().
 		Get(clusterStatusEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	// Verify enode group creation failed given incorrect hostname
@@ -478,13 +478,13 @@ func TestIncorrectBootsrapHostname(t *testing.T) {
 	resp, err = client.R().
 		Get(enodeGroupStatusEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	// the request for enode should be 404
 	assert.Equal(t, 404, resp.StatusCode)

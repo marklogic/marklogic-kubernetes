@@ -26,7 +26,7 @@ func TestMLupgrade(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
@@ -34,15 +34,15 @@ func TestMLupgrade(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-ubi-rootless"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 	if !prevTagPres {
 		prevImageTag = "latest-10"
-		t.Logf("No imageTag variable present, setting to default value: " + prevImageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", prevImageTag)
 	}
 
 	username := "admin"
@@ -63,9 +63,9 @@ func TestMLupgrade(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
@@ -118,12 +118,12 @@ func TestMLupgrade(t *testing.T) {
 		Get(clusterEndpoint)
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	mlVersionResp := gjson.Get(string(body), `local-cluster-default.version`)
 	t.Logf("MarkLogic version: %s", mlVersionResp.Str)

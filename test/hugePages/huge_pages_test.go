@@ -37,12 +37,12 @@ func TestHugePagesSettings(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	username := "admin"
@@ -72,15 +72,15 @@ func TestHugePagesSettings(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	releaseName := "hugepages"
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	helmChartPath, err = filepath.Abs("../../charts")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	//add the helm chart repo and install the last helm chart release from repository
@@ -148,13 +148,13 @@ func TestHugePagesSettings(t *testing.T) {
 		Get(endpointManage)
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	assert.Equal(t, 200, resp.StatusCode)
 
 	if body, err = io.ReadAll(resp.Body); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	t.Log(string(body))
 

@@ -17,7 +17,7 @@ func HelmUpgrade(t *testing.T, helmUpgradeOptions *helm.Options, releaseName str
 	// Path to the current helm chart(to be released) we will upgrade to
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 
 	t.Logf("Initial Helm Chart Version: %s", oldChartVersion)
