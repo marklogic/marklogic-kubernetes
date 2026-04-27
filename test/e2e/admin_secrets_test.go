@@ -29,12 +29,12 @@ func TestMlAdminSecrets(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
@@ -54,16 +54,16 @@ func TestMlAdminSecrets(t *testing.T) {
 		Version:        initialChartVersion,
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	//add the helm chart repo and install the last helm chart release from repository

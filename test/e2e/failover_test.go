@@ -37,7 +37,7 @@ func TestFailover(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	username := "admin"
 	password := "admin"
@@ -45,12 +45,12 @@ func TestFailover(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
@@ -67,7 +67,7 @@ func TestFailover(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
@@ -112,7 +112,7 @@ func TestFailover(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Error creating forest %s", forestName)
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	if resp.StatusCode != 201 {
@@ -142,7 +142,7 @@ func TestFailover(t *testing.T) {
 
 	if err != nil {
 		t.Error("Error setting replica forest for Security")
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	if resp.StatusCode != 204 {
@@ -178,7 +178,7 @@ func TestFailover(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Error getting forest status for %s and waiting for sync replicating", forestName)
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	// delete the pod 0 to trigger Security forest failover to security1
@@ -218,7 +218,7 @@ func TestFailover(t *testing.T) {
 
 	if err != nil {
 		t.Error("Error getting forest status for security1 and waiting for open")
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	tlsConfig := tls.Config{}

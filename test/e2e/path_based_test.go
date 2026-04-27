@@ -23,7 +23,7 @@ func TestPathBasedRouting(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	username := "admin"
 	password := "admin"
@@ -33,12 +33,12 @@ func TestPathBasedRouting(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "11.0.nightly-centos-1.0.2"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	namespaceName := "ml-" + strings.ToLower(random.UniqueId())
@@ -60,10 +60,10 @@ func TestPathBasedRouting(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
@@ -109,7 +109,7 @@ func TestPathBasedRouting(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Error routing to %s", paths[i])
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		defer resp.Body.Close()
 	}
@@ -135,13 +135,13 @@ func TestPathBasedRouting(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Error getting AppServer properties")
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		serverAuthentication := gjson.Get(string(body), `authentication`)
 		t.Logf("serverAuthentication: %s", serverAuthentication)
@@ -161,7 +161,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	username := "admin"
 	password := "admin"
@@ -173,12 +173,12 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	// Setup the args for helm install using custom values.yaml file
@@ -191,10 +191,10 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
@@ -242,7 +242,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 		}).
 		Post(endpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -266,7 +266,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Error routing to %s", path)
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -275,7 +275,7 @@ func TestPathBasedRoutAppServers(t *testing.T) {
 	assert.Equal(t, 500, resp.GetStatusCode())
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	assert.Contains(t, string(body), "XDMP-MODNOTFOUND")
 
@@ -288,7 +288,7 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	username := "admin"
 	password := "admin"
@@ -298,12 +298,12 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "11.0.nightly-centos-1.0.2"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
@@ -326,10 +326,10 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 		},
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
@@ -375,7 +375,7 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Error routing to %s", paths[i])
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		defer resp.Body.Close()
 	}
@@ -390,13 +390,13 @@ func TestPathBasedRoutingWithTLS(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Error getting AppServer properties")
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 
 		serverAuthentication := gjson.Get(string(body), `authentication`)

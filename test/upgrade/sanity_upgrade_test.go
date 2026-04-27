@@ -40,7 +40,7 @@ func TestMlImageUpgrade(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, err := filepath.Abs("../../charts")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	upgradeImageList := [][]DockerImage{
@@ -219,7 +219,7 @@ func getMLVersion(t *testing.T, client *req.Client, adminUsername, adminPassword
 		Get("http://localhost:8002/manage/v2?format=json")
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

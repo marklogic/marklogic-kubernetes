@@ -25,7 +25,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 	imageRepo, repoPres := os.LookupEnv("dockerRepository")
 	imageTag, tagPres := os.LookupEnv("dockerVersion")
@@ -41,12 +41,12 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	namespaceName := "marklogic-" + strings.ToLower(random.UniqueId())
@@ -67,10 +67,10 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 		Version:        initialChartVersion,
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	t.Logf("====Installing Helm Chart")
@@ -117,7 +117,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 			KubectlOptions: kubectlOptions,
 			SetValues:      upgradeOptionsMap,
 		}
-		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test" + upgradeHelm)
+		t.Logf("UpgradeHelmTest is set to %s. Running helm upgrade test", upgradeHelm)
 		testUtil.HelmUpgrade(t, helmUpgradeOptions, releaseName, kubectlOptions, []string{podName}, initialChartVersion)
 	}
 
@@ -135,7 +135,7 @@ func TestTLSEnabledWithSelfSigned(t *testing.T) {
 		Get("https://localhost:8002/manage/v2")
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	fmt.Println("StatusCode: ", resp.GetStatusCode())
@@ -188,12 +188,12 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	}
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 	valuesMap := map[string]string{
 		"image.repository": imageRepo,
@@ -209,13 +209,13 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	// generate CA certificates for pods
@@ -335,7 +335,7 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 		}).
 		Get("https://localhost:8002/manage/v2/hosts?view=status&format=json")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 	if totalHosts != 2 {
@@ -345,26 +345,26 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	resp, _ = client.R().
 		Get("https://localhost:8002/manage/v2/certificate-templates/defaultTemplate?format=json")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defaultCertTemplID := gjson.Get(string(body), `certificate-template-default.id`)
 
 	resp, _ = client.R().
 		Get("https://localhost:8002/manage/v2/certificates?format=json")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	certID := (gjson.Get(string(body), `certificate-default-list.list-items.list-item.1.idref`))
 
@@ -372,13 +372,13 @@ func TestTLSEnabledWithNamedCert(t *testing.T) {
 	resp, _ = client.R().
 		Get(endpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	certTemplID := gjson.Get(string(body), `certificate-default.template-id`)
@@ -427,17 +427,17 @@ func TestTlsOnEDnode(t *testing.T) {
 	// Path to the helm chart we will test
 	helmChartPath, e := filepath.Abs("../../charts")
 	if e != nil {
-		t.Fatalf(e.Error())
+		t.Fatal(e.Error())
 	}
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "latest-11"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 	dnodeValuesMap := map[string]string{
 		"image.repository": imageRepo,
@@ -458,10 +458,10 @@ func TestTlsOnEDnode(t *testing.T) {
 		KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 	}
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	//add the helm chart repo and install the last helm chart release from repository
@@ -495,14 +495,14 @@ func TestTlsOnEDnode(t *testing.T) {
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "dnode-0-cert", "--from-file=../test_data/dnode_zero_certs/tls.crt", "--from-file=../test_data/dnode_zero_certs/tls.key")
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
-	t.Logf("====Installing Helm Chart " + dnodeReleaseName)
+	t.Log("====Installing Helm Chart " + dnodeReleaseName)
 	dnodePodName := testUtil.HelmInstall(t, options, dnodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the pod is in ready status
 	k8s.WaitUntilPodAvailable(t, kubectlOptions, dnodePodName, 10, 20*time.Second)
 	output, err := testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 20*time.Second)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	if output != "Running" {
 		t.Error(output)
@@ -538,7 +538,7 @@ func TestTlsOnEDnode(t *testing.T) {
 	k8s.RunKubectl(t, kubectlOptions, "create", "secret", "generic", "enode-1-cert", "--from-file=../test_data/enode_one_certs/tls.crt", "--from-file=../test_data/enode_one_certs/tls.key")
 
 	t.Logf("====Setting helm chart path to %s", helmChartPath)
-	t.Logf("====Installing Helm Chart " + enodeReleaseName)
+	t.Log("====Installing Helm Chart " + enodeReleaseName)
 	enodePodName0 := testUtil.HelmInstall(t, enodeOptions, enodeReleaseName, kubectlOptions, helmChartPath)
 
 	// wait until the first enode pod is in Ready status
@@ -575,10 +575,10 @@ func TestTlsOnEDnode(t *testing.T) {
 		testUtil.HelmUpgrade(t, dnodeHelmUpgradeOptions, dnodeReleaseName, kubectlOptions, []string{dnodePodName}, initialChartVersion)
 		output, err = testUtil.WaitUntilPodRunning(t, kubectlOptions, dnodePodName, 20, 30*time.Second)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		if output != "Running" {
-			t.Fatalf(output)
+			t.Fatal(output)
 		}
 		bootstrapHostStr, _ = VerifyDnodeConfig(t, dnodePodName, kubectlOptions, "https")
 

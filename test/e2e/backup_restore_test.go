@@ -99,7 +99,7 @@ func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint s
 	operation := (gjson.Get(dbReq, `operation`)).Str
 	var retryFn = (func(resp *req.Response, err error) bool {
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 			return true
 		}
 		if resp == nil || resp.Body == nil {
@@ -118,7 +118,7 @@ func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint s
 	if operation == "backup-status" {
 		retryFn = (func(resp *req.Response, err error) bool {
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatal(err.Error())
 			}
 			if resp == nil || resp.Body == nil {
 				t.Fatalf("error in getting response body")
@@ -144,7 +144,7 @@ func RunRequests(t *testing.T, client *req.Client, dbReq string, hostsEndpoint s
 		SetBodyString(dbReq).
 		Post(hostsEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -168,12 +168,12 @@ func TestMlDbBackupRestore(t *testing.T) {
 
 	if !repoPres {
 		imageRepo = "progressofficial/marklogic-db"
-		t.Logf("No imageRepo variable present, setting to default value: " + imageRepo)
+		t.Logf("No imageRepo variable present, setting to default value: %s", imageRepo)
 	}
 
 	if !tagPres {
 		imageTag = "11.3.0-ubi-rootless"
-		t.Logf("No imageTag variable present, setting to default value: " + imageTag)
+		t.Logf("No imageTag variable present, setting to default value: %s", imageTag)
 	}
 
 	username := "admin"
@@ -200,15 +200,15 @@ func TestMlDbBackupRestore(t *testing.T) {
 	t.Logf("====Installing Helm Chart")
 	releaseName := "bkuprestore"
 
-	t.Logf("====Creating namespace: " + namespaceName)
+	t.Log("====Creating namespace: " + namespaceName)
 	k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
-	defer t.Logf("====Deleting namespace: " + namespaceName)
+	defer t.Log("====Deleting namespace: " + namespaceName)
 	defer k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
 
 	helmChartPath, err = filepath.Abs("../../charts")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	//add the helm chart repo and install the last helm chart release from repository
@@ -285,7 +285,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 		fmt.Println(qConsoleEndpoint)
 		result, err := PutDocs(docPath, doc, client, qConsoleEndpoint)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 		assert.Equal(t, "Created", result)
 	}
@@ -296,7 +296,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	// verify both docs are loaded in Documents DB
 	result, err := GetDocs(client, getEndpoint, "multipart/mixed")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	if !strings.Contains(string(result), "<b>two</b>") && !strings.Contains(string(result), "<a>one</a>") {
 		t.Errorf("Both docs are loaded")
@@ -318,7 +318,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//full backup for Documents DB
 	result, err = RunRequests(t, client, string(bkupReqRes), manageEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	jobID := (gjson.Get(result, `job-id`))
 	hostName := (gjson.Get(result, `host-name`))
@@ -332,7 +332,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//get status of full backup job
 	result, err = RunRequests(t, client, string(bkupStatusReqRes), manageEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	bkupStatus := (gjson.Get(result, `status`)).Str
 
@@ -356,7 +356,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//incremnetal backup for Documents DB
 	result, err = RunRequests(t, client, string(incrBkupReqRes), manageEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	jobID = (gjson.Get(result, `job-id`))
 	hostName = (gjson.Get(result, `host-name`))
@@ -370,7 +370,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//get status of backup job
 	result, err = RunRequests(t, client, string(incrBkupStatusReqRes), manageEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	incrBkupStatus := (gjson.Get(result, `status`)).Str
 
@@ -380,7 +380,7 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//delete a document from Documents DB
 	result, err = DeleteDocs(client, deleteEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	assert.Equal(t, "Deleted", result)
 
@@ -393,14 +393,14 @@ func TestMlDbBackupRestore(t *testing.T) {
 	//restore Documents DB from incremental backup
 	result, err = RunRequests(t, client, string(brstrReqRes), manageEndpoint)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	restoreJobID := (gjson.Get(result, `job-id`)).Str
 	assert.NotEqual(t, "", restoreJobID)
 
 	result, err = GetDocs(client, getEndpoint, "multipart/mixed")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	// verify both docs are restored
 	if !strings.Contains(string(result), "<b>two</b>") && !strings.Contains(string(result), "<a>one</a>") {
