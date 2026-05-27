@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/client"
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/imroc/req/v3"
 	"github.com/marklogic/marklogic-kubernetes/test/testUtil"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/tidwall/gjson"
 )
@@ -136,7 +136,7 @@ func TestMLupgrade(t *testing.T) {
 		panic(err)
 	}
 	// Get image details
-	imageDetails, _, err := cli.ImageInspectWithRaw(ctx, imageRepo+":"+imageTag)
+	imageDetails, err := cli.ImageInspect(ctx, imageRepo+":"+imageTag)
 	if err != nil {
 		panic(err)
 	}
