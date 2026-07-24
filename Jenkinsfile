@@ -211,9 +211,7 @@ pipeline {
 
         stage('Image-Scan') {
             when {
-                anyOf {
-                        branch pattern: '^(develop|master|release.*)$', comparator: 'REGEXP'
-                    }
+                branch pattern: '^(develop|master|release.*)$', comparator: 'REGEXP'
             }
             steps {
                 imageScan()
