@@ -148,7 +148,9 @@ void imageScan() {
     }
 
     sh '''rm -f dep-image-scan.txt'''
+}
 
+runBlackDuckScan() {
     // trigger BlackDuck scan
     def imageList = readFile(file: 'helm_image.list').trim()
     build job: 'securityscans/Blackduck/KubeNinjas/kubernetes-helm', wait: false, parameters: [ string(name: 'branch', value: "${env.BRANCH_NAME}"), string(name: 'CONTAINER_IMAGES', value: "${imageList}") ]
@@ -219,6 +221,18 @@ pipeline {
             }
         }
 
+        stage('Run-BlackDuck-Scan') {
+            when {
+                anyOf {
+                        branch 'develop'
+                        branch 'master'
+                        branch 'release*'
+                    }
+            }
+            steps {
+                runBlackDuckScan()
+            }
+        }
         stage('Kubernetes-Run-Tests') {
             when {
                 expression { return params.KUBERNETES_TESTS }
