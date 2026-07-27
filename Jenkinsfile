@@ -171,7 +171,7 @@ pipeline {
         skipStagesAfterUnstable()
     }
     triggers {
-        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % IMAGE_SCAN=true;HELM_UPGRADE_TESTS=true;HC_TESTS=true
+        parameterizedCron( env.BRANCH_NAME == 'develop' ? '''00 04 * * * % HELM_UPGRADE_TESTS=true;HC_TESTS=true
                                                              00 04 * * * % dockerImageType=ubi''' : '')
     }
     environment {
@@ -191,7 +191,6 @@ pipeline {
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
-        booleanParam(name: 'IMAGE_SCAN', defaultValue: false, description: 'Find and scan dependent Docker images for security vulnerabilities')
         booleanParam(name: 'HELM_UPGRADE_TESTS', defaultValue: false, description: 'Run Helm upgrade in E2E tests (runs nightly on develop)')
         string(name: 'InitialChartVersion', defaultValue: '1.1.2', description: 'Helm Chart Version to use for upgrade tests. (e.g. 1.1.2)', trim: true)
         string(name: 'emailList', defaultValue: emailList, description: 'List of email for build notification', trim: true)
@@ -212,7 +211,7 @@ pipeline {
 
         stage('Image-Scan') {
             when {
-                expression { return params.IMAGE_SCAN }
+                branch pattern: '^(develop|master|release.*)$', comparator: 'REGEXP'
             }
             steps {
                 imageScan()
