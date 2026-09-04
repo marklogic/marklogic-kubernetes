@@ -111,7 +111,7 @@ func TestMlImageUpgrade(t *testing.T) {
 			},
 		}
 
-		t.Logf("====Creating namespace: " + namespaceName)
+		t.Logf("====Creating namespace: %s", namespaceName)
 		k8s.CreateNamespace(t, kubectlOptions, namespaceName)
 
 		t.Logf("====Setting helm chart path to %s", helmChartPath)
@@ -206,7 +206,7 @@ func TestMlImageUpgrade(t *testing.T) {
 		} else {
 			t.Logf("ML version successfully upgraded to %s", upgradedMLVersion)
 		}
-		t.Logf("====Deleting namespace: " + namespaceName)
+		t.Logf("====Deleting namespace: %s", namespaceName)
 		tunnel8001.Close()
 		tunnel8002.Close()
 		k8s.DeleteNamespace(t, kubectlOptions, namespaceName)
