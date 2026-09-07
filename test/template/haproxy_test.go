@@ -54,11 +54,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 		var deployment appsv1.Deployment
 
 		output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{"charts/haproxy/templates/deployment.yaml"})
-		if err != nil {
-			t.Log("Error when render HAProxy Deployment")
-			t.Fatal(err)
-		}
-		require.Nil(t, err)
+		require.NoError(t, err, "Error when render HAProxy Deployment")
 		helm.UnmarshalK8SYaml(t, output, &deployment)
 		// test default setting for rollme annotation
 		require.Contains(t, deployment.Spec.Template.Annotations, "rollme")
@@ -79,11 +75,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 		var deployment appsv1.Deployment
 
 		output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{"charts/haproxy/templates/deployment.yaml"})
-		if err != nil {
-			t.Log("Error when render HAProxy Deployment")
-			t.Fatal(err)
-		}
-		require.Nil(t, err)
+		require.NoError(t, err, "Error when render HAProxy Deployment")
 		helm.UnmarshalK8SYaml(t, output, &deployment)
 
 		require.NotContains(t, deployment.Spec.Template.Annotations, "rollme")
@@ -103,11 +95,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 		var deployment appsv1.Deployment
 
 		output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{"charts/haproxy/templates/deployment.yaml"})
-		if err != nil {
-			t.Log("Error when render HAProxy Deployment")
-			t.Fatal(err)
-		}
-		require.Nil(t, err)
+		require.NoError(t, err, "Error when render HAProxy Deployment")
 		helm.UnmarshalK8SYaml(t, output, &deployment)
 
 		require.Equal(t, "my-custom-repo/haproxy:custom-tag", deployment.Spec.Template.Spec.Containers[0].Image)
@@ -133,11 +121,7 @@ func TestTemplateTestHAproxyService(t *testing.T) {
 
 		// render the service templete
 		output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{"charts/haproxy/templates/service.yaml"})
-		if err != nil {
-			t.Log("Error when render HAProxy Service")
-			t.Fatal(err)
-		}
-		require.Nil(t, err)
+		require.NoError(t, err, "Error when render HAProxy Service")
 		helm.UnmarshalK8SYaml(t, output, &service)
 		require.EqualValues(t, service.Spec.Type, "ClusterIP")
 	}
@@ -155,11 +139,7 @@ func TestTemplateTestHAproxyService(t *testing.T) {
 		var service corev1.Service
 
 		output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{"charts/haproxy/templates/service.yaml"})
-		if err != nil {
-			t.Log("Error when render HAProxy Service")
-			t.Fatal(err)
-		}
-		require.Nil(t, err)
+		require.NoError(t, err, "Error when render HAProxy Service")
 		helm.UnmarshalK8SYaml(t, output, &service)
 		require.EqualValues(t, service.Spec.Type, "LoadBalancer")
 		require.EqualValues(t, service.Spec.ExternalTrafficPolicy, "Cluster")
@@ -199,11 +179,7 @@ func TestTemplateTestHAproxyConfigmap(t *testing.T) {
 
 		// render the service templete
 		output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{"templates/configmap-haproxy.yaml"})
-		if err != nil {
-			t.Log("Error when render HAProxy Configmap")
-			t.Fatal(err)
-		}
-		require.Nil(t, err)
+		require.NoError(t, err, "Error when render HAProxy Configmap")
 		helm.UnmarshalK8SYaml(t, output, &configmap)
 
 	}
