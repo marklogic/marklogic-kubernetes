@@ -59,7 +59,7 @@ func TestTemplateTestHAproxyDeployment(t *testing.T) {
 		// test default setting for rollme annotation
 		require.Contains(t, deployment.Spec.Template.Annotations, "rollme")
 		require.EqualValues(t, *deployment.Spec.Replicas, 2)
-		require.Equal(t, "haproxytech/haproxy-alpine:3.4.4", deployment.Spec.Template.Spec.Containers[0].Image)
+		require.Equal(t, "haproxytech/haproxy-alpine:3.4.7", deployment.Spec.Template.Spec.Containers[0].Image)
 	}
 
 	{
