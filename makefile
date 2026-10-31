@@ -1,6 +1,6 @@
 dockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:11.1.20230522-centos-1.0.2
 prevDockerImage?=ml-docker-db-dev-tierpoint.bed-artifactory.bedford.progress.com/marklogic/marklogic-server-centos:10.0-20230522-centos-1.0.2
-kubernetesVersion?=v1.25.8
+kubernetesVersion?=v1.36.6
 minikubeMemory?=10gb
 testSelection?=...
 ## System requirement:
@@ -85,7 +85,7 @@ lint:
 ## Options:
 ## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
 ## * [prevDockerImage] optional. used for marklogic upgrade tests
-## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
+## * [kubernetesVersion] optional. Default is v1.36.6. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: e2e-test
 e2e-test: prepare
@@ -206,7 +206,7 @@ sanity-upgrade-tests: prepare
 ## Run all tests
 ## Options:
 ## * [dockerImage] optional. default is progressofficial/marklogic-db:latest. Example: dockerImage=marklogic-centos/marklogic-server-centos:10-internal
-## * [kubernetesVersion] optional. Default is v1.25.8. Used for testing kubernetes version compatibility
+## * [kubernetesVersion] optional. Default is v1.36.6. Used for testing kubernetes version compatibility
 ## * [saveOutput] optional. Save the output to a xml file. Example: saveOutput=true
 .PHONY: test
 test: template-test e2e-test

@@ -14,7 +14,7 @@ For non-production deployments, please see [MiniKube Setup Guide](https://docs.m
 
 ### Kubernetes Version
 
-This Helm chart supports Kubernetes 1.23 or later.
+This Helm chart supports Kubernetes 1.36 or later.
 
 This Helm chart has been tested on EKS (Elastic Kubernetes Service on AWS) and AKS (Azure Kubernetes Service), nevertheless it is expected to work on GKE (Google Kubernetes Engine) and RedHat OpenShift.
 
