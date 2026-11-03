@@ -43,10 +43,16 @@ void preBuildCheck() {
 
     // install local version of golangci-lint and gotestsum
     sh '''
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v2.15.0
-        wget https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_amd64.tar.gz -O gotestsum.tar.gz
+        set -e
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "$tmp"' EXIT
+        curl -sSfL --retry 3 -o "$tmp/golangci-lint.tar.gz" https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-amd64.tar.gz
+        echo "9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea  $tmp/golangci-lint.tar.gz" | sha256sum -c -
+        curl -sSfL --retry 3 -o "$tmp/gotestsum.tar.gz" https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_amd64.tar.gz
+        echo "11ccddeaf708ef228889f9fe2f68291a75b27013ddfc3b18156e094f5f40e8ee  $tmp/gotestsum.tar.gz" | sha256sum -c -
         mkdir -p /space/go/bin/
-        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
+        tar -xzf "$tmp/golangci-lint.tar.gz" -C /space/go/bin/ --strip-components=1 golangci-lint-2.15.0-linux-amd64/golangci-lint
+        tar -xzf "$tmp/gotestsum.tar.gz" -C /space/go/bin/ gotestsum
     '''
 }
 
