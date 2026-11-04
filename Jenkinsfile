@@ -43,10 +43,16 @@ void preBuildCheck() {
 
     // install local version of golangci-lint and gotestsum
     sh '''
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /space/go/bin v1.50.0
-        wget https://github.com/gotestyourself/gotestsum/releases/download/v1.12.0/gotestsum_1.12.0_linux_amd64.tar.gz -O gotestsum.tar.gz
+        set -e
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "$tmp"' EXIT
+        curl -sSfL --retry 3 -o "$tmp/golangci-lint.tar.gz" https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-amd64.tar.gz
+        echo "9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea  $tmp/golangci-lint.tar.gz" | sha256sum -c -
+        curl -sSfL --retry 3 -o "$tmp/gotestsum.tar.gz" https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/gotestsum_1.13.0_linux_amd64.tar.gz
+        echo "11ccddeaf708ef228889f9fe2f68291a75b27013ddfc3b18156e094f5f40e8ee  $tmp/gotestsum.tar.gz" | sha256sum -c -
         mkdir -p /space/go/bin/
-        tar -xf gotestsum.tar.gz -C /space/go/bin/ gotestsum
+        tar -xzf "$tmp/golangci-lint.tar.gz" -C /space/go/bin/ --strip-components=1 golangci-lint-2.15.0-linux-amd64/golangci-lint
+        tar -xzf "$tmp/gotestsum.tar.gz" -C /space/go/bin/ gotestsum
     '''
 }
 
@@ -187,7 +193,7 @@ pipeline {
         choice(name: 'dockerImageType', choices: 'ubi-rootless\nubi\nubi9-rootless\nubi9', description: 'Platform type for Docker image')
         string(name: 'dockerVersion', defaultValue: 'latest-11', description: 'Docker tag to use for tests. (e.g. 11.2.nightly-ubi-rootless-1.1.2) Has to correspond with dockerImageType.', trim: true)
         string(name: 'prevDockerVersion', defaultValue: 'latest-10', description: 'Previous Docker version for MarkLogic upgrade tests. (e.g. 10.0-10.2-centos-1.1.2) Has to correspond with dockerImageType.', trim: true)
-        choice(name: 'K8_VERSION', choices: 'v1.31.7\nv1.32.3\nv1.30.11\nv1.29.15\nv1.28.15\nv1.27.16\nv1.26.15\nv1.25.16', description: 'Test Kubernetes version.')
+        choice(name: 'K8_VERSION', choices: 'v1.36.6\nv1.37.2\nv1.35.10', description: 'Test Kubernetes version.')
         booleanParam(name: 'KUBERNETES_TESTS', defaultValue: true, description: 'Run kubernetes tests')
         string(name: 'KUBERNETES_TEST_SELECTION', defaultValue: '...', description: 'Pick one test to run. (e.g. tls_test.go) ... will run all tests.', trim: true)
         booleanParam(name: 'HC_TESTS', defaultValue: false, description: 'Run Hub Central E2E UI tests (takes about 3 hours)')
